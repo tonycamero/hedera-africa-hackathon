@@ -1,0 +1,38 @@
+{
+  "name": "trustmesh-hackathon",
+  "version": "1.0.0",
+  "description": "TrustMesh - Computational Trust Network for Hedera Africa Hackathon 2025",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd setup/python-sdk && python trustmesh_api.py",
+    "dev:frontend": "cd frontend && npm start",
+    "setup:hedera": "node setup/hedera-setup.js",
+    "setup:demo": "cd setup/python-sdk && python demo_script.py --scenario campus",
+    "test": "cd setup/python-sdk && python -m pytest",
+    "build": "cd frontend && npm run build",
+    "demo": "npm run setup:demo && npm run dev"
+  },
+  "keywords": [
+    "hedera",
+    "hcs",
+    "trust",
+    "social",
+    "hackathon",
+    "africa",
+    "computational-trust"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_ORG/hedera-africa-hackathon.git"
+  },
+  "author": "TrustMesh Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
