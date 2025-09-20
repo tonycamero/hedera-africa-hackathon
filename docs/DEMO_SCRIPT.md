@@ -57,10 +57,10 @@ const DEMO_DATA = {
     qrCodeUrl: '/demo/qr-welcome.png'
   },
 
-  // Pre-configured badges
-  availableBadges: [
+  // Pre-configured signals
+  availableSignals: [
     {
-      name: 'Welcome Badge',
+      name: 'Welcome Signal',
       category: 'achievement',
       rarity: 'common',
       description: 'Welcome to TrustMesh!',
@@ -421,7 +421,7 @@ export function ConnectionFormedAnimation() {
 
 ---
 
-## 🌱 Scene 3: Badge Recognition (90 seconds)
+## 🌱 Scene 3: Signal Recognition (90 seconds)
 
 ### Technical Flow
 ```mermaid
@@ -429,40 +429,40 @@ sequenceDiagram
     participant A as Alex
     participant E as Eco Booth
     participant UI as TrustMesh UI  
-    participant HCS5 as HCS-5 Badges
+    participant HCS5 as HCS-5 Signals
     participant CE as Context Engine
 
     A->>E: Volunteers at sustainability booth
     E->>UI: Organizer opens badge issuing interface
-    UI->>E: Shows available badges for event
-    E->>UI: Selects "Eco Helper" badge for Alex
-    UI->>HCS5: Creates badge Hashinal
-    HCS5->>CE: Emits BADGE_ISSUED event
+    E->>UI: Shows available signals for event
+    E->>UI: Selects "Eco Helper" signal for Alex
+    UI->>HCS5: Creates signal Hashinal
+    HCS5->>CE: Emits SIGNAL_ISSUED event
     CE->>UI: Triggers celebration + reputation update
-    UI->>A: Shows badge earned animation
+    UI->>A: Shows signal earned animation
 ```
 
-### Badge Earning Interface
+### Signal Earning Interface
 ```typescript
-// Scene3: Badge Recognition System
-export function BadgeRecognitionDemo() {
+// Scene3: Signal Recognition System
+export function SignalRecognitionDemo() {
   const [volunteerActivity, setVolunteerActivity] = useState('idle');
-  const [earnedBadge, setEarnedBadge] = useState<BadgeData | null>(null);
+  const [earnedSignal, setEarnedSignal] = useState<SignalData | null>(null);
 
   const handleVolunteerAction = async (activity: string) => {
     setVolunteerActivity('active');
     
     // Simulate volunteer activity completion
     setTimeout(async () => {
-      // Award badge via HCS-5
-      const badgeManager = new BadgeManager();
-      const hashinalId = await badgeManager.createBadge(
+      // Award signal via HCS-5
+      const signalManager = new SignalManager();
+      const hashinalId = await signalManager.createSignal(
         '0.0.DEMO_ORG',
         '0.0.DEMO001', 
         {
           name: 'Eco Helper',
           description: 'Helped with sustainability booth setup',
-          badgeType: 'contribution',
+          signalType: 'contribution',
           category: 'volunteering',
           rarity: 'rare',
           issuanceContext: {
@@ -473,7 +473,7 @@ export function BadgeRecognitionDemo() {
         }
       );
 
-      setEarnedBadge({
+      setEarnedSignal({
         hashinalId,
         name: 'Eco Helper',
         icon: '🌱',
@@ -513,8 +513,8 @@ export function BadgeRecognitionDemo() {
             </div>
           )}
           
-          {earnedBadge && (
-            <BadgeEarnedCelebration badge={earnedBadge} />
+          {earnedSignal && (
+            <SignalEarnedCelebration signal={earnedSignal} />
           )}
         </div>
       </div>
@@ -522,22 +522,22 @@ export function BadgeRecognitionDemo() {
   );
 }
 
-// Badge earned celebration component
-function BadgeEarnedCelebration({ badge }: { badge: BadgeData }) {
+// Signal earned celebration component
+function SignalEarnedCelebration({ signal }: { signal: SignalData }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl p-8 text-center max-w-sm w-full">
-        <div className="text-6xl mb-4 animate-bounce">{badge.icon}</div>
-        <h3 className="text-2xl font-bold mb-2">Badge Earned!</h3>
-        <h4 className="text-xl text-green-600 mb-4">{badge.name}</h4>
+        <div className="text-6xl mb-4 animate-bounce">{signal.icon}</div>
+        <h3 className="text-2xl font-bold mb-2">Signal Earned!</h3>
+        <h4 className="text-xl text-green-600 mb-4">{signal.name}</h4>
         
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-sm font-medium">Rarity:</span>
             <span className={`px-2 py-1 rounded text-xs font-bold ${
-              badge.rarity === 'rare' ? 'bg-yellow-200 text-yellow-800' : ''
+              signal.rarity === 'rare' ? 'bg-yellow-200 text-yellow-800' : ''
             }`}>
-              {badge.rarity}
+              {signal.rarity}
             </span>
           </div>
           <p className="text-sm text-gray-600">+50 reputation points</p>

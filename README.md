@@ -1,165 +1,265 @@
-# 🏆 TrustMesh - Hedera Africa Hackathon 2025
+# TrustMesh Hackathon Implementation
 
-**Computational Trust Network on Hedera**  
-*48-hour execution plan for hackathon victory*
+**A decentralized social trust network built on Hedera Hashgraph with Magic.link authentication**
 
----
+## 🚀 Quick Start
 
-## ⚡ **60-Second Quickstart**
+### Prerequisites
+- Node.js 20+ (with Corepack enabled)
+- Hedera testnet account with HBAR
+- Magic.link account (free tier available)
 
-### **What We're Building**
-TrustMesh: The first **bounded dynamical system for computational trust** on Hedera. Make trust programmable without losing its human essence.
+### Setup (5 minutes)
 
-### **Our Winning Edge**
-- **Academic Foundation**: Princeton computational trust theory
-- **Technical Innovation**: 5 HCS standards for social trust networks  
-- **Real Economic Value**: TRST staking creates skin-in-the-game
-- **Viral Demo**: Campus Welcome Fair scenario that judges will remember
+1. **Clone and Install**
+   ```bash
+   git clone <your-repo-url>
+   cd TrustMesh_hackathon
+   npm install
+   ```
 
-### **Demo Hook**
-*"What if trust wasn't just a feeling, but something you could measure, stake, and build community around?"*
+2. **Environment Configuration**
+   ```bash
+   cp .env.local.template .env.local
+   ```
+   
+   Fill in your credentials:
+   - `HEDERA_OPERATOR_ID` - Your testnet account ID
+   - `HEDERA_OPERATOR_KEY` - Your testnet private key
+   - `MAGIC_PUBLISHABLE_KEY` - Magic.link publishable key
+   - `MAGIC_SECRET_KEY` - Magic.link secret key
 
----
+3. **Create HCS Topics**
+   ```bash
+   npx ts-node scripts/setup.ts
+   ```
 
-## 🚀 **48-Hour Execution Plan**
+4. **Seed Demo Data**
+   ```bash
+   npx ts-node scripts/seedData.ts
+   ```
 
-### **Day 1: Foundation Sprint (0-24h)**
-- **Hours 0-6**: Hedera setup + HCS topics + Profile system (HCS-11)
-- **Hours 6-12**: Trust token exchange (HCS-20) + Basic UI
-- **Hours 12-18**: Badge system (HCS-5) + Recognition mechanics
-- **Hours 18-24**: Campus demo scenario + Test data population
+5. **Start Development**
+   ```bash
+   npm run dev
+   ```
 
-### **Day 2: Demo Polish (24-48h)**
-- **Hours 24-30**: UI/UX polish + Mobile responsive
-- **Hours 30-36**: Performance optimization + Error handling
-- **Hours 36-42**: Pitch deck + Demo script rehearsal
-- **Hours 42-48**: Final testing + Submission ready
+## 📖 Implementation Guide
 
----
+**📋 [Developer Workbook](./TRUSTMESH_DEVELOPER_WORKBOOK_IMPLEMENTATION.md)** - Complete 15-20 hour implementation guide
 
-## 🎬 **The Winning Demo: "Alex's First Day"** *(5 minutes)*
+### Architecture Overview
 
-1. **QR Onboarding** (60s): Alex scans booth QR → creates profile → welcome trust coin
-2. **Trust Exchange** (90s): Meets Jordan → gives trust token for "helpful guidance"  
-3. **Badge Recognition** (90s): Volunteers at eco booth → earns "Eco Helper" badge
-4. **Community Poll** (60s): Votes "Best Dressed" → real-time results + winner badge
-5. **Reputation Milestone** (60s): Reaches "Active Member" → unlocks privileges
+- **Authentication:** Magic.link email-based with Hedera account provisioning
+- **Storage:** HCS-native (no Solidity required)
+- **State:** Derived from message replay via Mirror Node
+- **Real-time:** WebSocket feeds for live updates
 
----
+### Core Features
 
-## 🛠️ **Tech Stack (Minimal)**
+1. **🔐 Magic.link Authentication**
+   - Email-based login
+   - Automatic Hedera account creation
+   - Self-custody wallet management
 
-### **Backend**
+2. **👥 Contact Management**
+   - QR code connections
+   - Bidirectional request/accept flow
+   - HCS-11 profile references
+
+3. **🎯 Trust System (Circle of 9)**
+   - Maximum 9 outbound trust allocations
+   - Weighted trust (1-3 scale)
+   - Trust revocation mechanism
+
+4. **🏆 Recognition Signals**
+   - Transferable achievement tokens
+   - Ownership tracking via message replay
+   - Issuer reputation system
+
+## 📁 Project Structure
+
+```
+TrustMesh_hackathon/
+├── 📖 TRUSTMESH_DEVELOPER_WORKBOOK_IMPLEMENTATION.md  # Complete implementation guide
+├── 🔧 scripts/
+│   ├── setup.ts           # HCS topic creation
+│   └── seedData.ts        # Demo data seeding
+├── 🏗️ app/                # Next.js App Router
+├── 🧩 components/         # React components + shadcn/ui
+├── 📚 lib/
+│   ├── hedera/           # Hedera SDK utilities
+│   ├── hooks/            # React hooks
+│   └── types/            # TypeScript definitions
+├── 🔗 services/          # API integrations
+│   ├── MagicService.ts   # Magic.link integration
+│   ├── ContactService.ts # Contact management
+│   ├── TrustService.ts   # Trust system
+│   └── SignalService.ts  # Signal recognition
+└── 📋 docs/              # Documentation
+```
+
+## 🛠️ Development Workflow
+
+### Phase 1: Authentication (3-4 hours)
+- Implement Magic.link integration
+- Create authentication hooks
+- Build login/logout UI
+- Test Hedera account creation
+
+### Phase 2: Profiles (2-3 hours)
+- HCS-11 profile standard
+- Profile editor component
+- Message publishing
+- Real-time feed updates
+
+### Phase 3: Contacts (3-4 hours)
+- Contact request/accept flow
+- QR code sharing
+- Mutual connection tracking
+
+### Phase 4: Trust System (3-4 hours)
+- Circle of 9 implementation
+- Trust allocation interface
+- Weight selection (1-3)
+- Trust revocation
+
+### Phase 5: Signals (3-4 hours)
+- Signal minting system
+- Transfer mechanism
+- Gallery with ownership
+- Categories and metadata
+
+## 🧪 Testing
+
 ```bash
-pip install fastapi uvicorn hedera-sdk-python
+# Unit tests
+npm test
+
+# Integration tests
+npm run test:integration
+
+# E2E tests
+npm run test:e2e
+
+# Debug HCS messages
+open http://localhost:3000/debug
 ```
 
-### **Frontend**  
-```bash
-npx create-react-app trustmesh-demo --template typescript
-npm install @tailwindcss/typography framer-motion
-```
+## 📊 Demo Script
 
-### **Hedera**
-- Testnet account: https://portal.hedera.com
-- 5 HCS topics: profiles, trust-tokens, badges, reputation, polls
+1. **Login** with Magic.link email → show Hedera account
+2. **Create Profile** → verify in activity feed
+3. **Connect with QR** → demonstrate bidirectional connection
+4. **Allocate Trust** → show Circle of 9 visualization
+5. **Issue Signal** → transfer and track ownership
+6. **Export Proof** → show HCS message envelope
 
----
+## 🔗 Key Technologies
 
-## 📁 **Repository Structure** *(Lean)*
+- **[Hedera Hashgraph](https://hedera.com)** - Consensus and storage layer
+- **[Magic.link](https://magic.link)** - Authentication and wallet management
+- **[Next.js 15](https://nextjs.org)** - React framework
+- **[shadcn/ui](https://ui.shadcn.com)** - UI components
+- **[TypeScript](https://typescriptlang.org)** - Type safety
+- **[Zod](https://zod.dev)** - Schema validation
 
-```
-├── README.md                    # This file - start here
-├── docs/                        # Essential docs only
-│   ├── DEMO_SCRIPT.md          # 5-minute presentation flow
-│   ├── TECH_OVERVIEW.md        # Core architecture (2 pages max)
-│   └── WINNING_STRATEGY.md     # Competition positioning
-├── src/                         # Implementation
-│   ├── hedera/                 # HCS integration
-│   ├── trustmesh/              # Core managers (Profile, Trust, Badge)
-│   ├── ui/                     # React components
-│   └── demo/                   # Campus demo scenario
-├── setup/                       # Setup automation
-│   ├── hedera-setup.js         # HCS topic creation
-│   ├── demo-data.json          # Campus scenario data
-│   └── env-template.txt        # Environment variables
-└── assets/                      # Demo assets only
-    ├── demo-avatars/           # User profile images
-    └── badge-icons/            # Badge visual assets
-```
+## 🚀 Production Deployment
 
----
+See the [Developer Workbook](./TRUSTMESH_DEVELOPER_WORKBOOK_IMPLEMENTATION.md#6-production-deployment) for:
+- Mainnet configuration
+- Environment setup
+- Monitoring and health checks
+- Performance optimization
 
-## 🎯 **Success Criteria** *(Judge-focused)*
+## 📞 Support
 
-### **Technical Innovation** 
-- [ ] **5+ HCS Standards**: Novel use of Hedera consensus for social trust
-- [ ] **Sub-2s Performance**: Real-time trust relationship updates
-- [ ] **Mobile Demo**: Flawless campus scenario on mobile devices
+- **Implementation Issues:** Check troubleshooting section in workbook
+- **Hedera Questions:** [Hedera Discord](https://discord.com/invite/hedera)
+- **Magic.link Help:** [Magic.link Docs](https://magic.link/docs)
 
-### **Real-World Impact**
-- [ ] **African Use Cases**: Clear community applications demonstrated  
-- [ ] **Economic Model**: TRST tokenomics with network effects
-- [ ] **Scalability Path**: Framework for ecosystem adoption
+## 📝 License
 
-### **Presentation Excellence**
-- [ ] **Compelling Hook**: Trust programmability narrative
-- [ ] **Live Demo**: Real trust relationships forming during presentation
-- [ ] **Academic Credibility**: Princeton theoretical foundation
+MIT License - see LICENSE file for details
 
 ---
 
-## 🔥 **Team Roles** *(4-person optimal)*
+**Built for hackathons, designed for production.**
 
-### **Tony (Strategic Lead)**
-- Overall vision and academic positioning
-- Pitch development and judge engagement  
-- Hedera ecosystem relationships
+# 🔗 TrustMesh
 
-### **Python Developer (Technical Lead)**
-- Backend architecture and HCS integration
-- SDK development and performance optimization
-- Demo scenario technical implementation
+> **Trust is the new currency. Start earning yours.**
 
-### **Frontend Developer**
-- React UI and mobile responsiveness
-- Trust network visualization and animations
-- User experience polish and celebration flows
+**Chainproof credibility for the culture.** Built on Hedera. Powered by TRST.
 
-### **Full-Stack/Demo Coordinator**
-- End-to-end feature integration
-- Demo data population and testing
-- Presentation coordination and backup plans
+## 🎯 What This Is
+
+TrustMesh is **programmable trust infrastructure**—not another social app. We're building a world where your reputation travels with you, verified on-chain, impossible to fake.
+
+**No resume. Just receipts.**
+
+### The Flex Protocol
+
+- **Messaging Loop** → XMTP conversations that matter
+- **Payments Loop** → TRST tokens, no gatekeepers  
+- **Engagement Loop** → Chainproof badges that hit different
+
+**QR to trust loop.** Scan. Stake. Share.
+
+## 🚀 Quick Start
+
+\`\`\`bash
+# Clone the trust layer
+git clone [repo-url]
+cd trustmesh
+
+# Install dependencies
+npm install
+
+# Start earning your circle
+npm run dev
+\`\`\`
+
+## 🧬 Core Concepts
+
+### Circle of Trust
+**9 tokens. 1 circle. No cap.** Maximum 9 outbound circle tokens per user. Mutual acceptance required. Scarcity creates value.
+
+### Chainproof Badges
+**Badges hit different when they're on-chain.** Non-transferable NFTs on Hedera. Revocable but immutable history.
+
+### TRST Economy
+**Earned trust. On-chain.** Native token for trust transactions. Invisible wallets via MatterFi.
+
+## 🎨 Brand Voice
+
+- **Confident** → We're not asking for trust, we're defining it
+- **Cultural** → We speak TikTok and Hedera fluently  
+- **Cryptographic** → We reference on-chain logic and verifiability
+- **Human** → We joke, meme, and speak like real users
+
+## 📚 Documentation
+
+- [Context Engineering Rulebook](./docs/CONTEXT_ENGINEERING.md)
+- [Badge & Token Library](./docs/BADGE_TOKEN_LIBRARY.md)
+- [Brand Voice Guide](./docs/BRAND_VOICE_GUIDE.md)
+
+## 🔧 Tech Stack
+
+- **Frontend**: Next.js, Tailwind, shadcn/ui
+- **Blockchain**: Hedera HCS10, HTS tokens
+- **Messaging**: XMTP Protocol
+- **Payments**: TRST via MatterFi/Brale
+- **Identity**: Magic.link, MatterFi wallets
+
+## 🌟 The Vision
+
+**Reputation is programmable.** Trust doesn't need a gatekeeper. Your credibility should be portable, verifiable, and yours.
+
+**Inscribed like it matters.**
 
 ---
 
-## ⚡ **Immediate Next Actions**
-
-### **Right Now** *(next 30 minutes)*
-1. **Clone this repo** and review structure
-2. **Assign team roles** and communication channels
-3. **Set up Hedera testnet** accounts and credentials
-4. **Read**: `docs/TECH_OVERVIEW.md` for architecture clarity
-
-### **Today** *(next 6 hours)*
-1. **Environment setup**: Hedera SDK + HCS topics
-2. **Basic scaffolding**: React app + FastAPI backend
-3. **First HCS message**: Prove Hedera integration works
-4. **Team sync**: Progress check and blocker resolution
-
----
-
-## 📞 **Emergency Resources**
-
-- **Hedera Support**: [Discord](https://discord.gg/hedera)
-- **HCS Standards**: [GitHub](https://github.com/hedera-dev/hedera-standards)
-- **Tony Camero**: Strategic questions and ecosystem connections
-- **Team Coordination**: [Your communication channel]
-
----
-
-**🎯 Mission**: Build the trust layer for Africa's digital economy  
-**🏆 Goal**: Hedera Africa Hackathon victory  
-**🚀 Timeline**: 48 hours to change how trust works  
-
-**Ready to revolutionize trust? Let's execute! 🚀**
+> **Your trust. Your chain.**
+> 
+> Built on Hedera. For the culture.

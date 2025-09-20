@@ -46,9 +46,9 @@ interface TrustToken {
 }
 ```
 
-### **3. Badge Manager (HCS-5)**
+### **3. Signal Manager (HCS-5)**
 ```typescript
-interface Badge {
+interface Signal {
   hashinalId: string;          // Unique Hedera NFT-like asset
   name: string;                // "Eco Helper", "Best Dressed"
   category: 'achievement' | 'personality' | 'skill';
@@ -64,12 +64,12 @@ interface Badge {
 // Reputation calculation
 const calculateTrustScore = (profile: TrustMeshProfile) => {
   const trustWeight = profile.circleOfTrust.signalsReceived.length * 15;
-  const badgeWeight = profile.badges.reduce((sum, badge) => {
-    return sum + RARITY_WEIGHTS[badge.rarity];
+  const signalWeight = profile.signals.reduce((sum, signal) => {
+    return sum + RARITY_WEIGHTS[signal.rarity];
   }, 0);
   const activityWeight = getRecentActivity(profile.profileId) * 5;
   
-  return Math.min(100, trustWeight + badgeWeight + activityWeight);
+  return Math.min(100, trustWeight + signalWeight + activityWeight);
 };
 ```
 
@@ -81,7 +81,7 @@ interface CommunityPoll {
   nominees: string[];          // User profile IDs
   votes: { [nominee: string]: number };
   endTime: string;
-  winnerBadge?: Badge;         // Auto-awarded to winner
+  winnerSignal?: Signal;       // Auto-awarded to winner
 }
 ```
 
@@ -94,7 +94,7 @@ interface CommunityPoll {
     ↓
 2. Meet Jordan → Give Trust Token (HCS-20)
     ↓  
-3. Volunteer → Earn Badge (HCS-5)
+3. Volunteer → Earn Signal (HCS-5)
     ↓
 4. Vote in Poll → Community Engagement (HCS-8)
     ↓
@@ -112,7 +112,7 @@ interface CommunityPoll {
 4. Simple trust token exchange
 
 ### **MVP Sprint 2** *(Hours 6-12)*
-1. Badge creation and issuance
+1. Signal creation and issuance
 2. Basic reputation calculation  
 3. Simple React UI for core flows
 4. Mobile-responsive layout
@@ -128,7 +128,7 @@ interface CommunityPoll {
 ## 📊 **Performance Targets**
 
 - **Trust Token Exchange**: <3 seconds end-to-end
-- **Badge Creation**: <2 seconds  
+- **Signal Creation**: <2 seconds
 - **Reputation Update**: <1 second
 - **Mobile Load Time**: <2 seconds
 - **Demo Scene Transitions**: <500ms
@@ -162,7 +162,7 @@ interface CommunityPoll {
 const TOPICS = {
   PROFILES: await createTopic("TrustMesh-Profiles"),
   TRUST_TOKENS: await createTopic("TrustMesh-Trust"),  
-  BADGES: await createTopic("TrustMesh-Badges"),
+  SIGNALS: await createTopic("TrustMesh-Signals"),
   REPUTATION: await createTopic("TrustMesh-Reputation"),
   POLLS: await createTopic("TrustMesh-Polls")
 };
@@ -189,8 +189,8 @@ const executeWithFallback = async (hcsOperation, mockData) => {
     { "name": "Jordan Smith", "role": "cs_club_president" },
     { "name": "Casey Rodriguez", "role": "eco_organizer" }
   ],
-  "demoBadges": [
-    { "name": "Welcome Badge", "rarity": "common", "icon": "🎉" },
+  "demoSignals": [
+    { "name": "Welcome Signal", "rarity": "common", "icon": "🎉" },
     { "name": "Eco Helper", "rarity": "rare", "icon": "🌱" },
     { "name": "Style Icon", "rarity": "legendary", "icon": "✨" }
   ]
