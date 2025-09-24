@@ -1,6 +1,6 @@
-import { Client, TopicMessageSubmitTransaction, PrivateKey } from '@hashgraph/sdk';
-import { createHash } from 'crypto';
-import * as fs from 'fs';
+const { Client, TopicMessageSubmitTransaction, PrivateKey } = require('@hashgraph/sdk');
+const { createHash } = require('crypto');
+const fs = require('fs');
 require('dotenv').config({ path: '.env.local' });
 
 interface MessageEnvelope {
@@ -14,7 +14,7 @@ interface MessageEnvelope {
 
 interface DemoAccount {
   id: string;
-  privateKey: PrivateKey;
+  privateKey: any;
   handle: string;
   bio: string;
   nonce: number;
@@ -30,8 +30,8 @@ interface SeedSummary {
 }
 
 class TrustMeshSeeder {
-  private client: Client;
-  private operatorKey: PrivateKey;
+  private client: any;
+  private operatorKey: any;
   private topics: Record<string, string>;
   private accounts: DemoAccount[] = [];
   private summary: SeedSummary = {

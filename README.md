@@ -1,6 +1,6 @@
-# TrustMesh Hackathon Implementation
+# TrustMesh Hackathon MVP
 
-**A decentralized social trust network built on Hedera Hashgraph with Magic.link authentication**
+**A focused demo of HCS-based trust allocation with live activity feed. Everything else is stubbed for hackathon scope.**
 
 ## 🚀 Quick Start
 

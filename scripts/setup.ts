@@ -1,6 +1,6 @@
-import { Client, TopicCreateTransaction, PrivateKey } from '@hashgraph/sdk';
-import * as fs from 'fs';
-import * as path from 'path';
+const { Client, TopicCreateTransaction, PrivateKey } = require('@hashgraph/sdk');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config({ path: '.env.local' });
 
 interface TopicConfig {

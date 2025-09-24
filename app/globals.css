@@ -76,6 +76,234 @@
   --sidebar-ring: rgba(34, 197, 94, 0.5);
 }
 
+/*
+=============================================================================
+  UNIVERSAL TRUSTMESH DARK THEME - Single Control Point
+  
+  Modify these values to change the entire app appearance.
+  All components will automatically use these variables.
+  
+  🎨 QUICK COLOR SWITCHES:
+  
+  Card Outline Colors (line 131):
+  - LED Green: --card-border: var(--card-border-option-1)
+  - Electric Cyan: --card-border: var(--card-border-option-2)
+  
+  Text Hierarchy (lines 106-110):
+  - Adjust brightness levels for different text types
+  
+  Neon Palette (lines 131-138):
+  - 8 electric colors for accents and highlights
+  
+=============================================================================
+*/
+
+:root.theme-mesh-dark,
+.theme-mesh-dark,
+html.theme-mesh-dark,
+html.theme-mesh-dark * {
+  /* ==> BACKGROUND SURFACES */
+  --background: #0f1827 !important;           /* Main app background */
+  --card: #1e293b !important;                 /* Card backgrounds */
+  --popover: #1e293b !important;              /* Popovers/dropdowns */
+  --muted: #334155 !important;                /* Muted backgrounds */
+  --secondary: #334155 !important;            /* Secondary backgrounds */
+  --input: #374151 !important;                /* Input field backgrounds */
+  
+  /* ==> TEXT HIERARCHY - Nuanced palette for depth & readability */
+  --foreground: #f8fafc !important;           /* Primary text - crisp white */
+  --card-foreground: #f8fafc !important;      /* Card text - crisp white */
+  --popover-foreground: #f8fafc !important;   /* Popover text - crisp white */
+  
+  /* Text hierarchy levels */
+  --text-primary: #ffffff !important;         /* Headings, important content */
+  --text-secondary: #e2e8f0 !important;       /* Body text, descriptions */
+  --text-muted: #cbd5e1 !important;           /* Labels, captions, metadata */
+  --text-subtle: #94a3b8 !important;          /* Timestamps, helper text */
+  --text-placeholder: #64748b !important;     /* Placeholder text in inputs */
+  
+  /* Legacy compatibility */
+  --muted-foreground: #cbd5e1 !important;     /* Maps to text-muted */
+  --secondary-foreground: #e2e8f0 !important; /* Maps to text-secondary */
+  
+  /* ==> INTERACTIVE ELEMENTS */
+  --primary: #0ea5e9 !important;              /* Primary buttons/links */
+  --primary-foreground: #0f1827 !important;   /* Text on primary buttons */
+  --accent: #22d3ee !important;               /* Accent color */
+  --accent-foreground: #0f1827 !important;    /* Text on accent elements */
+  
+  /* ==> BORDERS & OUTLINES - Two card outline options */
+  --border: #475569 !important;               /* Default borders */
+  --ring: #0ea5e9 !important;                 /* Focus rings */
+  
+  /* Card outline options - choose one by uncommenting */
+  --card-border-option-1: #00ff41 !important; /* LED Green outline */
+  --card-border-option-2: #00ffff !important; /* Electric Cyan outline */
+  
+  /* Active card border - change this to switch between options */
+  --card-border: var(--card-border-option-1) !important; /* Currently using LED Green */
+  
+  /* ==> SYSTEM COLORS */
+  --destructive: #ef4444 !important;          /* Error/delete actions */
+  --destructive-foreground: #ffffff !important;
+  
+  /* ==> NEON/LED COLOR PALETTE - Bright accent colors */
+  --neon-green: #00ff41 !important;           /* Electric LED green */
+  --neon-lime: #32ff32 !important;            /* Bright lime green */
+  --neon-mint: #00ffa1 !important;            /* Mint neon green */
+  --neon-cyan: #00ffff !important;            /* Electric cyan */
+  --neon-blue: #0080ff !important;            /* Electric blue */
+  --neon-purple: #8000ff !important;          /* Electric purple */
+  --neon-pink: #ff0080 !important;            /* Hot pink neon */
+  --neon-orange: #ff8000 !important;          /* Electric orange */
+  
+  /* ==> SIGNAL CATEGORY COLORS - Using neon palette */
+  --social: #00ffff !important;               /* Social signals - electric cyan */
+  --academic: #8000ff !important;             /* Academic signals - electric purple */
+  --professional: #0080ff !important;         /* Professional signals - electric blue */
+  --success: #00ff41 !important;              /* Success states - LED green */
+  --trust: #32ff32 !important;                /* Trust allocation - bright lime */
+}
+
+/*
+=============================================================================
+  UNIVERSAL ELEMENT OVERRIDES - Forces theme on all components
+=============================================================================
+*/
+
+/* Force background and text colors on all elements */
+html.theme-mesh-dark,
+html.theme-mesh-dark body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* All cards, containers, and surfaces */
+html.theme-mesh-dark .bg-card,
+html.theme-mesh-dark [data-state],
+html.theme-mesh-dark .card,
+html.theme-mesh-dark .Card {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border: 1px solid var(--card-border) !important; /* Uses active card border option */
+}
+
+/* Special card types with different border styles */
+html.theme-mesh-dark .card-neon {
+  border: 2px solid var(--card-border) !important;
+  box-shadow: 0 0 10px var(--card-border) !important; /* Neon glow effect */
+}
+
+html.theme-mesh-dark .card-subtle {
+  border: 1px solid var(--border) !important; /* Uses default subtle border */
+}
+
+/* All text elements */
+html.theme-mesh-dark h1,
+html.theme-mesh-dark h2,
+html.theme-mesh-dark h3,
+html.theme-mesh-dark h4,
+html.theme-mesh-dark h5,
+html.theme-mesh-dark h6 {
+  color: var(--foreground) !important;
+}
+
+/* Muted text (dates, labels, descriptions) */
+html.theme-mesh-dark .text-muted,
+html.theme-mesh-dark .text-muted-foreground,
+html.theme-mesh-dark [class*="text-slate-"],
+html.theme-mesh-dark [class*="text-gray-"] {
+  color: var(--muted-foreground) !important;
+}
+
+/* Input fields */
+html.theme-mesh-dark input,
+html.theme-mesh-dark textarea,
+html.theme-mesh-dark select {
+  background-color: var(--input) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+html.theme-mesh-dark input::placeholder,
+html.theme-mesh-dark textarea::placeholder {
+  color: var(--muted-foreground) !important;
+}
+
+/* Buttons */
+html.theme-mesh-dark .btn-primary,
+html.theme-mesh-dark .bg-primary {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+html.theme-mesh-dark .btn-secondary,
+html.theme-mesh-dark .bg-secondary {
+  background-color: var(--secondary) !important;
+  color: var(--secondary-foreground) !important;
+}
+
+/* Borders */
+html.theme-mesh-dark [class*="border"] {
+  border-color: var(--border) !important;
+}
+
+/* Links */
+html.theme-mesh-dark a {
+  color: var(--primary) !important;
+}
+
+/* Badges and pills */
+html.theme-mesh-dark .badge,
+html.theme-mesh-dark [class*="badge"] {
+  background-color: var(--secondary) !important;
+  color: var(--secondary-foreground) !important;
+}
+
+/* Success/error states with neon colors */
+html.theme-mesh-dark .text-green-600,
+html.theme-mesh-dark .text-green-700,
+html.theme-mesh-dark .text-emerald-600,
+html.theme-mesh-dark .text-emerald-700 {
+  color: var(--success) !important; /* LED green */
+}
+
+html.theme-mesh-dark .text-red-600,
+html.theme-mesh-dark .text-red-700 {
+  color: var(--destructive) !important;
+}
+
+/* Neon accent overrides */
+html.theme-mesh-dark .text-primary {
+  color: var(--neon-cyan) !important;
+}
+
+html.theme-mesh-dark .accent {
+  color: var(--neon-green) !important;
+}
+
+/* Trust/bonded status with bright lime */
+html.theme-mesh-dark .trust-indicator,
+html.theme-mesh-dark .bonded-status {
+  color: var(--trust) !important; /* Bright lime green */
+}
+
+/* Signal category badges with neon colors */
+html.theme-mesh-dark .badge-social {
+  background: var(--social) !important;
+  color: var(--background) !important;
+}
+
+html.theme-mesh-dark .badge-academic {
+  background: var(--academic) !important;
+  color: var(--background) !important;
+}
+
+html.theme-mesh-dark .badge-professional {
+  background: var(--professional) !important;
+  color: var(--background) !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -149,4 +377,59 @@
 
 .gradient-accent {
   background: linear-gradient(135deg, #84cc16 0%, #a3e635 100%);
+}
+
+/* TrustMesh Signal Components */
+.signal-card {
+  min-height: 140px;
+}
+
+.signal-card--social {
+  box-shadow: inset 0 0 0 2px var(--social);
+}
+
+.signal-card--academic {
+  box-shadow: inset 0 0 0 2px var(--academic);
+}
+
+.signal-card--professional {
+  box-shadow: inset 0 0 0 2px var(--professional);
+}
+
+/* Signal category utility classes */
+.text-social { color: hsl(var(--social)); }
+.bg-social { background-color: hsl(var(--social)); }
+.border-social { border-color: hsl(var(--social)); }
+.text-academic { color: hsl(var(--academic)); }
+.bg-academic { background-color: hsl(var(--academic)); }
+.border-academic { border-color: hsl(var(--academic)); }
+.text-professional { color: hsl(var(--professional)); }
+.bg-professional { background-color: hsl(var(--professional)); }
+.border-professional { border-color: hsl(var(--professional)); }
+.text-success { color: hsl(var(--success)); }
+.bg-success { background-color: hsl(var(--success)); }
+.text-trust { color: hsl(var(--trust)); }
+
+/* High contrast text utilities - WCAG AA compliant */
+.text-high-contrast { color: hsl(var(--foreground)) !important; }
+.text-medium-contrast { color: hsl(var(--muted-foreground)) !important; }
+.text-card-high { color: hsl(var(--card-foreground)) !important; }
+
+/* Emergency neutralizer: stop yellow text leaks */
+html.theme-mesh-dark .text-yellow-400,
+html.theme-mesh-dark .text-yellow-500,
+html.theme-mesh-dark .text-amber-400,
+html.theme-mesh-dark .text-amber-500 {
+  color: var(--foreground) !important;
+}
+
+/*
+=============================================================================
+  HIGH CONTRAST MODE - Add ?hc=1 to URL for presentations/accessibility
+=============================================================================
+*/
+html.theme-mesh-dark.hc {
+  --muted-foreground: #e5e7eb !important;     /* Even brighter muted text */
+  --secondary-foreground: #f1f5f9 !important; /* Even brighter secondary text */
+  --border: #64748b !important;               /* More visible borders */
 }
