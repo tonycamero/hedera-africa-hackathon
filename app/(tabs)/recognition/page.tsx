@@ -1,19 +1,58 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RecognitionSignalCard } from "@/components/RecognitionSignalCard"
 import { SignalDetailModal } from "@/components/SignalDetailModal"
-import { recognitionSignals, getSignalsByCategory, getSignalCounts, type SignalCategory, type RecognitionSignal } from "@/lib/data/recognitionSignals"
+import { hcsRecognitionService, type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
+import type { SignalCategory } from "@/lib/data/recognitionSignals"
 
 export default function RecognitionPage() {
   const [activeCategory, setActiveCategory] = useState<SignalCategory | 'all'>('all')
-  const [selectedSignal, setSelectedSignal] = useState<RecognitionSignal | null>(null)
+  const [selectedSignal, setSelectedSignal] = useState<HCSRecognitionDefinition | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const counts = getSignalCounts()
+  const [recognitionDefinitions, setRecognitionDefinitions] = useState<HCSRecognitionDefinition[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleSignalClick = (signal: RecognitionSignal) => {
+  // Load recognition definitions from HCS
+  useEffect(() => {
+    const loadRecognitionData = async () => {
+      try {
+        setIsLoading(true)
+        
+        // Wait for recognition service to be ready
+        if (!hcsRecognitionService.isReady()) {
+          console.log("[RecognitionPage] Waiting for HCS recognition service to initialize...")
+          // Try again after a longer delay, and set a max retry limit
+          let retryCount = parseInt(sessionStorage.getItem('hcsRecognitionRetries') || '0')
+          if (retryCount < 10) { // Max 10 retries (20 seconds total)
+            sessionStorage.setItem('hcsRecognitionRetries', (retryCount + 1).toString())
+            setTimeout(loadRecognitionData, 3000)
+          } else {
+            console.error("[RecognitionPage] Max retries reached, HCS service may not be initialized")
+            setIsLoading(false)
+          }
+          return
+        }
+        
+        // Reset retry count on success
+        sessionStorage.removeItem('hcsRecognitionRetries')
+        
+        const definitions = await hcsRecognitionService.getAllRecognitionDefinitions()
+        setRecognitionDefinitions(definitions)
+        console.log(`[RecognitionPage] Loaded ${definitions.length} recognition definitions from HCS`)
+      } catch (error) {
+        console.error("[RecognitionPage] Failed to load recognition data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadRecognitionData()
+  }, [])
+
+  const handleSignalClick = (signal: HCSRecognitionDefinition) => {
     setSelectedSignal(signal)
     setIsModalOpen(true)
   }
@@ -23,10 +62,22 @@ export default function RecognitionPage() {
     setSelectedSignal(null)
   }
 
+  // Calculate counts from HCS data
+  const getHCSSignalCounts = () => {
+    const counts = {
+      social: recognitionDefinitions.filter(s => s.category === 'social').length,
+      academic: recognitionDefinitions.filter(s => s.category === 'academic').length,
+      professional: recognitionDefinitions.filter(s => s.category === 'professional').length
+    }
+    return counts
+  }
+  
+  const counts = getHCSSignalCounts()
+
   // Filter signals based on active category
   const filteredSignals = activeCategory === 'all' 
-    ? recognitionSignals 
-    : getSignalsByCategory(activeCategory)
+    ? recognitionDefinitions 
+    : recognitionDefinitions.filter(signal => signal.category === activeCategory)
 
   // Category filter buttons with our theme colors
   const categoryButtons = [
@@ -88,25 +139,42 @@ export default function RecognitionPage() {
       </div>
 
       {/* Signal Cards Grid - Mobile first: 3 across, tablet: 4 across, desktop: 5-6 across */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 px-2">
-        {filteredSignals.map((signal) => (
-          <RecognitionSignalCard
-            key={signal.id}
-            name={signal.name}
-            description={signal.description}
-            category={signal.category}
-            number={signal.number}
-            icon={signal.icon}
-            isActive={signal.isActive}
-            onClick={() => handleSignalClick(signal)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-[hsl(var(--text-muted))] text-sm">Loading recognition signals from HCS...</p>
+          </div>
+        </div>
+      ) : filteredSignals.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-[hsl(var(--text-muted))] text-lg mb-2">No recognition signals found</p>
+          <p className="text-[hsl(var(--text-subtle))] text-sm">
+            {activeCategory === 'all' ? 'HCS data is still loading' : `No ${activeCategory} signals available`}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 px-2">
+          {filteredSignals.map((signal) => (
+            <RecognitionSignalCard
+              key={signal.id}
+              name={signal.name}
+              description={signal.description}
+              category={signal.category}
+              number={signal.number}
+              icon={signal.icon}
+              isActive={signal.isActive}
+              onClick={() => handleSignalClick(signal)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Stats Footer */}
       <div className="mt-12 text-center text-[hsl(var(--text-subtle))] text-sm">
         <p>
-          Showing {filteredSignals.length} of {recognitionSignals.length} recognition signals
+          Showing {filteredSignals.length} of {recognitionDefinitions.length} recognition signals
+          {!isLoading && recognitionDefinitions.length > 0 && " (loaded from HCS)"}
         </p>
       </div>
 

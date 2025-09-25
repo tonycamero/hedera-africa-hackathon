@@ -3,7 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { signalsStore, type RecognitionSignal } from "@/lib/stores/signalsStore"
+import { hcsRecognitionService } from "@/lib/services/HCSRecognitionService"
+import type { RecognitionSignal } from "@/lib/stores/signalsStore"
+import type { HCSRecognitionInstance, HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
 import { Award, ExternalLink, Plus } from "lucide-react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -13,7 +15,16 @@ interface RecognitionGridProps {
   maxItems?: number
 }
 
-function MiniRecognitionCard({ signal }: { signal: RecognitionSignal }) {
+// Convert HCS recognition instance + definition to display format
+interface HCSRecognitionDisplay {
+  id: string
+  name: string
+  emoji: string
+  category: 'social' | 'academic' | 'professional'
+  tokenId: string
+}
+
+function MiniRecognitionCard({ signal }: { signal: HCSRecognitionDisplay }) {
   const categoryColors = {
     social: "border-cyan-500/50 bg-cyan-500/10",
     academic: "border-purple-500/50 bg-purple-500/10", 
@@ -32,20 +43,51 @@ function MiniRecognitionCard({ signal }: { signal: RecognitionSignal }) {
 }
 
 export function RecognitionGrid({ ownerId, maxItems = 6 }: RecognitionGridProps) {
-  const [ownedSignals, setOwnedSignals] = useState<RecognitionSignal[]>([])
+  const [ownedSignals, setOwnedSignals] = useState<HCSRecognitionDisplay[]>([])
 
   useEffect(() => {
     if (!ownerId) return
 
-    const loadOwnedSignals = () => {
-      const owned = signalsStore.getOwnedHashinals(ownerId)
-      setOwnedSignals(owned.slice(0, maxItems))
+    const loadOwnedSignals = async () => {
+      try {
+        // Get owned recognition instances from HCS
+        const instances = await hcsRecognitionService.getUserRecognitionInstances(ownerId)
+        
+        // Convert instances to display format
+        const displaySignals: HCSRecognitionDisplay[] = []
+        
+        for (const instance of instances.slice(0, maxItems)) {
+          try {
+            const definition = await hcsRecognitionService.getRecognitionDefinition(instance.definitionId)
+            if (definition) {
+              displaySignals.push({
+                id: instance.id,
+                name: definition.name,
+                emoji: definition.emoji,
+                category: definition.category as 'social' | 'academic' | 'professional',
+                tokenId: instance.id.slice(-8) // Show last 8 chars as token ID
+              })
+            }
+          } catch (error) {
+            console.error('[RecognitionGrid] Failed to load definition for instance:', instance.id, error)
+          }
+        }
+        
+        setOwnedSignals(displaySignals)
+      } catch (error) {
+        console.error('[RecognitionGrid] Failed to load owned recognition from HCS:', error)
+        setOwnedSignals([])
+      }
     }
 
     loadOwnedSignals()
 
-    // Poll for updates
-    const interval = setInterval(loadOwnedSignals, 2000)
+    // Poll for updates only if recognition service is ready
+    const interval = setInterval(() => {
+      if (hcsRecognitionService.isReady()) {
+        loadOwnedSignals()
+      }
+    }, 5000) // Slower polling to reduce load
     return () => clearInterval(interval)
   }, [ownerId, maxItems])
 

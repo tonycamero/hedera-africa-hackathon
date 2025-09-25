@@ -3,17 +3,12 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
 import { signalsStore } from "@/lib/stores/signalsStore"
-import { HeaderModeChips, DemoModeIndicator } from "@/components/HeaderModeChips"
-import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { getSessionId } from "@/lib/session"
+import { HeaderModeChips } from "@/components/HeaderModeChips"
 import { 
   Circle, 
   Activity, 
-  Users, 
-  Shield,
-  Award
+  Users
 } from "lucide-react"
 
 export default function TabsLayout({
@@ -22,35 +17,24 @@ export default function TabsLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9 })
-  const [bondedCount, setBondedCount] = useState(0)
   const [hasUnseen, setHasUnseen] = useState(false)
-  const [sessionId, setSessionId] = useState("")
 
-  // Update stats periodically
+  // Update unseen signals indicator
   useEffect(() => {
-    const currentSessionId = getSessionId()
-    setSessionId(currentSessionId)
-    
-    const updateStats = () => {
-      const stats = signalsStore.getTrustStats(currentSessionId)
-      const bonded = signalsStore.getBondedContacts(currentSessionId)
+    const updateUnseen = () => {
       const unseen = signalsStore.hasUnseen("signals")
-      
-      setTrustStats(stats)
-      setBondedCount(bonded.length)
       setHasUnseen(unseen)
     }
 
     // Load initially
-    updateStats()
+    updateUnseen()
 
     // Update on storage changes
-    const handleStorageChange = () => updateStats()
+    const handleStorageChange = () => updateUnseen()
     window.addEventListener('storage', handleStorageChange)
     
     // Also poll for updates
-    const interval = setInterval(updateStats, 2000)
+    const interval = setInterval(updateUnseen, 5000)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
@@ -89,15 +73,27 @@ export default function TabsLayout({
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">T</span>
+              {/* TrustMesh Network Logo */}
+              <div className="w-8 h-8 flex items-center justify-center">
+                <svg 
+                  width="24" 
+                  height="24" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  className="text-primary"
+                >
+                  <circle cx="6" cy="18" r="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <circle cx="18" cy="18" r="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <circle cx="12" cy="6" r="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <path d="M6 18L12 6L18 18" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M6 18L18 18" stroke="currentColor" strokeWidth="2"/>
+                </svg>
               </div>
               <div>
                 <h1 className="font-bold text-lg text-primary">TrustMesh</h1>
                 <p className="text-xs text-muted-foreground">
-                  {sessionId} • {bondedCount}/9 bonded • {trustStats.allocatedOut}/{trustStats.cap} trust
+                  a Service of Scend Technologies
                 </p>
-                <DemoModeIndicator />
               </div>
             </div>
             <div className="flex items-center gap-1">

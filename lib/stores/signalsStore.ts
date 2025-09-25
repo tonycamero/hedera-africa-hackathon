@@ -14,7 +14,7 @@ export interface SignalEvent {
   ts: number
   status: SignalStatus
   seen?: boolean
-  type: string // CONTACT_REQUEST, TRUST_ALLOCATE, etc.
+  type: string // CONTACT_REQUEST, CONTACT_ACCEPT, TRUST_ALLOCATE, TRUST_ACCEPT, TRUST_DECLINE, TRUST_REVOKE, etc.
   meta?: { tag?: string; [key: string]: any }
 }
 
@@ -173,28 +173,63 @@ class SignalsStore {
       s.class === 'trust' && 
       s.direction === 'outbound' && 
       s.actors.from === myId
-    )
+    ).sort((a, b) => a.ts - b.ts) // Process in chronological order
 
     let allocatedOut = 0
-    const trustByPeer = new Map<string, number>()
+    const trustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
 
-    // Count current trust allocations (latest per peer)
+    // Process trust lifecycle events in chronological order
     for (const signal of trustSignals) {
       if (!signal.actors.to) continue
 
       const peerId = signal.actors.to
-      const weight = signal.payload?.weight || 0
+      const weight = signal.payload?.weight || 1
 
       if (signal.type === 'TRUST_ALLOCATE') {
-        trustByPeer.set(peerId, weight)
+        // New trust allocation starts as pending
+        trustByPeer.set(peerId, { weight, status: 'pending' })
+      } else if (signal.type === 'TRUST_ACCEPT') {
+        // Recipient accepted - becomes bonded (but this would be inbound signal, not outbound)
+        const existing = trustByPeer.get(peerId)
+        if (existing) {
+          existing.status = 'bonded'
+        }
+      } else if (signal.type === 'TRUST_DECLINE') {
+        // Recipient declined - frees my slot
+        const existing = trustByPeer.get(peerId)
+        if (existing) {
+          existing.status = 'declined'
+        }
       } else if (signal.type === 'TRUST_REVOKE') {
-        trustByPeer.delete(peerId)
+        // I revoked - frees my slot
+        const existing = trustByPeer.get(peerId)
+        if (existing) {
+          existing.status = 'revoked'
+        }
       }
     }
 
-    // Sum current allocations
-    for (const weight of trustByPeer.values()) {
-      allocatedOut += weight
+    // Check for inbound acceptance signals to mark outbound trust as bonded
+    const inboundTrustSignals = this.signals.filter(s => 
+      s.class === 'trust' && 
+      s.direction === 'inbound' && 
+      s.actors.to === myId
+    )
+
+    for (const signal of inboundTrustSignals) {
+      if (signal.type === 'TRUST_ACCEPT' && signal.actors.from) {
+        const existing = trustByPeer.get(signal.actors.from)
+        if (existing && existing.status === 'pending') {
+          existing.status = 'bonded'
+        }
+      }
+    }
+
+    // Count slots consumed by pending + bonded trust (not declined/revoked)
+    for (const { weight, status } of trustByPeer.values()) {
+      if (status === 'pending' || status === 'bonded') {
+        allocatedOut += weight
+      }
     }
 
     return {

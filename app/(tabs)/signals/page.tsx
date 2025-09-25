@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { signalsStore, type SignalEvent, type SignalClass } from "@/lib/stores/signalsStore"
 import { FeedItem } from "@/components/FeedItem"
+import { SignalDetailModal } from "@/components/SignalDetailModal"
 import { hcsFeedService } from "@/lib/services/HCSFeedService"
+import { hcsRecognitionService, type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
 import { 
   Activity, 
   Users, 
@@ -21,6 +23,8 @@ import {
 import { toast } from "sonner"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
+import { loadSignals as loadSignalsCache, saveSignals as saveSignalsCache, loadDerivedState, saveDerivedState } from "@/lib/cache/sessionCache"
+import { computeDerivedFromSignals } from "@/lib/ux/derive"
 
 type FilterChip = {
   label: string
@@ -193,6 +197,8 @@ export default function SignalsPage() {
   const [activeFilter, setActiveFilter] = useState<SignalClass | "all">("all")
   const [sessionId, setSessionId] = useState("")
   const [hcsTopicIds, setHcsTopicIds] = useState<ReturnType<typeof hcsFeedService.getTopicIds> | null>(null)
+  const [selectedRecognition, setSelectedRecognition] = useState<HCSRecognitionDefinition | null>(null)
+  const [isRecognitionModalOpen, setIsRecognitionModalOpen] = useState(false)
   
   // Initialize session
   useEffect(() => {
@@ -209,11 +215,28 @@ export default function SignalsPage() {
     
     const loadSignals = async () => {
       try {
+        console.log("[SignalsPage] Loading signals (cache → HCS)...")
+        // 1) Try cache first
+        const cached = loadSignalsCache()
+        if (cached && cached.length) {
+          const flags = getRuntimeFlags()
+          const scopeFiltered = flags.scope === 'my'
+            ? cached.filter(s => s.actors.from === sessionId || s.actors.to === sessionId)
+            : cached
+          setSignals(scopeFiltered.sort((a, b) => b.ts - a.ts))
+        }
+
+        // 2) Always fetch from HCS/Mirror and refresh cache
+        console.log("[SignalsPage] HCS feed service ready?", hcsFeedService.isReady())
+        console.log("[SignalsPage] HCS topic IDs:", hcsFeedService.getTopicIds())
+        
         // Load ONLY from HCS - no local storage
         const hcsSignals = await hcsFeedService.getAllFeedEvents()
+        console.log("[SignalsPage] Raw HCS signals:", hcsSignals)
         
         // Filter by scope if needed
         const flags = getRuntimeFlags()
+        console.log("[SignalsPage] Runtime flags:", flags)
         let filteredSignals = hcsSignals
         
         if (flags.scope === 'my') {
@@ -224,6 +247,13 @@ export default function SignalsPage() {
         }
         
         setSignals(filteredSignals.sort((a, b) => b.ts - a.ts))
+
+        // 3) Save to cache for snappy reloads
+        saveSignalsCache(hcsSignals)
+
+        // 4) Save lightweight derived state (for header counters etc.)
+        const derived = computeDerivedFromSignals(hcsSignals, sessionId)
+        saveDerivedState(derived)
         
         // Update HCS topic IDs
         if (hcsFeedService.isReady()) {
@@ -244,8 +274,12 @@ export default function SignalsPage() {
     const handleStorageChange = () => loadSignals()
     window.addEventListener('storage', handleStorageChange)
     
-    // Also poll for updates
-    const interval = setInterval(loadSignals, 2000)
+    // Also poll for updates only if service is ready
+    const interval = setInterval(() => {
+      if (hcsFeedService.isReady()) {
+        loadSignals()
+      }
+    }, 5000) // Reduced frequency to prevent race conditions
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
@@ -258,13 +292,42 @@ export default function SignalsPage() {
     activeFilter === "all" || signal.class === activeFilter
   )
 
-  const clearAllSignals = async () => {
-    if (confirm("Are you sure you want to clear all signals? This will reset HCS demo data.")) {
-      await hcsFeedService.disableSeedMode()
-      signalsStore.clear() // Clear any remaining local data
-      setSignals([])
-      setHcsTopicIds(null)
-      toast.success("All HCS signals cleared")
+
+  const handleRecognitionSignalClick = async (signal: SignalEvent) => {
+    if (signal.class !== "recognition") return
+    
+    console.log("[SignalsPage] Recognition signal clicked:", signal)
+    
+    // Try to find the recognition definition if we have a recognition instance ID
+    const recognitionInstanceId = signal.payload?.recognitionInstanceId
+    if (recognitionInstanceId) {
+      try {
+        const instance = await hcsRecognitionService.getRecognitionInstance(recognitionInstanceId)
+        if (instance) {
+          const definition = await hcsRecognitionService.getRecognitionDefinition(instance.definitionId)
+          if (definition) {
+            setSelectedRecognition(definition)
+            setIsRecognitionModalOpen(true)
+            return
+          }
+        }
+      } catch (error) {
+        console.error("[SignalsPage] Failed to load recognition data:", error)
+      }
+    }
+    
+    // Fallback: try to find definition by name
+    const definitions = await hcsRecognitionService.getAllRecognitionDefinitions()
+    const matchingDefinition = definitions.find(def => 
+      def.name === signal.payload?.name || 
+      def.description === signal.payload?.description
+    )
+    
+    if (matchingDefinition) {
+      setSelectedRecognition(matchingDefinition)
+      setIsRecognitionModalOpen(true)
+    } else {
+      toast.info("Recognition signal details not available")
     }
   }
 
@@ -282,139 +345,30 @@ export default function SignalsPage() {
           <Badge variant="outline">
             {filteredSignals.length} signals
           </Badge>
-          
-          {signals.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearAllSignals}
-              className="text-xs"
-            >
-              Clear All
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* HCS Topic Information */}
-      {hcsTopicIds && (
-        <Card className="bg-gradient-to-r from-[hsl(var(--card))]/50 to-[hsl(var(--muted))]/30 border border-[hsl(var(--success))]/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2 text-[hsl(var(--success))]">
-              <Check className="w-4 h-4" />
-              HCS Topics Active
-              <Badge variant="outline" className="text-xs border-[hsl(var(--success))]/30 text-[hsl(var(--success))]">
-                On-chain Storage
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {hcsTopicIds.feed && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Activity className="w-3 h-3 text-[hsl(var(--professional))]" />
-                  <div>
-                    <div className="font-medium">Feed</div>
-                    <code className="text-[hsl(var(--muted-foreground))]">{hcsTopicIds.feed}</code>
-                  </div>
-                </div>
-              )}
-              {hcsTopicIds.contacts && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Users className="w-3 h-3 text-[hsl(var(--social))]" />
-                  <div>
-                    <div className="font-medium">Contacts</div>
-                    <code className="text-[hsl(var(--muted-foreground))]">{hcsTopicIds.contacts}</code>
-                  </div>
-                </div>
-              )}
-              {hcsTopicIds.trust && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Heart className="w-3 h-3 text-[hsl(var(--trust))]" />
-                  <div>
-                    <div className="font-medium">Trust</div>
-                    <code className="text-[hsl(var(--muted-foreground))]">{hcsTopicIds.trust}</code>
-                  </div>
-                </div>
-              )}
-              {hcsTopicIds.recognition && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Award className="w-3 h-3 text-[hsl(var(--academic))]" />
-                  <div>
-                    <div className="font-medium">Recognition</div>
-                    <code className="text-[hsl(var(--muted-foreground))]">{hcsTopicIds.recognition}</code>
-                  </div>
-                </div>
-              )}
-              {hcsTopicIds.profile && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Users className="w-3 h-3 text-[hsl(var(--muted-foreground))]" />
-                  <div>
-                    <div className="font-medium">Profiles</div>
-                    <code className="text-[hsl(var(--muted-foreground))]">{hcsTopicIds.profile}</code>
-                  </div>
-                </div>
-              )}
-              {hcsTopicIds.system && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Activity className="w-3 h-3 text-[hsl(var(--muted-foreground))]" />
-                  <div>
-                    <div className="font-medium">System</div>
-                    <code className="text-[hsl(var(--muted-foreground))]">{hcsTopicIds.system}</code>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="mt-3 pt-3 border-t border-[hsl(var(--border))]/50">
-              <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                All signal data is stored immutably on Hedera Consensus Service. 
-                <a 
-                  href="https://hashscan.io/testnet/topics" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-[hsl(var(--success))] hover:underline ml-1"
-                >
-                  View on HashScan Explorer →
-                </a>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filter chips */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Filter by type
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex gap-2 flex-wrap">
-            {filterChips.map((chip) => (
-              <Button
-                key={chip.value}
-                variant={activeFilter === chip.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveFilter(chip.value)}
-                className="text-xs h-7"
-              >
-                {chip.icon}
-                <span className="ml-1">{chip.label}</span>
-                {chip.value !== "all" && (
-                  <Badge 
-                    variant="secondary" 
-                    className="ml-1 h-4 text-xs px-1"
-                  >
-                    {signals.filter(s => s.class === chip.value).length}
-                  </Badge>
-                )}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Compact filter pills */}
+      <div className="flex justify-center">
+        <div className="flex gap-1 p-1 bg-[hsl(var(--muted))]/30 rounded-full">
+          {filterChips.map((chip) => (
+            <Button
+              key={chip.value}
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveFilter(chip.value)}
+              className={`h-8 w-8 rounded-full p-0 transition-all ${
+                activeFilter === chip.value 
+                  ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg" 
+                  : "hover:bg-[hsl(var(--muted))]"
+              }`}
+              title={chip.label}
+            >
+              {chip.icon}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {/* Signals list */}
       <div>
@@ -423,11 +377,20 @@ export default function SignalsPage() {
             <CardContent className="py-12 text-center">
               <Activity className="w-12 h-12 mx-auto mb-4 text-slate-300" />
               <h3 className="text-lg font-medium mb-2">No signals yet</h3>
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">
+              <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">
                 {activeFilter === "all" 
                   ? "Activity will appear here when you interact with contacts or allocate trust"
                   : `No ${activeFilter} signals found`}
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                <h4 className="font-medium text-blue-900 mb-2">💡 Demo the Recognition System</h4>
+                <p className="text-blue-700 text-sm mb-3">
+                  Click the <strong>"Seed"</strong> button in the header to load demo data and see recognition signals in action!
+                </p>
+                <p className="text-blue-600 text-xs">
+                  This will create real HCS topics on Hedera testnet with various recognition signals like Chad, Skibidi, Prof Fav, and more.
+                </p>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -436,7 +399,7 @@ export default function SignalsPage() {
               <FeedItem 
                 key={signal.id} 
                 signal={signal}
-                onPrimaryClick={(signal) => console.log('Open signal modal:', signal)}
+                onPrimaryClick={handleRecognitionSignalClick}
                 onAccept={(signal) => console.log('Accept:', signal)}
                 onBlock={(signal) => console.log('Block:', signal)}
                 onAdjustTrust={(signal) => console.log('Adjust trust:', signal)}
@@ -448,6 +411,13 @@ export default function SignalsPage() {
           </div>
         )}
       </div>
+      
+      {/* Recognition Signal Detail Modal */}
+      <SignalDetailModal
+        isOpen={isRecognitionModalOpen}
+        onClose={() => setIsRecognitionModalOpen(false)}
+        signal={selectedRecognition}
+      />
     </div>
   )
 }

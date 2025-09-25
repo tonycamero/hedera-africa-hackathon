@@ -10,11 +10,12 @@ import { Progress } from "@/components/ui/progress"
 import { Copy, ExternalLink, Share, Star, TrendingUp, Shield, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { type RecognitionSignal } from "@/lib/data/recognitionSignals"
+import { type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
 
 interface SignalDetailModalProps {
   isOpen: boolean
   onClose: () => void
-  signal: RecognitionSignal | null
+  signal: RecognitionSignal | HCSRecognitionDefinition | null
 }
 
 export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModalProps) {
@@ -40,19 +41,23 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
     professional: 'Professional Signal'
   }
 
-  // Generate mock metadata for hashinal/token
+  // Check if this is an HCS recognition definition (has topicId and createdAt)
+  const isHCSSignal = 'topicId' in signal && 'createdAt' in signal
+  
+  // Generate metadata for hashinal/token
   const tokenMetadata = {
     tokenId: `TM-${signal.category.toUpperCase()}-${signal.number.toString().padStart(3, '0')}`,
     collection: "TrustMesh Recognition Signals",
-    creator: "TrustMesh Protocol",
-    mintDate: "2024-01-15",
+    creator: isHCSSignal ? "TrustMesh HCS" : "TrustMesh Protocol",
+    mintDate: isHCSSignal ? new Date(signal.createdAt).toLocaleDateString() : "2024-01-15",
     blockchain: "Hedera",
-    rarity: signal.rarity,
+    rarity: signal.rarity || 'Common',
     attributes: [
       { trait: "Category", value: categoryLabels[signal.category] },
-      { trait: "Series", value: "Genesis" },
+      { trait: "Series", value: isHCSSignal ? "HCS Genesis" : "Genesis" },
       { trait: "Active Status", value: signal.isActive ? "Active" : "Inactive" },
-      { trait: "Number", value: `#${signal.number}` }
+      { trait: "Number", value: `#${signal.number}` },
+      ...(isHCSSignal ? [{ trait: "Source", value: "On-Chain" }] : [])
     ]
   }
 
@@ -103,7 +108,9 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
               {signal.icon}
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">{signal.name}</h2>
-            <p className="text-[hsl(var(--text-secondary))] mb-4">{signal.description}</p>
+            <p className="text-[hsl(var(--text-secondary))] mb-4">
+              {isHCSSignal && signal.extendedDescription ? signal.extendedDescription : signal.description}
+            </p>
             
             <div className="flex justify-center gap-2">
               <Badge variant="outline" className="text-xs">
@@ -181,9 +188,19 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
               variant="outline"
               size="sm"
               className="flex-1"
+              onClick={() => {
+                const url = isHCSSignal 
+                  ? `https://hashscan.io/testnet/topic/${signal.topicId}`
+                  : '#'
+                if (url !== '#') {
+                  window.open(url, '_blank')
+                } else {
+                  toast.info("This signal is not yet on-chain")
+                }
+              }}
             >
               <ExternalLink className="w-3 h-3 mr-2" />
-              View on Chain
+              {isHCSSignal ? "View on Chain" : "View on Chain"}
             </Button>
           </div>
         </div>

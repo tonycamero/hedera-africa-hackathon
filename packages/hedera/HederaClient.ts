@@ -75,35 +75,64 @@ export class HederaClient {
       await this.initialize()
     }
 
-    const topicId = `0.0.${Math.floor(Math.random() * 1000000)}`
-
-    const topic: HCS10Topic = {
-      topicId,
-      name,
-      description,
-      createdAt: new Date(),
-      messageCount: 0,
-      isActive: true,
+    if (!this.hederaSDKClient) {
+      console.error("[Hedera] Client not initialized - cannot create real topic")
+      throw new Error("Hedera client not initialized")
     }
 
-    this.topics.set(topicId, topic)
-    console.log(`[Hedera] Created HCS10 topic: ${name} (${topicId})`)
+    try {
+      console.log(`[Hedera] Creating real HCS topic: ${name}...`)
+      
+      const { TopicCreateTransaction } = await import('@hashgraph/sdk')
+      
+      const transaction = new TopicCreateTransaction()
+        .setTopicMemo(`${name}: ${description}`)
+        .setAdminKey(this.hederaSDKClient.operatorPublicKey!)
+        .setSubmitKey(this.hederaSDKClient.operatorPublicKey!)
+        .freezeWith(this.hederaSDKClient)
+      
+      const response = await transaction.execute(this.hederaSDKClient)
+      const receipt = await response.getReceipt(this.hederaSDKClient)
+      const topicId = receipt.topicId!.toString()
 
-    return topic
+      const topic: HCS10Topic = {
+        topicId,
+        name,
+        description,
+        createdAt: new Date(),
+        messageCount: 0,
+        isActive: true,
+      }
+
+      this.topics.set(topicId, topic)
+      console.log(`[Hedera] Created real HCS topic: ${name} (${topicId})`)
+
+      return topic
+    } catch (error) {
+      console.error(`[Hedera] Failed to create HCS topic ${name}:`, error)
+      throw error
+    }
   }
 
   async submitMessage(topicId: string, message: string): Promise<void> {
+    // Validate topic ID first
+    if (!topicId || topicId === 'null' || topicId === 'undefined') {
+      console.warn(`[Hedera] Cannot submit message - invalid topic ID: ${topicId}`)
+      throw new Error(`Invalid topic ID: ${topicId}`)
+    }
+
     if (!this.isConnected) {
       await this.initialize()
     }
 
     if (!this.hederaSDKClient) {
-      console.error("[Hedera] Client not initialized - using stub mode")
-      console.log(`[Hedera] STUB: Message to topic ${topicId}: ${message}`)
-      return
+      console.error("[Hedera] Client not initialized - cannot submit message")
+      throw new Error("Hedera client not initialized")
     }
 
     try {
+      console.log(`[Hedera] Submitting message to topic ${topicId}...`)
+      
       const { TopicMessageSubmitTransaction } = await import('@hashgraph/sdk')
       const transaction = new TopicMessageSubmitTransaction()
         .setTopicId(topicId)
@@ -113,11 +142,16 @@ export class HederaClient {
       const response = await transaction.execute(this.hederaSDKClient)
       const receipt = await response.getReceipt(this.hederaSDKClient)
       
+      // Update topic message count if we're tracking it
+      const topic = this.topics.get(topicId)
+      if (topic) {
+        topic.messageCount++
+      }
+      
       console.log(`[Hedera] Message submitted to topic ${topicId} - Sequence: ${receipt.topicSequenceNumber}`)
     } catch (error) {
       console.error(`[Hedera] Failed to submit message to topic ${topicId}:`, error)
-      // Don't throw error - let UI handle gracefully by keeping status as "error"
-      // Components should check for success/error via status updates
+      throw error // Re-throw to allow proper error handling in calling code
     }
   }
 

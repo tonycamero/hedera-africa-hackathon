@@ -17,7 +17,24 @@ export function getSessionId(ephemeralStrict?: boolean): string {
     return _sessionId
   }
 
-  // 12-char, time-salted, device-safe ID
+  // DEMO MODE: Always use Alex Chen's ID when demo seed is enabled or not in live mode
+  const isDemoMode = isInDemoMode()
+  if (isDemoMode) {
+    const alexId = 'tm-alex-chen'
+    
+    if (!isEphemeral && typeof window !== 'undefined') {
+      const key = "tm_session_id"
+      sessionStorage.setItem(key, alexId)
+    }
+    
+    if (isEphemeral) {
+      _sessionId = alexId
+    }
+    
+    return alexId
+  }
+
+  // 12-char, time-salted, device-safe ID for live mode
   const rnd = Math.random().toString(36).slice(2, 8)
   const t = (Date.now() % 1e7).toString(36)
   const id = `tm-${t}${rnd}` // e.g., tm-4f1b9da1k2
@@ -42,7 +59,14 @@ export async function getSessionProfile(): Promise<SessionProfile> {
   }
 
   const sessionId = getSessionId()
-  const handle = sessionId.toUpperCase()
+  let handle = sessionId.toUpperCase()
+  let bio = `TrustMesh demo user (${sessionId})`
+  
+  // Use demo profile data if we're Alex Chen
+  if (sessionId === 'tm-alex-chen') {
+    handle = '@alex.chen'
+    bio = 'CS Senior • React & Blockchain • Coffee enthusiast ☕'
+  }
 
   // Try to get/create profile HRL
   let profileHrl = `hcs://11/${process.env.NEXT_PUBLIC_TOPIC_PROFILE}/local-${sessionId}`
@@ -53,7 +77,7 @@ export async function getSessionProfile(): Promise<SessionProfile> {
       // Try to publish profile update in background
       const result = await profileService.publishProfileUpdate({
         handle,
-        bio: `TrustMesh demo user (${sessionId})`,
+        bio,
         visibility: 'public'
       })
       profileHrl = result.hrl
@@ -79,6 +103,23 @@ export function resetSession(): void {
   if (typeof window !== 'undefined') {
     sessionStorage.removeItem("tm_session_id")
   }
+}
+
+// Helper to check if we're in demo mode
+function isInDemoMode(): boolean {
+  // Check environment variable first (for server-side)
+  if (process.env.NEXT_PUBLIC_DEMO_SEED === 'on') {
+    return true
+  }
+  
+  // Check URL parameter (for client-side)
+  if (typeof window !== 'undefined') {
+    const isLive = window.location.search.includes('live=1')
+    return !isLive // Demo mode unless explicitly live
+  }
+  
+  // Default to demo mode for server-side when demo seed is not explicitly off
+  return true
 }
 
 // Helper to get ephemeral mode from runtime flags

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AddContactDialog } from "@/components/AddContactDialog"
 import { signalsStore, type BondedContact, type SignalEvent } from "@/lib/stores/signalsStore"
+import { hcsFeedService } from "@/lib/services/HCSFeedService"
+import { getBondedContactsFromHCS, getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
 import Link from "next/link"
 import { 
   Users, 
@@ -21,14 +23,13 @@ import { hederaClient } from "@/packages/hedera/HederaClient"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
 import { seedDemo } from "@/lib/demo/seed"
-import { PersonalMetrics } from "@/components/PersonalMetrics"
 import { RecognitionGrid } from "@/components/RecognitionGrid"
 
 const TRUST_TOPIC = process.env.NEXT_PUBLIC_TOPIC_TRUST || ""
 const HCS_ENABLED = process.env.NEXT_PUBLIC_HCS_ENABLED === "true"
 
 // Generate circular trust visualization
-function TrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
+function TrustCircle({ allocatedOut, pendingOut, maxSlots }: { allocatedOut: number; pendingOut: number; maxSlots: number }) {
   const totalSlots = 9
   const dots = Array.from({ length: totalSlots }, (_, i) => {
     // Arrange dots in a circle
@@ -38,22 +39,45 @@ function TrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlot
     const x = Math.cos(radian) * radius + 32 // 32 is center (64/2)
     const y = Math.sin(radian) * radius + 32
 
+    // Determine LED state: green (bonded), orange (pending), gray (available)
+    let ledStyle = ""
+    let innerStyle = ""
+    
+    if (i < allocatedOut) {
+      // Green LEDs for bonded trust
+      ledStyle = "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/50 border-2 border-green-300"
+      innerStyle = "bg-gradient-to-br from-green-300 to-green-500"
+    } else if (i < allocatedOut + pendingOut) {
+      // Orange LEDs for pending/staked trust
+      ledStyle = "bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/40 border-2 border-orange-300"
+      innerStyle = "bg-gradient-to-br from-orange-300 to-orange-500"
+    } else {
+      // Gray LEDs for available slots
+      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200"
+      innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
+    }
+
     return (
       <div
         key={i}
-        className={`absolute w-3 h-3 rounded-full transform -translate-x-1.5 -translate-y-1.5 ${
-          i < allocatedOut ? "bg-green-500" : "bg-slate-200"
-        }`}
+        className={`absolute w-4 h-4 rounded-full transform -translate-x-2 -translate-y-2 ${ledStyle}`}
         style={{ left: x, top: y }}
-      />
+      >
+        {/* LED inner glow effect */}
+        <div className={`absolute inset-1 rounded-full ${innerStyle}`} />
+        {/* LED highlight spot */}
+        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-white opacity-60" />
+      </div>
     )
   })
 
   return (
     <div className="relative w-16 h-16 flex-shrink-0">
       {dots}
-      {/* Center dot */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-300" />
+      {/* Center flame emoji */}
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
+        <span className="text-base">🔥</span>
+      </div>
     </div>
   )
 }
@@ -173,7 +197,7 @@ function MiniFeedItem({ signal }: { signal: SignalEvent }) {
 
 export default function CirclePage() {
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
-  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9 })
+  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9, pendingOut: 0 })
   const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
 
@@ -186,92 +210,151 @@ export default function CirclePage() {
     seedDemo(signalsStore, currentSessionId)
   }, [])
 
-  // Load data from signals store
+  // Load data from HCS feed service
   useEffect(() => {
     if (!sessionId) return
     
-    const loadData = () => {
-      const flags = getRuntimeFlags()
-      const bonded = signalsStore.getBondedContacts(sessionId)
-      const stats = signalsStore.getTrustStats(sessionId)
-      const recent = signalsStore.getSignals({ 
-        scope: flags.scope,
-        sessionId,
-        class: 'contact'
-      }).concat(signalsStore.getSignals({
-        scope: flags.scope,
-        sessionId,
-        class: 'trust'
-      })).sort((a, b) => b.ts - a.ts).slice(0, 3)
-      
-      setBondedContacts(bonded)
-      setTrustStats(stats)
-      setRecentSignals(recent)
+    const loadData = async () => {
+      try {
+        // Get all HCS events
+        const events = await hcsFeedService.getAllFeedEvents()
+        
+        // Derive data from HCS events
+        const bonded = getBondedContactsFromHCS(events, sessionId)
+        const recent = getRecentSignalsFromHCS(events, sessionId, 3)
+        
+        // Simple trust workflow: count accepted (green) and pending (yellow) trust
+        const trustEvents = events.filter(e => e.class === 'trust' && e.actors.from === sessionId)
+        const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
+        const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+        
+        const simpleStats = { 
+          allocatedOut: acceptedTrust, 
+          cap: 9, 
+          pendingOut: pendingTrust 
+        }
+        
+        console.log('[CirclePage] Debug data (simple trust workflow):')
+        console.log('  - HCS Events:', events.length)
+        console.log('  - Bonded contacts:', bonded)
+        console.log('  - Trust stats (green=accepted, yellow=pending):', simpleStats)
+        console.log('  - Trust events:', trustEvents)
+        
+        setBondedContacts(bonded)
+        setTrustStats(simpleStats)
+        setRecentSignals(recent)
+      } catch (error) {
+        console.error('[CirclePage] Failed to load data from HCS:', error)
+        // Fallback to empty state
+        setBondedContacts([])
+        setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
+        setRecentSignals([])
+      }
     }
 
     // Load initially
     loadData()
 
-    // Reload on storage changes (when signals are added/updated)
-    const handleStorageChange = () => loadData()
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Also poll for updates since storage events don't fire in same tab
-    const interval = setInterval(loadData, 2000)
+    // Poll for updates only if HCS service is ready
+    const interval = setInterval(() => {
+      if (hcsFeedService.isReady()) {
+        loadData()
+      }
+    }, 5000) // Slower polling to reduce load
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       clearInterval(interval)
     }
   }, [sessionId])
 
-  const availableSlots = Math.min(bondedContacts.length, 9) - trustStats.allocatedOut
+  const availableSlots = Math.max(0, 9 - trustStats.allocatedOut)
 
   const handleAllocateTrust = async (peerId: string, weight: number) => {
-    // Create TRUST_ALLOCATE envelope
-    const envelope = {
-      type: "TRUST_ALLOCATE",
-      from: sessionId,
-      nonce: Date.now(),
-      ts: Math.floor(Date.now() / 1000),
-      payload: {
-        to: peerId,
+    try {
+      // Use HCS feed service to log trust allocation
+      const trustEvent = await hcsFeedService.logTrustAllocation(
+        sessionId,
+        peerId,
         weight,
-        reason: "circle_allocation"
-      },
-      sig: "demo_signature"
+        "circle_allocation"
+      )
+      
+      toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
+      
+      // Refresh data immediately to show the new trust allocation
+      const events = await hcsFeedService.getAllFeedEvents()
+      const bonded = getBondedContactsFromHCS(events, sessionId)
+      
+      // Recalculate simple trust stats
+      const trustEvents = events.filter(e => e.class === 'trust' && e.actors.from === sessionId)
+      const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
+      const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+      
+      const stats = { 
+        allocatedOut: acceptedTrust, 
+        cap: 9, 
+        pendingOut: pendingTrust 
+      }
+      
+      setBondedContacts(bonded)
+      setTrustStats(stats)
+    } catch (error) {
+      console.error('[CirclePage] Failed to allocate trust via HCS:', error)
+      toast.error('Failed to allocate trust', { description: error.message || 'Unknown error' })
     }
+  }
 
-    // Add to signals store immediately
-    const signalEvent: SignalEvent = {
-      id: `trust_allocate_${envelope.nonce}`,
-      class: "trust",
-      topicType: "TRUST",
-      direction: "outbound",
-      actors: { from: sessionId, to: peerId },
-      payload: envelope.payload,
-      ts: Date.now(),
-      status: "local",
-      seen: false,
-      type: "TRUST_ALLOCATE",
-      sessionId,
-      seeded: false
-    }
-
-    signalsStore.addSignal(signalEvent)
-    toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
-
-    // Background HCS submit
-    if (HCS_ENABLED && TRUST_TOPIC) {
-      submitTrustToHCS(envelope, signalEvent.id)
-    }
+  // Get metrics for compact display (trust workflow model)
+  const metrics = {
+    bondedContacts: bondedContacts.length,
+    trustAllocated: trustStats.allocatedOut, // Green LEDs = accepted trust
+    trustCapacity: 9,
+    recognitionOwned: recentSignals.filter(s => s.type === 'RECOGNITION_MINT').length // Simple approximation
   }
 
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Your Circle</h1>
-        <AddContactDialog />
+        <div>
+          <h1 className="text-2xl font-bold">Your Circle of Trust</h1>
+          {/* Personal Metrics under title */}
+          <div className="flex items-center gap-4 text-sm mt-2">
+            <div className="flex items-center gap-1">
+              <Users className="w-4 h-4 text-blue-600" />
+              <span className="font-semibold">{metrics.bondedContacts}</span>
+              <span className="text-muted-foreground">Bonded</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Heart className="w-4 h-4 text-green-600" />
+              <span className="font-semibold">{metrics.trustAllocated}/9</span>
+              <span className="text-muted-foreground">Trust</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Activity className="w-4 h-4 text-purple-600" />
+              <span className="font-semibold">{metrics.recognitionOwned}</span>
+              <span className="text-muted-foreground">Recognition</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="border-red-200 text-red-600 hover:bg-red-50"
+            onClick={async () => {
+              try {
+                await hcsFeedService.resetDemo()
+                // Refresh the page to show clean state
+                window.location.reload()
+              } catch (error) {
+                toast.error('Reset failed', { description: error.message })
+              }
+            }}
+          >
+            🔄 Reset Demo
+          </Button>
+          <AddContactDialog />
+        </div>
       </div>
 
       {/* Trust & Contacts Summary */}
@@ -281,11 +364,12 @@ export default function CirclePage() {
             <div className="flex items-center gap-4">
               <TrustCircle 
                 allocatedOut={trustStats.allocatedOut} 
-                maxSlots={Math.min(bondedContacts.length, 9)} 
+                pendingOut={trustStats.pendingOut}
+                maxSlots={9} 
               />
               <div>
                 <div className="font-semibold text-[hsl(var(--card-foreground))]">
-                  Trust: {trustStats.allocatedOut}/{Math.min(bondedContacts.length, trustStats.cap)}
+                  Trust: {trustStats.allocatedOut}/9
                 </div>
                 <div className="text-sm text-[hsl(var(--muted-foreground))]">
                   {bondedContacts.length} bonded contacts
@@ -313,8 +397,6 @@ export default function CirclePage() {
         </CardContent>
       </Card>
 
-      {/* Personal Metrics Dashboard */}
-      <PersonalMetrics sessionId={sessionId} />
 
       {/* Recognition Collection */}
       <RecognitionGrid ownerId={sessionId} maxItems={5} />
@@ -354,30 +436,56 @@ export default function CirclePage() {
         </CardContent>
       </Card>
 
-      {/* Trust Allocation - Only show if have bonded contacts and available slots */}
-      {bondedContacts.length > 0 && availableSlots > 0 && (
-        <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <div className="font-semibold text-[hsl(var(--card-foreground))] mb-1">Quick Trust Allocation</div>
-                <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                  Allocate to {bondedContacts[0]?.handle || `User ${bondedContacts[0]?.peerId.slice(-6)}`}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3].map((weight) => (
-                  <Button
-                    key={weight}
-                    size="sm"
-                    onClick={() => handleAllocateTrust(bondedContacts[0].peerId, weight)}
-                    disabled={trustStats.allocatedOut + weight > trustStats.cap}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 disabled:opacity-50"
-                  >
-                    {weight}
-                  </Button>
-                ))}
-              </div>
+      {/* Trust Allocation - Show for all bonded contacts */}
+      {bondedContacts.length > 0 && (
+        <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Heart className="w-5 h-5" />
+              Send Trust
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {bondedContacts.map((contact) => {
+                const hasTrust = contact.trustLevel && contact.trustLevel > 0
+                return (
+                  <div key={contact.peerId} className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">
+                          {contact.handle || `User ${contact.peerId.slice(-6)}`}
+                        </div>
+                        {hasTrust && (
+                          <div className="text-xs text-green-600">
+                            Trust Level: {contact.trustLevel}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {!hasTrust && (
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3].map((weight) => (
+                          <Button
+                            key={weight}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAllocateTrust(contact.peerId, weight)}
+                            disabled={trustStats.allocatedOut + trustStats.pendingOut + weight > 9}
+                            className="text-xs px-2 py-1 h-6 hover:bg-orange-100"
+                          >
+                            {weight}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>

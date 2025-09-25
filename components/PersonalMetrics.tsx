@@ -1,7 +1,9 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { signalsStore } from "@/lib/stores/signalsStore"
+import { hcsFeedService } from "@/lib/services/HCSFeedService"
+import { hcsRecognitionService } from "@/lib/services/HCSRecognitionService"
+import { getPersonalMetricsFromHCS } from "@/lib/services/HCSDataUtils"
 import { Users, Heart, Award } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -27,23 +29,61 @@ export function PersonalMetrics({ sessionId }: PersonalMetricsProps) {
   useEffect(() => {
     if (!sessionId) return
 
-    const updateMetrics = () => {
-      const bonded = signalsStore.getBondedContacts(sessionId)
-      const trustStats = signalsStore.getTrustStats(sessionId)
-      const ownedHashinals = signalsStore.getOwnedHashinals(sessionId)
-      
-      setMetrics({
-        bondedContacts: bonded.length,
-        trustAllocated: trustStats.allocatedOut,
-        trustCapacity: Math.min(bonded.length, 9), // Cap is min of bonded or 9
-        recognitionOwned: ownedHashinals.length
-      })
+    const updateMetrics = async () => {
+      try {
+        // Only try to get HCS events if service is ready or initializing
+        if (!hcsFeedService.isReady() && !hcsFeedService.isInitializingService()) {
+          // Service not ready and not initializing, use fallback
+          setMetrics({
+            bondedContacts: 0,
+            trustAllocated: 0,
+            trustCapacity: 9,
+            recognitionOwned: 0
+          })
+          return
+        }
+        
+        // Get all HCS events
+        const events = await hcsFeedService.getAllFeedEvents()
+        
+        // Get recognition count from HCS recognition service
+        let recognitionCount = 0
+        try {
+          const ownedInstances = await hcsRecognitionService.getUserRecognitionInstances(sessionId)
+          recognitionCount = ownedInstances.length
+        } catch (error) {
+          console.log('[PersonalMetrics] Recognition service not ready, using 0 count')
+        }
+        
+        // Derive metrics from HCS events
+        const hcsMetrics = getPersonalMetricsFromHCS(events, sessionId, recognitionCount)
+        
+        setMetrics({
+          bondedContacts: hcsMetrics.bondedContacts,
+          trustAllocated: hcsMetrics.trustAllocated,
+          trustCapacity: hcsMetrics.trustCapacity,
+          recognitionOwned: hcsMetrics.recognitionOwned
+        })
+      } catch (error) {
+        console.log('[PersonalMetrics] Failed to load metrics from HCS, using fallback:', error.message)
+        // Fallback to zeros if HCS fails
+        setMetrics({
+          bondedContacts: 0,
+          trustAllocated: 0,
+          trustCapacity: 9,
+          recognitionOwned: 0
+        })
+      }
     }
 
     updateMetrics()
 
-    // Poll for updates
-    const interval = setInterval(updateMetrics, 2000)
+    // Poll for updates only if HCS service is ready
+    const interval = setInterval(() => {
+      if (hcsFeedService.isReady()) {
+        updateMetrics()
+      }
+    }, 5000) // Slower polling to reduce load
     return () => clearInterval(interval)
   }, [sessionId])
 

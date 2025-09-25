@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AddContactDialog } from "@/components/AddContactDialog"
 import { ContactProfileSheet } from "@/components/ContactProfileSheet"
 import { signalsStore } from "@/lib/stores/signalsStore"
+import { hcsFeedService } from "@/lib/services/HCSFeedService"
+import { getBondedContactsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
 import { seedDemo } from "@/lib/demo/seed"
@@ -104,13 +106,56 @@ export default function ContactsPage() {
     seedDemo(signalsStore, currentSessionId)
   }, [])
 
+  // State for HCS events
+  const [hcsEvents, setHcsEvents] = useState<any[]>([])
+  
+  // Load HCS events
+  useEffect(() => {
+    if (!sessionId) return
+    
+    const loadHCSData = async () => {
+      try {
+        const events = await hcsFeedService.getAllFeedEvents()
+        setHcsEvents(events)
+      } catch (error) {
+        console.error('[ContactsPage] Failed to load HCS events:', error)
+        setHcsEvents([])
+      }
+    }
+    
+    loadHCSData()
+    
+    // Poll for updates
+    const interval = setInterval(() => {
+      if (hcsFeedService.isReady()) {
+        loadHCSData()
+      }
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [sessionId])
+
   const { bonded, incoming, outgoing, all } = useMemo(() => {
     if (!sessionId) {
       return { bonded: [], incoming: [], outgoing: [], all: [] }
     }
 
-    // Derive contacts from signals: group by peer, compute bonded, lastSeen, profileHrl
-    const contacts = signalsStore.deriveContacts(sessionId) as ContactType[]
+    // Use ONLY HCS events for consistency with Circle page - no local signalsStore mixing
+    const hcsBondedContacts = getBondedContactsFromHCS(hcsEvents, sessionId)
+    
+    // Convert HCS bonded contacts to ContactType format
+    const contacts: ContactType[] = hcsBondedContacts.map(contact => ({
+      peerId: contact.peerId,
+      handle: contact.handle || contact.peerId,
+      bonded: true, // All from getBondedContactsFromHCS are bonded
+      lastSeen: new Date(contact.bondedAt).toLocaleDateString(),
+      profileHrl: undefined,
+      trustWeightOut: contact.trustLevel
+    }))
+    
+    // Get pending requests from HCS events only (no local mixing)
+    const contactEvents = hcsEvents.filter(e => e.class === 'contact')
+    const pendingContacts: ContactType[] = []
     
     const filter = (arr: ContactType[]) =>
       arr.filter(c => 
@@ -120,56 +165,72 @@ export default function ContactsPage() {
         ) : true
       )
 
-    // Get contact signals to determine pending states
-    const flags = getRuntimeFlags()
-    const contactSignals = signalsStore.getSignals({ 
-      class: "contact",
-      scope: flags.scope,
-      sessionId
+    // Process HCS contact events to find pending states
+    const requestMap = new Map<string, { hasRequest: boolean; hasAccept: boolean; isInbound: boolean }>()
+    
+    contactEvents.forEach(event => {
+      const isInbound = event.actors.to === sessionId
+      const isOutbound = event.actors.from === sessionId
+      
+      if (!isInbound && !isOutbound) return
+      
+      const peerId = isInbound ? event.actors.from : event.actors.to
+      if (!peerId) return
+      
+      if (!requestMap.has(peerId)) {
+        requestMap.set(peerId, { hasRequest: false, hasAccept: false, isInbound: false })
+      }
+      
+      const entry = requestMap.get(peerId)!
+      
+      if (event.type === 'CONTACT_REQUEST') {
+        entry.hasRequest = true
+        entry.isInbound = isInbound
+      } else if (event.type === 'CONTACT_ACCEPT') {
+        entry.hasAccept = true
+      }
+    })
+    
+    // Find pending contacts (requests without accepts)
+    const incomingRequests: ContactType[] = []
+    const outgoingRequests: ContactType[] = []
+    
+    requestMap.forEach((entry, peerId) => {
+      if (entry.hasRequest && !entry.hasAccept) {
+        const contact: ContactType = {
+          peerId,
+          handle: `User ${peerId.slice(-6)}`,
+          bonded: false,
+          lastSeen: 'Pending',
+          trustWeightOut: 0
+        }
+        
+        if (entry.isInbound) {
+          incomingRequests.push(contact)
+        } else {
+          outgoingRequests.push(contact)
+        }
+      }
     })
 
-    // Separate bonded from pending
-    const bondedContacts = filter(contacts.filter(c => c.bonded))
-    
-    // Find contacts with only inbound requests (not accepted)
-    const incomingRequests = filter(
-      contacts.filter(c => {
-        const hasInboundRequest = contactSignals.some(s => 
-          s.type === "CONTACT_REQUEST" && 
-          s.direction === "inbound" && 
-          s.actors.from === c.peerId
-        )
-        const hasAccept = contactSignals.some(s => 
-          s.type === "CONTACT_ACCEPT" && 
-          (s.actors.from === c.peerId || s.actors.to === c.peerId)
-        )
-        return hasInboundRequest && !hasAccept
-      })
-    )
-    
-    // Find contacts with only outbound requests (not accepted)
-    const outgoingRequests = filter(
-      contacts.filter(c => {
-        const hasOutboundRequest = contactSignals.some(s => 
-          s.type === "CONTACT_REQUEST" && 
-          s.direction === "outbound" && 
-          s.actors.to === c.peerId
-        )
-        const hasAccept = contactSignals.some(s => 
-          s.type === "CONTACT_ACCEPT" && 
-          (s.actors.from === c.peerId || s.actors.to === c.peerId)
-        )
-        return hasOutboundRequest && !hasAccept
-      })
-    )
+    // Use HCS bonded contacts only (no duplicates)
+    const bondedContacts = filter(contacts)
 
+    console.log('[ContactsPage] Debug data:')
+    console.log('  - HCS Events:', hcsEvents.length)
+    console.log('  - Contact Events:', contactEvents.length)
+    console.log('  - HCS Bonded Contacts:', hcsBondedContacts)
+    console.log('  - Request Map:', Object.fromEntries(requestMap))
+    console.log('  - Incoming Requests:', incomingRequests)
+    console.log('  - Outgoing Requests:', outgoingRequests)
+    
     return {
       bonded: bondedContacts,
-      incoming: incomingRequests,
-      outgoing: outgoingRequests,
-      all: filter(contacts)
+      incoming: filter(incomingRequests),
+      outgoing: filter(outgoingRequests),
+      all: filter([...contacts, ...incomingRequests, ...outgoingRequests])
     }
-  }, [q, sessionId])
+  }, [q, sessionId, hcsEvents])
 
   return (
     <div className="max-w-md mx-auto px-4 py-4 space-y-4">

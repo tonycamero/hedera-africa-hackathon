@@ -12,15 +12,21 @@ import {
 import { resetSession } from "@/lib/session"
 import { resetStorageAdapter } from "@/lib/store/storage"
 import { signalsStore } from "@/lib/stores/signalsStore"
+import { clearCache, beginCacheSession, configureCacheBackend } from "@/lib/cache/sessionCache"
 import { removeSeedData, SEED_TAG } from "@/lib/demo/seed"
 import { hcsFeedService } from "@/lib/services/HCSFeedService"
+import { hcsRecognitionService } from "@/lib/services/HCSRecognitionService"
 import { RefreshCw, Eye, EyeOff, Globe, User, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 
 export function HeaderModeChips() {
   const [flags, setFlags] = useState(getRuntimeFlags())
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    // Mark as client-side to prevent hydration mismatch
+    setIsClient(true)
+    
     const unsubscribe = subscribeToFlagChanges(() => {
       setFlags(getRuntimeFlags())
     })
@@ -29,11 +35,20 @@ export function HeaderModeChips() {
 
   const toggleSeed = async () => {
     const newSeedOn = !flags.seedOn
+    console.log(`[HeaderModeChips] Toggling seed from ${flags.seedOn} to ${newSeedOn}`)
+    
     updateRuntimeFlags({ seedOn: newSeedOn })
     
     if (!newSeedOn) {
+      console.log("[HeaderModeChips] Disabling seed mode...")
       // Disable HCS seeding and clear data
-      await hcsFeedService.disableSeedMode()
+      try {
+        await hcsFeedService.disableSeedMode()
+        console.log("[HeaderModeChips] HCS seed mode disabled")
+      } catch (error) {
+        console.error("[HeaderModeChips] Error disabling HCS seed mode:", error)
+      }
+      
       // Also clear any local data
       removeSeedData(signalsStore)
       signalsStore.clear()
@@ -41,11 +56,38 @@ export function HeaderModeChips() {
       updateRuntimeFlags({ scope: 'my' })
       toast.success("Seed mode off", { description: "HCS demo data cleared, showing only your activity" })
     } else {
+      console.log("[HeaderModeChips] Enabling seed mode...")
       // Enable HCS seeding
-      await hcsFeedService.enableSeedMode()
-      toast.success("Seed mode on", { description: "HCS demo data loaded" })
-      // Small delay to let HCS seed, then reload components
-      setTimeout(() => window.location.reload(), 1000)
+      try {
+        toast.info("Initializing HCS services...", { description: "Creating topics and seeding data" })
+        
+        // Initialize HCS feed service first (this will also initialize recognition service)
+        console.log("[HeaderModeChips] Checking if HCS feed service is ready...")
+        if (!hcsFeedService.isReady()) {
+          console.log("[HeaderModeChips] HCS feed service not ready, initializing...")
+          await hcsFeedService.initialize()
+          console.log("[HeaderModeChips] HCS feed service initialized")
+        } else {
+          console.log("[HeaderModeChips] HCS feed service already ready")
+        }
+        
+        // Now enable seed mode
+        await hcsFeedService.enableSeedMode()
+        console.log("[HeaderModeChips] HCS seed mode enabled")
+        
+        toast.success("Seed mode on", { description: "HCS demo data loaded" })
+        
+        // Small delay to let HCS seed, then reload components
+        setTimeout(() => {
+          console.log("[HeaderModeChips] Reloading page after seed...")
+          window.location.reload()
+        }, 3000) // Increased delay to 3 seconds for HCS topics
+      } catch (error) {
+        console.error("[HeaderModeChips] Error enabling HCS seed mode:", error)
+        toast.error("HCS initialization failed", { 
+          description: error.message || "Check console for details" 
+        })
+      }
     }
   }
 
@@ -70,6 +112,11 @@ export function HeaderModeChips() {
       
       // Reset storage
       resetStorageAdapter()
+
+      // Clear any previous browser cache and start a fresh cache session
+      configureCacheBackend(false) // false = localStorage; set true to use sessionStorage
+      clearCache()
+      beginCacheSession() // starts a new sid and enables caching
       
       // Reset flags
       resetFlags()
@@ -83,6 +130,11 @@ export function HeaderModeChips() {
     }
   }
 
+  // Don't render anything on server-side to prevent hydration mismatch
+  if (!isClient) {
+    return null
+  }
+  
   // Don't show chips in production or if disabled
   if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_DEMO_MODE) {
     return null
@@ -145,13 +197,22 @@ export function HeaderModeChips() {
 
 export function DemoModeIndicator() {
   const [flags, setFlags] = useState(getRuntimeFlags())
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    // Mark as client-side to prevent hydration mismatch
+    setIsClient(true)
+    
     const unsubscribe = subscribeToFlagChanges(() => {
       setFlags(getRuntimeFlags())
     })
     return unsubscribe
   }, [])
+
+  // Don't render anything on server-side to prevent hydration mismatch
+  if (!isClient) {
+    return null
+  }
 
   if (!flags.seedOn && !flags.isLiveMode && !flags.isDemoMode) {
     return null

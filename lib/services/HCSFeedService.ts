@@ -1,6 +1,10 @@
 import { hcsLogger } from "@/packages/hedera/HCSLogger"
 import { hederaClient } from "@/packages/hedera/HederaClient"
+import { hcsRecognitionService } from "@/lib/services/HCSRecognitionService"
 import type { SignalEvent } from "@/lib/stores/signalsStore"
+import { MirrorNodeReader } from "@/lib/services/MirrorNodeReader"
+import { toSignalEvents } from "@/lib/services/MirrorNormalize"
+import { saveMirrorRaw } from "@/lib/cache/sessionCache"
 
 export type HCSFeedEvent = {
   id: string
@@ -32,6 +36,11 @@ export class HCSFeedService {
   private profileTopicId: string | null = null
   private systemTopicId: string | null = null
   private isSeeded: boolean = false
+  private cachedEvents: HCSFeedEvent[] = [] // Cache for events successfully written to HCS
+  private readonly CACHE_KEY = 'trustmesh_demo_cache'
+  private mirrorReader: MirrorNodeReader | null = null;
+  private isInitializing: boolean = false
+  private initPromise: Promise<void> | null = null
   private demoUsers: string[] = [
     'tm-alice47',
     'tm-bob23k', 
@@ -42,57 +51,141 @@ export class HCSFeedService {
   ]
 
   async initialize(): Promise<void> {
-    console.log("[HCSFeedService] Initializing HCS feed topics...")
-
-    if (!hederaClient.isReady()) {
-      await hederaClient.initialize()
+    // Load cached events from browser storage on initialization
+    this.loadCachedEvents()
+    
+    if (this.isReady()) {
+      return
     }
+    if (this.isInitializing && this.initPromise) {
+      // someone else is already initializing; just await it
+      await this.initPromise
+      return
+    }
+    console.log("[HCSFeedService] Initializing HCS feed topics...")
+    this.isInitializing = true
+    this.initPromise = (async () => {
 
-    // Create dedicated topics for each feed category
-    const feedTopic = await hederaClient.createHCS10Topic(
-      "TrustMesh Activity Feed",
-      "Real-time activity feed for all TrustMesh interactions"
-    )
-    this.feedTopicId = feedTopic.topicId
+      if (!hederaClient.isReady()) {
+        await hederaClient.initialize()
+      }
 
-    const contactsTopic = await hederaClient.createHCS10Topic(
-      "TrustMesh Contacts",
-      "Contact requests, accepts, and bond management"
-    )
-    this.contactsTopicId = contactsTopic.topicId
+      try {
+        // FIRE-AND-FORGET: Create all topics in parallel and don't wait for them
+        console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Starting parallel topic creation...")
+        
+        // Create all topics in parallel without awaiting (fire-and-forget)
+        const topicCreations = [
+          hederaClient.createHCS10Topic("TrustMesh Activity Feed", "Real-time activity feed for all TrustMesh interactions")
+            .then(topic => {
+              this.feedTopicId = topic.topicId
+              console.log(`[HCSFeedService] 🔥 Feed topic created: ${this.feedTopicId}`)
+            })
+            .catch(err => console.error("[HCSFeedService] Feed topic creation failed:", err)),
+            
+          hederaClient.createHCS10Topic("TrustMesh Contacts", "Contact requests, accepts, and bond management")
+            .then(topic => {
+              this.contactsTopicId = topic.topicId
+              console.log(`[HCSFeedService] 🔥 Contacts topic created: ${this.contactsTopicId}`)
+            })
+            .catch(err => console.error("[HCSFeedService] Contacts topic creation failed:", err)),
+            
+          hederaClient.createHCS10Topic("TrustMesh Trust Signals", "Trust allocation, adjustments, and revocations")
+            .then(topic => {
+              this.trustTopicId = topic.topicId
+              console.log(`[HCSFeedService] 🔥 Trust topic created: ${this.trustTopicId}`)
+            })
+            .catch(err => console.error("[HCSFeedService] Trust topic creation failed:", err)),
+            
+          hederaClient.createHCS10Topic("TrustMesh Recognition", "Recognition signals and achievement minting")
+            .then(topic => {
+              this.recognitionTopicId = topic.topicId
+              console.log(`[HCSFeedService] 🔥 Recognition topic created: ${this.recognitionTopicId}`)
+            })
+            .catch(err => console.error("[HCSFeedService] Recognition topic creation failed:", err)),
+            
+          hederaClient.createHCS10Topic("TrustMesh Profiles", "User profiles and session management")
+            .then(topic => {
+              this.profileTopicId = topic.topicId
+              console.log(`[HCSFeedService] 🔥 Profile topic created: ${this.profileTopicId}`)
+            })
+            .catch(err => console.error("[HCSFeedService] Profile topic creation failed:", err)),
+            
+          hederaClient.createHCS10Topic("TrustMesh System", "System announcements and platform updates")
+            .then(topic => {
+              this.systemTopicId = topic.topicId
+              console.log(`[HCSFeedService] 🔥 System topic created: ${this.systemTopicId}`)
+            })
+            .catch(err => console.error("[HCSFeedService] System topic creation failed:", err))
+        ]
+        
+        // Fire and forget - don't wait for all topics to be created
+        // They'll be available eventually as the blockchain processes them
+        console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Topics creation started in background...")
 
-    const trustTopic = await hederaClient.createHCS10Topic(
-      "TrustMesh Trust Signals",
-      "Trust allocation, adjustments, and revocations"
-    )
-    this.trustTopicId = trustTopic.topicId
+        // Set up a delayed validation and initialization process that doesn't block
+        setTimeout(async () => {
+          try {
+            // Wait a bit for at least some topics to be created
+            await Promise.race(topicCreations.slice(0, 3)) // Wait for first 3 topics
+            
+            console.log("[HCSFeedService] 🔥 Some topics ready, starting services...")
+            
+            // Initialize recognition service with HCS (fire-and-forget)
+            hcsRecognitionService.initialize().catch(err => 
+              console.error("[HCSFeedService] Recognition service init failed:", err)
+            )
+            
+            // Start seeding process (fire-and-forget)
+            this.seedInitialData().catch(err => 
+              console.error("[HCSFeedService] Seeding failed:", err)
+            )
+            
+            // Set up Mirror reader when topics are available
+            const setupMirrorReader = () => {
+              const topics = [
+                this.contactsTopicId,
+                this.trustTopicId,
+                this.recognitionTopicId,
+                this.systemTopicId
+              ].filter(Boolean) as string[];
+              
+              if (topics.length > 0) {
+                this.mirrorReader = new MirrorNodeReader(topics)
+                console.log(`[HCSFeedService] 🔥 Mirror reader set up with ${topics.length} topics`)
+              } else {
+                // Retry after some time if no topics are ready yet
+                setTimeout(setupMirrorReader, 5000)
+              }
+            }
+            setupMirrorReader()
+            
+          } catch (error) {
+            console.error("[HCSFeedService] Background initialization error:", error)
+          }
+        }, 100) // Start background processes after 100ms
+        
+        console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Initialization completed immediately, topics will be ready soon...")
+      } catch (error) {
+        console.error("[HCSFeedService] Failed to initialize topics:", error)
+        throw error
+      } finally {
+        this.isInitializing = false
+      }
+    })()
 
-    const recognitionTopic = await hederaClient.createHCS10Topic(
-      "TrustMesh Recognition",
-      "Recognition signals and achievement minting"
-    )
-    this.recognitionTopicId = recognitionTopic.topicId
-
-    const profileTopic = await hederaClient.createHCS10Topic(
-      "TrustMesh Profiles",
-      "User profiles and session management"
-    )
-    this.profileTopicId = profileTopic.topicId
-
-    const systemTopic = await hederaClient.createHCS10Topic(
-      "TrustMesh System",
-      "System announcements and platform updates"
-    )
-    this.systemTopicId = systemTopic.topicId
-
-    console.log("[HCSFeedService] All feed topics created successfully")
-    await this.seedInitialData()
+    try {
+      await this.initPromise
+    } finally {
+      this.initPromise = null
+    }
   }
 
   private async seedInitialData(): Promise<void> {
     // Only seed if enabled and not already seeded
     const flags = await this.getRuntimeFlags()
     if (!flags.seedOn || flags.isLiveMode || this.isSeeded) {
+      console.log("[HCSFeedService] Skipping initial seeding - seedOn:", flags.seedOn, "isLiveMode:", flags.isLiveMode, "isSeeded:", this.isSeeded)
       return
     }
 
@@ -103,18 +196,35 @@ export class HCSFeedService {
       // Clear any existing local data first
       await this.clearAllHCSData()
       
-      // Seed complete demo dataset to HCS
+      // Seed complete demo dataset to HCS with real topics
       await this.seedComprehensiveDemoData(currentSessionId)
       
       this.isSeeded = true
-      console.log("[HCSFeedService] Comprehensive demo data seeded successfully")
+      console.log("[HCSFeedService] Comprehensive demo data seeded successfully to real HCS topics")
     } catch (error) {
-      console.error("[HCSFeedService] Failed to seed demo data:", error)
+      console.error("[HCSFeedService] Failed to seed demo data to HCS:", error)
+      // Don't throw - let the service continue to work with empty data
     }
   }
 
   async logContactRequest(from: string, to: string, fromName?: string, toName?: string): Promise<HCSFeedEvent> {
     const eventId = `contact_req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Validate topic IDs before proceeding
+    if (!this.contactsTopicId || !this.feedTopicId) {
+      console.error(`[HCSFeedService] Cannot log contact request - missing topic IDs: contacts=${this.contactsTopicId}, feed=${this.feedTopicId}`)
+      return {
+        id: eventId,
+        type: "contact_request",
+        timestamp: new Date().toISOString(),
+        actor: from,
+        target: to,
+        metadata: { handle: fromName, name: toName },
+        status: "error",
+        direction: "outbound",
+        topicId: this.contactsTopicId || "unknown",
+      }
+    }
     
     const event: HCSFeedEvent = {
       id: eventId,
@@ -125,22 +235,40 @@ export class HCSFeedService {
       metadata: {
         handle: fromName,
         name: toName,
-        topicId: this.contactsTopicId!,
+        topicId: this.contactsTopicId,
         explorerUrl: `https://hashscan.io/testnet/topic/${this.contactsTopicId}`
       },
       status: "local",
       direction: "outbound",
-      topicId: this.contactsTopicId!,
+      topicId: this.contactsTopicId,
+    }
+
+    // Check if topics are ready before submitting
+    if (!this.contactsTopicId || !this.feedTopicId) {
+      console.warn(`[HCSFeedService] Topics not ready yet for contact request - contacts: ${this.contactsTopicId}, feed: ${this.feedTopicId}`)
+      event.status = "pending"
+      // Add to cache anyway for immediate UI availability
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
+      return event
     }
 
     try {
-      await hederaClient.submitMessage(this.contactsTopicId!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.contactsTopicId, JSON.stringify(event))
+      await hederaClient.submitMessage(this.feedTopicId, JSON.stringify(event))
       event.status = "onchain"
-      console.log(`[HCSFeedService] Contact request logged: ${from} → ${to}`)
+      
+      // Add to cache since it was successfully written to HCS
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
+      
+      console.log(`[HCSFeedService] Contact request logged to real HCS: ${from} → ${to}`)
     } catch (error) {
-      console.error(`[HCSFeedService] Failed to log contact request:`, error)
+      console.error(`[HCSFeedService] Failed to log contact request to HCS:`, error)
       event.status = "error"
+      // Still add to cache for UI consistency
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
     }
 
     return event
@@ -166,14 +294,32 @@ export class HCSFeedService {
       topicId: this.contactsTopicId!,
     }
 
+    // Check if topics are ready before submitting
+    if (!this.contactsTopicId || !this.feedTopicId) {
+      console.warn(`[HCSFeedService] Topics not ready yet for contact accept - contacts: ${this.contactsTopicId}, feed: ${this.feedTopicId}`)
+      event.status = "pending"
+      // Add to cache anyway for immediate UI availability
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
+      return event
+    }
+
     try {
       await hederaClient.submitMessage(this.contactsTopicId!, JSON.stringify(event))
       await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
       event.status = "onchain"
-      console.log(`[HCSFeedService] Contact accepted: ${from} → ${to}`)
+      
+      // Add to cache since it was successfully written to HCS
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
+      
+      console.log(`[HCSFeedService] Contact accepted logged to real HCS: ${from} → ${to}`)
     } catch (error) {
-      console.error(`[HCSFeedService] Failed to log contact accept:`, error)
+      console.error(`[HCSFeedService] Failed to log contact accept to HCS:`, error)
       event.status = "error"
+      // Still add to cache for UI consistency
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
     }
 
     return event
@@ -199,15 +345,33 @@ export class HCSFeedService {
       topicId: this.trustTopicId!,
     }
 
+    // Check if topics are ready before submitting
+    if (!this.trustTopicId || !this.feedTopicId) {
+      console.warn(`[HCSFeedService] Topics not ready yet for trust allocation - trust: ${this.trustTopicId}, feed: ${this.feedTopicId}`)
+      event.status = "pending"
+      // Add to cache anyway for immediate UI availability
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
+      return event
+    }
+
     try {
       await hederaClient.submitMessage(this.trustTopicId!, JSON.stringify(event))
       await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
       await hcsLogger.logTrustTokenIssued("trust", from, to, eventId, weight, reason)
       event.status = "onchain"
-      console.log(`[HCSFeedService] Trust allocated: ${from} → ${to} (${weight})`)
+      
+      // Add to cache since it was successfully written to HCS
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
+      
+      console.log(`[HCSFeedService] Trust allocated to real HCS: ${from} → ${to} (${weight})`)
     } catch (error) {
-      console.error(`[HCSFeedService] Failed to log trust allocation:`, error)
+      console.error(`[HCSFeedService] Failed to log trust allocation to HCS:`, error)
       event.status = "error"
+      // Still add to cache for UI consistency
+      this.cachedEvents.push(event)
+      this.saveCachedEvents()
     }
 
     return event
@@ -237,48 +401,98 @@ export class HCSFeedService {
       await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
       await hcsLogger.logTrustTokenRevoked("trust", from, to, eventId, reason)
       event.status = "onchain"
-      console.log(`[HCSFeedService] Trust revoked: ${from} → ${to}`)
+      
+      // Add to cache since it was successfully written to HCS
+      this.cachedEvents.push(event)
+      
+      console.log(`[HCSFeedService] Trust revoked to real HCS: ${from} → ${to}`)
     } catch (error) {
-      console.error(`[HCSFeedService] Failed to log trust revocation:`, error)
+      console.error(`[HCSFeedService] Failed to log trust revocation to HCS:`, error)
       event.status = "error"
     }
 
     return event
   }
 
-  async logRecognitionMint(from: string, to: string, name: string, description: string, category: string): Promise<HCSFeedEvent> {
+  async logRecognitionMint(from: string, to: string, name: string, description: string, category: string, definitionId?: string): Promise<HCSFeedEvent> {
     const eventId = `recognition_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    const event: HCSFeedEvent = {
-      id: eventId,
-      type: "recognition_mint",
-      timestamp: new Date().toISOString(),
-      actor: from,
-      target: to,
-      metadata: {
-        name,
-        description,
-        category,
-        rarity: Math.random() > 0.7 ? "rare" : "common",
-        topicId: this.recognitionTopicId!,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.recognitionTopicId}`
-      },
-      status: "local",
-      direction: "outbound",
-      topicId: this.recognitionTopicId!,
-    }
-
     try {
+      // If we have a definition ID, mint through the recognition service
+      let recognitionInstance = null
+      if (definitionId && hcsRecognitionService.isReady()) {
+        try {
+          recognitionInstance = await hcsRecognitionService.mintRecognitionInstance(
+            definitionId,
+            to, // owner
+            from, // minted by
+            undefined, // custom message
+            description // context
+          )
+          console.log(`[HCSFeedService] Minted recognition instance: ${recognitionInstance.tokenId}`)
+        } catch (error) {
+          console.error(`[HCSFeedService] Failed to mint through recognition service:`, error)
+        }
+      }
+    
+      const event: HCSFeedEvent = {
+        id: eventId,
+        type: "recognition_mint",
+        timestamp: new Date().toISOString(),
+        actor: from,
+        target: to,
+        metadata: {
+          name,
+          description,
+          category,
+          rarity: Math.random() > 0.7 ? "rare" : "common",
+          topicId: this.recognitionTopicId!,
+          explorerUrl: `https://hashscan.io/testnet/topic/${this.recognitionTopicId}`,
+          // Include recognition instance data if available
+          ...(recognitionInstance && {
+            recognitionInstanceId: recognitionInstance.id,
+            tokenId: recognitionInstance.tokenId,
+            serialNumber: recognitionInstance.serialNumber
+          })
+        },
+        status: "local",
+        direction: "outbound",
+        topicId: this.recognitionTopicId!,
+      }
+
+      // Check if topics are ready before submitting
+      if (!this.recognitionTopicId || !this.feedTopicId) {
+        console.warn(`[HCSFeedService] Topics not ready yet for recognition mint - recognition: ${this.recognitionTopicId}, feed: ${this.feedTopicId}`)
+        event.status = "pending"
+        // Add to cache anyway for immediate UI availability
+        this.cachedEvents.push(event)
+        return event
+      }
+
       await hederaClient.submitMessage(this.recognitionTopicId!, JSON.stringify(event))
       await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
       event.status = "onchain"
-      console.log(`[HCSFeedService] Recognition minted: ${name} for ${to}`)
+      
+      // Add to cache since it was successfully written to HCS
+      this.cachedEvents.push(event)
+      
+      console.log(`[HCSFeedService] Recognition minted to real HCS: ${name} for ${to}`)
+      return event
     } catch (error) {
-      console.error(`[HCSFeedService] Failed to log recognition:`, error)
-      event.status = "error"
+      console.error(`[HCSFeedService] Failed to log recognition to HCS:`, error)
+      const errorEvent: HCSFeedEvent = {
+        id: eventId,
+        type: "recognition_mint",
+        timestamp: new Date().toISOString(),
+        actor: from,
+        target: to,
+        metadata: { name, description, category },
+        status: "error",
+        direction: "outbound",
+        topicId: this.recognitionTopicId!,
+      }
+      return errorEvent
     }
-
-    return event
   }
 
   // Convert HCSFeedEvent to SignalEvent format for existing components
@@ -343,88 +557,63 @@ export class HCSFeedService {
   }
 
   async getAllFeedEvents(): Promise<SignalEvent[]> {
-    if (!this.feedTopicId) {
-      await this.initialize()
-    }
-
-    // In a real implementation, this would query HCS topics for messages
-    // For now, we'll simulate by returning the seeded data
-    const mockEvents: HCSFeedEvent[] = [
-      {
-        id: "contact_req_1",
-        type: "contact_request", 
-        timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        actor: "alice.hey",
-        target: "bob.hey",
-        metadata: { handle: "Alice Chen", name: "Bob Wilson", explorerUrl: `https://hashscan.io/testnet/topic/${this.contactsTopicId}` },
-        status: "onchain",
-        direction: "outbound",
-        topicId: this.contactsTopicId!
-      },
-      {
-        id: "contact_acc_1",
-        type: "contact_accept",
-        timestamp: new Date(Date.now() - 3000000).toISOString(), // 50 min ago
-        actor: "bob.hey", 
-        target: "alice.hey",
-        metadata: { handle: "Bob Wilson", name: "Alice Chen", explorerUrl: `https://hashscan.io/testnet/topic/${this.contactsTopicId}` },
-        status: "onchain",
-        direction: "inbound",
-        topicId: this.contactsTopicId!
-      },
-      {
-        id: "trust_alloc_1",
-        type: "trust_allocate",
-        timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
-        actor: "alice.hey",
-        target: "bob.hey", 
-        metadata: { weight: 5, description: "Great collaboration on hackathon", explorerUrl: `https://hashscan.io/testnet/topic/${this.trustTopicId}` },
-        status: "onchain",
-        direction: "outbound",
-        topicId: this.trustTopicId!
-      },
-      {
-        id: "recognition_1",
-        type: "recognition_mint",
-        timestamp: new Date(Date.now() - 900000).toISOString(), // 15 min ago
-        actor: "bob.hey",
-        target: "alice.hey",
-        metadata: { 
-          name: "Code Wizard", 
-          description: "Exceptional coding skills demonstrated",
-          category: "academic",
-          rarity: "rare",
-          explorerUrl: `https://hashscan.io/testnet/topic/${this.recognitionTopicId}`
-        },
-        status: "onchain",
-        direction: "inbound", 
-        topicId: this.recognitionTopicId!
-      },
-      {
-        id: "contact_req_2",
-        type: "contact_request",
-        timestamp: new Date(Date.now() - 600000).toISOString(), // 10 min ago
-        actor: "charlie.hey",
-        target: "alice.hey",
-        metadata: { handle: "Charlie Kim", name: "Alice Chen", explorerUrl: `https://hashscan.io/testnet/topic/${this.contactsTopicId}` },
-        status: "onchain", 
-        direction: "inbound",
-        topicId: this.contactsTopicId!
-      },
-      {
-        id: "trust_alloc_2",
-        type: "trust_allocate",
-        timestamp: new Date(Date.now() - 300000).toISOString(), // 5 min ago
-        actor: "alice.hey",
-        target: "charlie.hey",
-        metadata: { weight: 3, description: "Good communication skills", explorerUrl: `https://hashscan.io/testnet/topic/${this.trustTopicId}` },
-        status: "local", // Still processing
-        direction: "outbound",
-        topicId: this.trustTopicId!
+    try {
+      if (!this.isReady()) {
+        if (this.isInitializing && this.initPromise) {
+          console.log("[HCSFeedService] Waiting for ongoing HCS initialization...")
+          await this.initPromise
+        } else {
+          console.log("[HCSFeedService] Service not ready, initializing...")
+          await this.initialize()
+        }
       }
-    ]
+      
+      if (!this.isReady()) {
+        console.log("[HCSFeedService] Service not ready after initialization, returning empty feed")
+        return []
+      }
 
-    return mockEvents.map(event => this.hcsEventToSignalEvent(event))
+      // FIRE-AND-FORGET: Return cached events immediately 
+      // Mirror Node data will be available eventually as it catches up
+      if (this.cachedEvents.length > 0) {
+        console.log(`[HCSFeedService] Returning ${this.cachedEvents.length} cached events (fire-and-forget mode)`)
+        const hcsEvents: HCSFeedEvent[] = [...this.cachedEvents].sort((a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        return hcsEvents.map(event => this.hcsEventToSignalEvent(event))
+      }
+
+      // Try Mirror Node data as fallback, but don't block on it
+      if (this.mirrorReader) {
+        try {
+          const mirrorMsgs = await Promise.race([
+            this.mirrorReader.readRecent(50),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Mirror Node timeout')), 2000))
+          ]) as any[]
+          
+          const fromMirror = toSignalEvents(mirrorMsgs, {
+            contacts: this.contactsTopicId,
+            trust: this.trustTopicId,
+            recognition: this.recognitionTopicId,
+            profile: this.profileTopicId
+          });
+          // persist raw mirror messages for debugging/offline improvements
+          saveMirrorRaw(mirrorMsgs);
+
+          if (fromMirror.length > 0) {
+            console.log(`[HCSFeedService] Returning ${fromMirror.length} events from Mirror Node (fallback)`)
+            return fromMirror.sort((a, b) => b.ts - a.ts)
+          }
+        } catch (error) {
+          console.log(`[HCSFeedService] Mirror Node unavailable (${error.message}), continuing without it`)
+        }
+      }
+
+      return []
+    } catch (error) {
+      console.error("[HCSFeedService] Failed to get feed events:", error)
+      return []
+    }
   }
 
   async getEventsByTopic(topicType: "contacts" | "trust" | "recognition"): Promise<SignalEvent[]> {
@@ -447,8 +636,46 @@ export class HCSFeedService {
     return true
   }
 
+  private validateTopicIds(): boolean {
+    // FIRE-AND-FORGET: In this mode, we're more lenient about topic readiness
+    // We consider the service ready if we have at least the core topics (contacts, trust)
+    const coreTopicIds = [
+      this.contactsTopicId,
+      this.trustTopicId
+    ]
+    
+    const coreValid = coreTopicIds.some(id => {
+      if (!id) return false
+      // Hedera topic IDs should be in format "0.0.XXXXXXX"
+      const topicIdRegex = /^0\.0\.[0-9]+$/
+      return topicIdRegex.test(id)
+    })
+    
+    // In fire-and-forget mode, we're ready if we have at least one core topic
+    // or if we're still initializing (optimistic readiness)
+    const isReady = coreValid || this.isInitializing
+    
+    if (!isReady && !this.isInitializing) {
+      console.warn("[HCSFeedService] 🔥 Service not ready in fire-and-forget mode - no core topics yet:", {
+        contacts: this.contactsTopicId || 'pending',
+        trust: this.trustTopicId || 'pending',
+        feed: this.feedTopicId || 'pending',
+        recognition: this.recognitionTopicId || 'pending',
+        profile: this.profileTopicId || 'pending',
+        system: this.systemTopicId || 'pending',
+        initializing: this.isInitializing
+      })
+    }
+    
+    return isReady
+  }
+
   isReady(): boolean {
-    return this.feedTopicId !== null
+    return this.validateTopicIds()
+  }
+  
+  isInitializingService(): boolean {
+    return this.isInitializing
   }
 
   getTopicIds() {
@@ -460,6 +687,15 @@ export class HCSFeedService {
       profile: this.profileTopicId,
       system: this.systemTopicId
     }
+  }
+
+  private async waitForReady(timeoutMs = 15000): Promise<boolean> {
+    const start = Date.now()
+    while (Date.now() - start < timeoutMs) {
+      if (this.isReady()) return true
+      await new Promise(r => setTimeout(r, 250))
+    }
+    return this.isReady()
   }
 
   // === COMPREHENSIVE DEMO DATA METHODS ===
@@ -477,56 +713,140 @@ export class HCSFeedService {
   }
 
   private async seedComprehensiveDemoData(sessionId: string): Promise<void> {
-    const now = Date.now()
-    const day = 24 * 60 * 60 * 1000
-    const hour = 60 * 60 * 1000
-
-    // === BONDED CONTACTS SEQUENCE ===
+    console.log("[HCSFeedService] Seeding rich demo network with realistic profiles (FIRE-AND-FORGET mode)...")
     
-    // Alice Chen - 3 days ago request → accept → trust allocation
-    await this.logContactRequest(this.demoUsers[0], sessionId, "Alice Chen", "You")
-    await new Promise(resolve => setTimeout(resolve, 100)) // Small delay
-    await this.logContactAccept(sessionId, this.demoUsers[0], "You", "Alice Chen")
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await this.logTrustAllocation(sessionId, this.demoUsers[0], 3, "Excellent code reviews and collaboration")
-
-    // Bob Martinez - 2 days ago request → accept → trust allocation  
-    await this.logContactRequest(this.demoUsers[1], sessionId, "Bob Martinez", "You")
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await this.logContactAccept(sessionId, this.demoUsers[1], "You", "Bob Martinez")
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await this.logTrustAllocation(sessionId, this.demoUsers[1], 2, "Great UX feedback and design insights")
-
-    // Carol Wang - 1 day ago request → accept → inbound trust
-    await this.logContactRequest(this.demoUsers[2], sessionId, "Carol Wang", "You")
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await this.logContactAccept(sessionId, this.demoUsers[2], "You", "Carol Wang")
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await this.logTrustAllocation(this.demoUsers[2], sessionId, 1, "Helpful technical insights")
-
+    // Import demo profiles
+    const { demoProfiles, demoRecognitionDistribution } = await import('../data/demoProfiles')
+    
+    // Get the main user profile (Alex Chen - the CS student who's well connected)
+    const mainProfile = demoProfiles.find(p => p.id === 'tm-alex-chen')!
+    
+    // Replace sessionId with Alex's ID for consistency
+    const alexId = mainProfile.id
+    
+    // === ESTABLISHED BONDS ===
+    // Create all established connections for Alex
+    // FIRE-AND-FORGET: Reduced delays, no waiting for confirmation
+    for (const contactId of mainProfile.connections.established) {
+      const contact = demoProfiles.find(p => p.id === contactId)!
+      
+      // Historical contact flow: request → accept (simulate past interaction)
+      await this.logContactRequest(contactId, alexId, contact.displayName, mainProfile.displayName)
+      await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
+      await this.logContactAccept(alexId, contactId, mainProfile.displayName, contact.displayName)
+      await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
+      
+      // Add trust allocation if Alex has allocated trust to them
+      if (mainProfile.trustAllocated[contactId]) {
+        const weight = mainProfile.trustAllocated[contactId]
+        const reasons = {
+          'tm-maya-patel': 'Excellent mentorship and research guidance',
+          'tm-jordan-kim': 'Outstanding design collaboration and UX insights', 
+          'tm-sam-rivera': 'Great pair programming and code reviews'
+        }
+        await this.logTrustAllocation(alexId, contactId, weight, reasons[contactId] || 'Valuable collaboration')
+        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
+      }
+    }
+    
+    // === CREATE CROSS-NETWORK BONDS ===
+    // Seed some established relationships between other profiles
+    const crossConnections = [
+      { from: 'tm-maya-patel', to: 'tm-riley-santos', trust: 3, reason: 'Outstanding research collaboration' },
+      { from: 'tm-maya-patel', to: 'tm-casey-wright', trust: 2, reason: 'Strategic startup mentoring' },
+      { from: 'tm-sam-rivera', to: 'tm-jordan-kim', trust: 1, reason: 'Successful project collaboration' },
+      { from: 'tm-riley-santos', to: 'tm-maya-patel', trust: 3, reason: 'Invaluable academic guidance' },
+      { from: 'tm-jordan-kim', to: 'tm-alex-chen', trust: 1, reason: 'Reliable and helpful' },
+      { from: 'tm-jordan-kim', to: 'tm-sam-rivera', trust: 2, reason: 'Great technical partnership' }
+    ]
+    
+    // FIRE-AND-FORGET: Batch process with minimal delays
+    for (const conn of crossConnections) {
+      const fromProfile = demoProfiles.find(p => p.id === conn.from)!
+      const toProfile = demoProfiles.find(p => p.id === conn.to)!
+      
+      // Only create if they're marked as established in the profile
+      if (fromProfile.connections.established.includes(conn.to)) {
+        await this.logContactRequest(conn.from, conn.to, fromProfile.displayName, toProfile.displayName)
+        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
+        await this.logContactAccept(conn.to, conn.from, toProfile.displayName, fromProfile.displayName)
+        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
+        await this.logTrustAllocation(conn.from, conn.to, conn.trust, conn.reason)
+        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
+      }
+    }
+    
     // === PENDING CONTACT REQUESTS ===
+    // Create pending requests that users can interact with
     
-    // Dave Kim - 2 hours ago, pending
-    await this.logContactRequest(this.demoUsers[3], sessionId, "Dave Kim", "You")
+    // Maya → Jordan (outgoing from Maya, pending at Jordan)
+    const mayaProfile = demoProfiles.find(p => p.id === 'tm-maya-patel')!
+    const jordanProfile = demoProfiles.find(p => p.id === 'tm-jordan-kim')!
+    await this.logContactRequest('tm-maya-patel', 'tm-jordan-kim', mayaProfile.displayName, jordanProfile.displayName)
+    await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
     
-    // Outgoing to Eve Thompson - 30 minutes ago, waiting for response
-    await this.logContactRequest(sessionId, this.demoUsers[4], "You", "Eve Thompson")
-
-    // === RECOGNITION SIGNALS (HASHINALS) ===
+    // Sam → Casey (outgoing from Sam, pending at Casey)
+    const samProfile = demoProfiles.find(p => p.id === 'tm-sam-rivera')!
+    const caseyProfile = demoProfiles.find(p => p.id === 'tm-casey-wright')!
+    await this.logContactRequest('tm-sam-rivera', 'tm-casey-wright', samProfile.displayName, caseyProfile.displayName)
+    await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
     
-    await this.logRecognitionMint("system-issuer", sessionId, "Community Leader", "Organized 5+ blockchain meetups", "social")
-    await this.logRecognitionMint("ethereum-foundation", sessionId, "Solidity Expert", "Advanced smart contract certification", "academic") 
-    await this.logRecognitionMint("tech-skills-dao", sessionId, "Full-Stack Developer", "3+ years React & Node.js experience", "professional")
-
+    // === RECOGNITION DISTRIBUTION ===
+    // Mint recognition signals for each profile based on their characteristics
+    for (const dist of demoRecognitionDistribution) {
+      const profile = demoProfiles.find(p => p.id === dist.profileId)!
+      
+      for (const recognitionId of dist.recognitionIds) {
+        const recognitionNames = {
+          'prof-fav': 'Prof Fav',
+          'code-monkey': 'Code Monkey', 
+          'note-taker': 'Note Taker',
+          'powerpoint-pro': 'PowerPoint Pro',
+          'chad': 'Chad',
+          'rizz': 'Rizz',
+          'skibidi': 'Skibidi',
+          'bookworm': 'Bookworm'
+        }
+        
+        const recognitionDescriptions = {
+          'prof-fav': 'Teacher\'s pet, always caring',
+          'code-monkey': 'Nonstop coding machine',
+          'note-taker': 'Clean notes, everyone copies', 
+          'powerpoint-pro': 'Biggest slides in the room',
+          'chad': 'Alpha vibes - natural leadership',
+          'rizz': 'Smooth operator extraordinaire',
+          'skibidi': 'Chaotic energy master',
+          'bookworm': 'Lives in the library'
+        }
+        
+        const categories = {
+          'prof-fav': 'academic',
+          'code-monkey': 'professional',
+          'note-taker': 'academic',
+          'powerpoint-pro': 'professional', 
+          'chad': 'social',
+          'rizz': 'social',
+          'skibidi': 'social',
+          'bookworm': 'academic'
+        }
+        
+        await this.logRecognitionMint(
+          'demo-issuer',
+          dist.profileId,
+          recognitionNames[recognitionId],
+          recognitionDescriptions[recognitionId], 
+          categories[recognitionId],
+          recognitionId
+        )
+        await new Promise(resolve => setTimeout(resolve, 5)) // Minimal delay for fire-and-forget
+      }
+    }
+    
     // === SYSTEM ANNOUNCEMENTS ===
+    await this.logSystemAnnouncement("network_launch", "TrustMesh university pilot program is now live! 🎓", "v1.0.0")
+    await new Promise(resolve => setTimeout(resolve, 10)) // Minimal delay
     
-    await this.logSystemAnnouncement("platform_update", "TrustMesh network now supports instant settlements", "v2.1.0")
-    
-    // === NETWORK ACTIVITY (peer-to-peer) ===
-    
-    await this.logTrustAllocation(this.demoUsers[4], this.demoUsers[5], 1, "First collaboration on hackathon project")
-    
-    console.log("[HCSFeedService] Seeded comprehensive demo data with realistic interaction flows")
+    console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Seeded rich demo network with 8 profiles, established bonds, pending requests, and recognition distribution")
   }
 
   async logSystemAnnouncement(type: string, message: string, version?: string): Promise<HCSFeedEvent> {
@@ -550,24 +870,47 @@ export class HCSFeedService {
       topicId: this.systemTopicId!,
     }
 
+    // Check if topics are ready before submitting
+    if (!this.systemTopicId || !this.feedTopicId) {
+      console.warn(`[HCSFeedService] Topics not ready yet for system announcement - system: ${this.systemTopicId}, feed: ${this.feedTopicId}`)
+      event.status = "pending"
+      // Add to cache anyway for immediate UI availability
+      this.cachedEvents.push(event)
+      return event
+    }
+
     try {
       await hederaClient.submitMessage(this.systemTopicId!, JSON.stringify(event))
       await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
       event.status = "onchain"
-      console.log(`[HCSFeedService] System announcement logged: ${message}`)
+      
+      // Add to cache since it was successfully written to HCS
+      this.cachedEvents.push(event)
+      
+      console.log(`[HCSFeedService] System announcement logged to real HCS: ${message}`)
     } catch (error) {
-      console.error(`[HCSFeedService] Failed to log system announcement:`, error)
+      console.error(`[HCSFeedService] Failed to log system announcement to HCS:`, error)
       event.status = "error"
+      // Still add to cache for UI consistency
+      this.cachedEvents.push(event)
     }
 
     return event
   }
 
+  async acceptContactRequest(from: string, to: string, fromName?: string, toName?: string): Promise<HCSFeedEvent> {
+    console.log(`[HCSFeedService] Accepting contact request from ${from} to ${to}`)
+    return await this.logContactAccept(to, from, toName, fromName)
+  }
+
   async clearAllHCSData(): Promise<void> {
     console.log("[HCSFeedService] Clearing all HCS demo data...")
-    // Note: In a real implementation, you'd need to track message IDs to mark them as deleted
-    // For demo purposes, we'll just reset the seeded flag and let new data overwrite old
+    
+    // Clear the cached events (actual HCS topic data remains on chain)
+    this.cachedEvents = []
     this.isSeeded = false
+    
+    console.log("[HCSFeedService] Cache cleared - HCS topic data remains immutably on chain")
   }
 
   async enableSeedMode(): Promise<void> {
@@ -581,18 +924,69 @@ export class HCSFeedService {
     await this.clearAllHCSData()
   }
 
-  async resetDemo(): Promise<void> {
-    console.log("[HCSFeedService] Resetting complete demo...")
-    await this.clearAllHCSData()
+  // Load cached events from browser storage
+  private loadCachedEvents(): void {
+    if (typeof window === 'undefined') return
     
-    // Reset topic IDs to force re-creation
-    this.feedTopicId = null
-    this.contactsTopicId = null
-    this.trustTopicId = null
-    this.recognitionTopicId = null
-    this.profileTopicId = null
-    this.systemTopicId = null
+    try {
+      const cached = localStorage.getItem(this.CACHE_KEY)
+      if (cached) {
+        this.cachedEvents = JSON.parse(cached)
+        console.log(`[HCSFeedService] Loaded ${this.cachedEvents.length} cached events from storage`)
+      }
+    } catch (error) {
+      console.error('[HCSFeedService] Failed to load cached events:', error)
+      this.cachedEvents = []
+    }
+  }
+  
+  // Save cached events to browser storage
+  private saveCachedEvents(): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      localStorage.setItem(this.CACHE_KEY, JSON.stringify(this.cachedEvents))
+    } catch (error) {
+      console.error('[HCSFeedService] Failed to save cached events:', error)
+    }
+  }
+  
+  // Clear all demo data and reset to fresh state
+  async resetDemo(): Promise<void> {
+    console.log("[HCSFeedService] 🔄 FULL DEMO RESET - Clearing all data...")
+    
+    // Clear all cached data
+    this.cachedEvents = []
     this.isSeeded = false
+    
+    // Clear browser storage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(this.CACHE_KEY)
+      console.log("[HCSFeedService] Cleared browser storage cache")
+    }
+    
+    // Clear signals store
+    const { signalsStore } = await import('@/lib/stores/signalsStore')
+    signalsStore.clearAllSignals()
+    
+    console.log("[HCSFeedService] ✅ Demo reset complete - fresh slate ready!")
+  }
+  
+  // Re-seed demo data (called after reset or on first load)
+  async seedFreshDemo(): Promise<void> {
+    console.log("[HCSFeedService] 🌱 Seeding fresh demo data...")
+    
+    // Clear any existing data first
+    await this.resetDemo()
+    
+    // Wait a moment for cleanup
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Re-seed the demo network
+    const sessionId = await this.getCurrentSessionId()
+    await this.seedComprehensiveDemoData(sessionId)
+    
+    console.log("[HCSFeedService] ✅ Fresh demo data seeded successfully!")
   }
 }
 

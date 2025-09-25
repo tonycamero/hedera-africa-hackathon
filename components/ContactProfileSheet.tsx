@@ -152,7 +152,7 @@ export function ContactProfileSheet({
                     <Shield className="w-4 h-4 text-blue-600" />
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
                   <Badge variant="outline" className="text-xs">
                     {(data.visibility || "public").toUpperCase()}
                   </Badge>
@@ -168,8 +168,8 @@ export function ContactProfileSheet({
 
             {/* Bio */}
             {data.bio && (
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <p className="text-sm text-slate-700">{data.bio}</p>
+              <div className="bg-[hsl(var(--muted))] p-3 rounded-lg">
+                <p className="text-sm text-[hsl(var(--foreground))]">{data.bio}</p>
               </div>
             )}
 
@@ -189,7 +189,7 @@ export function ContactProfileSheet({
 
             {/* Location */}
             {data.location && (
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="flex items-center gap-2 text-sm text-[hsl(var(--foreground))]">
                 <MapPin className="w-4 h-4" />
                 <span>{data.location}</span>
               </div>
@@ -200,8 +200,8 @@ export function ContactProfileSheet({
               {data.website && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <Globe className="w-4 h-4 text-slate-400" />
-                    <span className="text-blue-600">{data.website}</span>
+                    <Globe className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+                    <span className="text-[hsl(var(--primary))]">{data.website}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -217,8 +217,8 @@ export function ContactProfileSheet({
               {data.github && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <Github className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-600">@{data.github}</span>
+                    <Github className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+                    <span className="text-[hsl(var(--foreground))]">@{data.github}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -234,8 +234,8 @@ export function ContactProfileSheet({
               {data.twitter && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <Twitter className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-600">@{data.twitter}</span>
+                    <Twitter className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+                    <span className="text-[hsl(var(--foreground))]">@{data.twitter}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -251,8 +251,8 @@ export function ContactProfileSheet({
               {data.discord && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <MessageCircle className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-600">{data.discord}</span>
+                    <MessageCircle className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+                    <span className="text-[hsl(var(--foreground))]">{data.discord}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -268,8 +268,8 @@ export function ContactProfileSheet({
               {data.email && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-600">{data.email}</span>
+                    <Mail className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+                    <span className="text-[hsl(var(--foreground))]">{data.email}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -285,7 +285,7 @@ export function ContactProfileSheet({
 
             {/* Joined date */}
             {data.joinedAt && (
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]">
                 <Calendar className="w-3 h-3" />
                 <span>Joined {formatDate(data.joinedAt)}</span>
               </div>
@@ -293,13 +293,13 @@ export function ContactProfileSheet({
 
             {/* Technical info */}
             <div className="border-t pt-3 space-y-2">
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-[hsl(var(--muted-foreground))]">
                 <strong>Peer ID:</strong> {peerId}
               </div>
               {hrl && (
-                <div className="text-xs text-slate-500 break-all">
+                <div className="text-xs text-[hsl(var(--muted-foreground))] break-all">
                   <strong>Profile HRL:</strong> 
-                  <code className="bg-slate-100 px-1 py-0.5 ml-1 rounded">
+                  <code className="bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] px-1 py-0.5 ml-1 rounded">
                     {hrl}
                   </code>
                   <Button
@@ -312,7 +312,7 @@ export function ContactProfileSheet({
                   </Button>
                 </div>
               )}
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-[hsl(var(--muted-foreground))]">
                 Source: {source}
                 {source === "mirror_node" && <span className="ml-1 text-green-600">✓ Verified on-chain</span>}
                 {source === "fallback" && <span className="ml-1 text-amber-600">⚠ Offline fallback</span>}
@@ -320,7 +320,7 @@ export function ContactProfileSheet({
             </div>
           </div>
         ) : (
-          <div className="text-center py-6 text-slate-500">
+          <div className="text-center py-6 text-[hsl(var(--muted-foreground))]">
             <p>No profile data available</p>
           </div>
         )}
