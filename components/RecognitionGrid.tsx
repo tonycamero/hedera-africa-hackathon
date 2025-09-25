@@ -52,27 +52,35 @@ export function RecognitionGrid({ ownerId, maxItems = 6 }: RecognitionGridProps)
       try {
         // Get owned recognition instances from HCS
         const instances = await hcsRecognitionService.getUserRecognitionInstances(ownerId)
+        console.log(`[RecognitionGrid] Found ${instances.length} instances for owner ${ownerId}:`, instances)
         
         // Convert instances to display format
         const displaySignals: HCSRecognitionDisplay[] = []
         
         for (const instance of instances.slice(0, maxItems)) {
+          console.log(`[RecognitionGrid] Processing instance ${instance.id} with definitionId: ${instance.definitionId}`)
           try {
             const definition = await hcsRecognitionService.getRecognitionDefinition(instance.definitionId)
+            console.log(`[RecognitionGrid] Found definition for ${instance.definitionId}:`, definition ? definition.name : 'NOT FOUND')
             if (definition) {
-              displaySignals.push({
+              const displaySignal = {
                 id: instance.id,
                 name: definition.name,
                 emoji: definition.emoji,
                 category: definition.category as 'social' | 'academic' | 'professional',
                 tokenId: instance.id.slice(-8) // Show last 8 chars as token ID
-              })
+              }
+              displaySignals.push(displaySignal)
+              console.log(`[RecognitionGrid] Added display signal:`, displaySignal)
+            } else {
+              console.warn(`[RecognitionGrid] No definition found for definitionId: ${instance.definitionId}`)
             }
           } catch (error) {
             console.error('[RecognitionGrid] Failed to load definition for instance:', instance.id, error)
           }
         }
         
+        console.log(`[RecognitionGrid] Setting ${displaySignals.length} display signals:`, displaySignals)
         setOwnedSignals(displaySignals)
       } catch (error) {
         console.error('[RecognitionGrid] Failed to load owned recognition from HCS:', error)

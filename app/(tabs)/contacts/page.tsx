@@ -13,7 +13,7 @@ import { getBondedContactsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
 import { seedDemo } from "@/lib/demo/seed"
-import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
+// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 
 type ContactType = {
   peerId: string
@@ -98,42 +98,40 @@ export default function ContactsPage() {
   const [activePeer, setActivePeer] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState("")
   const [hcsEvents, setHcsEvents] = useState<any[]>([])
-  const [bootstrapResult, setBootstrapResult] = useState<BootstrapResult | null>(null)
 
-  // Bootstrap with Flex system - instant paint + on-chain truth
+  // Direct HCS data loading - bypass broken bootstrap
   useEffect(() => {
-    const initializeWithBootstrap = async () => {
+    const loadDirectFromHCS = async () => {
       try {
-        console.log('🚀 [ContactsPage] Starting bootstrap sequence...')
-        
-        // Bootstrap: cache-first → registry → mirror
-        const result = await bootstrapFlex()
-        setBootstrapResult(result)
+        console.log('🚀 [ContactsPage] Loading directly from HCS...')
         
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
+        console.log('📋 [ContactsPage] Session ID:', currentSessionId)
         
-        console.log('✅ [ContactsPage] Bootstrap complete:', {
-          cachedSignals: result.cachedSignals.length,
-          registryId: result.registryId,
-          freshness: result.freshness
+        // Initialize HCS service and get all events
+        await hcsFeedService.initialize()
+        const events = await hcsFeedService.getAllFeedEvents()
+        
+        console.log('📡 [ContactsPage] Loaded', events.length, 'events from HCS')
+        
+        // Set HCS events for contact processing
+        setHcsEvents(events)
+        
+        console.log('✅ [ContactsPage] Data loaded:', {
+          events: events.length,
+          session: currentSessionId
         })
         
-        // Process initial cached data (instant paint)
-        setHcsEvents(result.cachedSignals)
-        
-        console.log('📦 [ContactsPage] Painted with cached signals:', result.cachedSignals.length)
-        
       } catch (error) {
-        console.error('❌ [ContactsPage] Bootstrap failed:', error)
-        // Fallback to empty state
+        console.error('❌ [ContactsPage] Direct HCS load failed:', error)
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         setHcsEvents([])
       }
     }
     
-    initializeWithBootstrap()
+    loadDirectFromHCS()
   }, [])
 
   const { bonded, incoming, outgoing, all } = useMemo(() => {

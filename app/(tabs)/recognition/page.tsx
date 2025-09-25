@@ -21,19 +21,10 @@ export default function RecognitionPage() {
       try {
         setIsLoading(true)
         
-        // Wait for recognition service to be ready
+        // Initialize recognition service if not ready
         if (!hcsRecognitionService.isReady()) {
-          console.log("[RecognitionPage] Waiting for HCS recognition service to initialize...")
-          // Try again after a longer delay, and set a max retry limit
-          let retryCount = parseInt(sessionStorage.getItem('hcsRecognitionRetries') || '0')
-          if (retryCount < 10) { // Max 10 retries (20 seconds total)
-            sessionStorage.setItem('hcsRecognitionRetries', (retryCount + 1).toString())
-            setTimeout(loadRecognitionData, 3000)
-          } else {
-            console.error("[RecognitionPage] Max retries reached, HCS service may not be initialized")
-            setIsLoading(false)
-          }
-          return
+          console.log("[RecognitionPage] Initializing HCS recognition service...")
+          await hcsRecognitionService.initialize()
         }
         
         // Reset retry count on success

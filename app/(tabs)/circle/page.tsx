@@ -8,7 +8,7 @@ import { AddContactDialog } from "@/components/AddContactDialog"
 import { signalsStore, type BondedContact, type SignalEvent } from "@/lib/stores/signalsStore"
 import { hcsFeedService } from "@/lib/services/HCSFeedService"
 import { getBondedContactsFromHCS, getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
-import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
+// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 import Link from "next/link"
 import { 
   Users, 
@@ -40,20 +40,20 @@ function TrustCircle({ allocatedOut, pendingOut, maxSlots }: { allocatedOut: num
     const x = Math.cos(radian) * radius + 32 // 32 is center (64/2)
     const y = Math.sin(radian) * radius + 32
 
-    // Determine LED state: green (bonded), orange (pending), gray (available)
+    // Determine LED state: green (accepted connection), yellow (pending request), gray (available)
     let ledStyle = ""
     let innerStyle = ""
     
     if (i < allocatedOut) {
-      // Green LEDs for bonded trust
+      // Green LEDs for accepted connections
       ledStyle = "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/50 border-2 border-green-300"
       innerStyle = "bg-gradient-to-br from-green-300 to-green-500"
     } else if (i < allocatedOut + pendingOut) {
-      // Orange LEDs for pending/staked trust
-      ledStyle = "bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/40 border-2 border-orange-300"
-      innerStyle = "bg-gradient-to-br from-orange-300 to-orange-500"
+      // Yellow LEDs for pending connection requests
+      ledStyle = "bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-500/40 border-2 border-yellow-300"
+      innerStyle = "bg-gradient-to-br from-yellow-300 to-yellow-500"
     } else {
-      // Gray LEDs for available slots
+      // Gray LEDs for available connection slots
       ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200"
       innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
     }
@@ -200,83 +200,79 @@ export default function CirclePage() {
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
   const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9, pendingOut: 0 })
   const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
+  const [allEvents, setAllEvents] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
-  const [bootstrapResult, setBootstrapResult] = useState<BootstrapResult | null>(null)
-
-  // Bootstrap with Flex system - instant paint + on-chain truth
+  // Direct HCS data loading - bypass broken bootstrap
   useEffect(() => {
-    const initializeWithBootstrap = async () => {
+    const loadDirectFromHCS = async () => {
       try {
-        console.log('🚀 [CirclePage] Starting bootstrap sequence...')
-        
-        // Bootstrap: cache-first → registry → mirror
-        const result = await bootstrapFlex()
-        setBootstrapResult(result)
+        console.log('🚀 [CirclePage] Loading directly from HCS...')
         
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
+        console.log('📋 [CirclePage] Session ID:', currentSessionId)
+        console.log('📋 [CirclePage] Expected recognition owner ID:', currentSessionId)
         
-        console.log('✅ [CirclePage] Bootstrap complete:', {
-          cachedSignals: result.cachedSignals.length,
-          registryId: result.registryId,
-          freshness: result.freshness
-        })
+        // Initialize HCS service and get all events
+        await hcsFeedService.initialize()
+        const events = await hcsFeedService.getAllFeedEvents()
         
-        // Process initial cached data (instant paint)
-        if (result.cachedSignals.length > 0) {
-          const bonded = getBondedContactsFromHCS(result.cachedSignals, currentSessionId)
-          const recent = getRecentSignalsFromHCS(result.cachedSignals, currentSessionId, 3)
+        console.log('📡 [CirclePage] Loaded', events.length, 'events from HCS')
+        
+        if (events.length > 0) {
+          // Process events into UI data
+          const bonded = getBondedContactsFromHCS(events, currentSessionId)
+          const recent = getRecentSignalsFromHCS(events, currentSessionId, 5)
+          const allSignals = getRecentSignalsFromHCS(events, currentSessionId, 1000) // Get all events for counting
           
-          const trustEvents = result.cachedSignals.filter(e => e.class === 'trust' && e.actors.from === currentSessionId)
-          const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
-          const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+          // Calculate connection status for LEDs (not trust allocation amounts)
+          const contactEvents = events.filter(e => e.class === 'contact')
+          
+          // Count accepted connections (green LEDs)
+          const acceptedConnections = contactEvents.filter(e => 
+            e.type === 'CONTACT_ACCEPT' && 
+            (e.actors.from === currentSessionId || e.actors.to === currentSessionId)
+          ).length / 2 // Divide by 2 since each connection creates 2 events
+          
+          // Count pending outbound requests (yellow LEDs) 
+          const pendingRequests = contactEvents.filter(e => 
+            e.type === 'CONTACT_REQUEST' && 
+            e.actors.from === currentSessionId &&
+            // Only count as pending if no corresponding ACCEPT exists
+            !contactEvents.some(acceptEvent => 
+              acceptEvent.type === 'CONTACT_ACCEPT' &&
+              acceptEvent.actors.to === currentSessionId &&
+              acceptEvent.actors.from === e.actors.to
+            )
+          ).length
           
           const stats = { 
-            allocatedOut: acceptedTrust, 
+            allocatedOut: Math.floor(acceptedConnections), // Green LEDs = accepted connections
             cap: 9, 
-            pendingOut: pendingTrust 
+            pendingOut: pendingRequests // Yellow LEDs = pending requests
           }
           
           setBondedContacts(bonded)
           setTrustStats(stats)
           setRecentSignals(recent)
+          setAllEvents(allSignals)
           
-          console.log('📦 [CirclePage] Painted with cached data:', { bonded: bonded.length, stats })
-        }
-        
-        // Set up listener for background refresh completion
-        const handleSignalsUpdate = (event: CustomEvent) => {
-          const freshSignals = event.detail
-          console.log('🌐 [CirclePage] Received fresh signals from background:', freshSignals.length)
-          
-          const bonded = getBondedContactsFromHCS(freshSignals, currentSessionId)
-          const recent = getRecentSignalsFromHCS(freshSignals, currentSessionId, 3)
-          
-          const trustEvents = freshSignals.filter(e => e.class === 'trust' && e.actors.from === currentSessionId)
-          const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
-          const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
-          
-          const stats = { 
-            allocatedOut: acceptedTrust, 
-            cap: 9, 
-            pendingOut: pendingTrust 
-          }
-          
-          setBondedContacts(bonded)
-          setTrustStats(stats)
-          setRecentSignals(recent)
-        }
-        
-        // Listen for background updates (when implemented)
-        // window.addEventListener('flex:signals-updated', handleSignalsUpdate)
-        
-        return () => {
-          // window.removeEventListener('flex:signals-updated', handleSignalsUpdate)
+          console.log('✅ [CirclePage] Data loaded:', { 
+            bonded: bonded.length, 
+            stats, 
+            recent: recent.length,
+            session: currentSessionId
+          })
+        } else {
+          console.log('⚠️ [CirclePage] No events found - this is expected on first load')
+          setBondedContacts([])
+          setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
+          setRecentSignals([])
         }
         
       } catch (error) {
-        console.error('❌ [CirclePage] Bootstrap failed:', error)
-        // Fallback to empty state
+        console.error('❌ [CirclePage] Direct HCS load failed:', error)
+        // Set empty state
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         setBondedContacts([])
@@ -285,7 +281,7 @@ export default function CirclePage() {
       }
     }
     
-    initializeWithBootstrap()
+    loadDirectFromHCS()
   }, [])
 
   const availableSlots = Math.max(0, 9 - trustStats.allocatedOut)
@@ -302,19 +298,35 @@ export default function CirclePage() {
       
       toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
       
-      // Refresh data immediately to show the new trust allocation
+      // Refresh data immediately to show the updated connection status
       const events = await hcsFeedService.getAllFeedEvents()
       const bonded = getBondedContactsFromHCS(events, sessionId)
       
-      // Recalculate simple trust stats
-      const trustEvents = events.filter(e => e.class === 'trust' && e.actors.from === sessionId)
-      const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
-      const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+      // Recalculate connection status for LEDs (not trust allocation amounts)
+      const contactEvents = events.filter(e => e.class === 'contact')
+      
+      // Count accepted connections (green LEDs)
+      const acceptedConnections = contactEvents.filter(e => 
+        e.type === 'CONTACT_ACCEPT' && 
+        (e.actors.from === sessionId || e.actors.to === sessionId)
+      ).length / 2 // Divide by 2 since each connection creates 2 events
+      
+      // Count pending outbound requests (yellow LEDs) 
+      const pendingRequests = contactEvents.filter(e => 
+        e.type === 'CONTACT_REQUEST' && 
+        e.actors.from === sessionId &&
+        // Only count as pending if no corresponding ACCEPT exists
+        !contactEvents.some(acceptEvent => 
+          acceptEvent.type === 'CONTACT_ACCEPT' &&
+          acceptEvent.actors.to === sessionId &&
+          acceptEvent.actors.from === e.actors.to
+        )
+      ).length
       
       const stats = { 
-        allocatedOut: acceptedTrust, 
+        allocatedOut: Math.floor(acceptedConnections), // Green LEDs = accepted connections
         cap: 9, 
-        pendingOut: pendingTrust 
+        pendingOut: pendingRequests // Yellow LEDs = pending requests
       }
       
       setBondedContacts(bonded)
@@ -325,12 +337,15 @@ export default function CirclePage() {
     }
   }
 
-  // Get metrics for compact display (trust workflow model)
+  // Get metrics for compact display (connection workflow model)
   const metrics = {
     bondedContacts: bondedContacts.length,
-    trustAllocated: trustStats.allocatedOut, // Green LEDs = accepted trust
+    trustAllocated: trustStats.allocatedOut, // Green LEDs = accepted connections
     trustCapacity: 9,
-    recognitionOwned: recentSignals.filter(s => s.type === 'RECOGNITION_MINT').length // Simple approximation
+    recognitionOwned: allEvents.filter(s => 
+      (s.type === 'NFT_MINT' || s.type === 'RECOGNITION_MINT') && 
+      (s.actors?.to === sessionId || s.target === sessionId)
+    ).length // Recognition minted to Alex
   }
 
   return (
@@ -348,7 +363,7 @@ export default function CirclePage() {
             <div className="flex items-center gap-1">
               <Heart className="w-4 h-4 text-green-600" />
               <span className="font-semibold">{metrics.trustAllocated}/9</span>
-              <span className="text-muted-foreground">Trust</span>
+              <span className="text-muted-foreground">Connected</span>
             </div>
             <div className="flex items-center gap-1">
               <Activity className="w-4 h-4 text-purple-600" />
@@ -358,22 +373,6 @@ export default function CirclePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            size="sm" 
-            variant="outline"
-            className="border-red-200 text-red-600 hover:bg-red-50"
-            onClick={async () => {
-              try {
-                await hcsFeedService.resetDemo()
-                // Refresh the page to show clean state
-                window.location.reload()
-              } catch (error) {
-                toast.error('Reset failed', { description: error.message })
-              }
-            }}
-          >
-            🔄 Reset Demo
-          </Button>
           <AddContactDialog />
         </div>
       </div>
@@ -390,7 +389,7 @@ export default function CirclePage() {
               />
               <div>
                 <div className="font-semibold text-[hsl(var(--card-foreground))]">
-                  Trust: {trustStats.allocatedOut}/9
+                  Connections: {trustStats.allocatedOut}/9
                 </div>
                 <div className="text-sm text-[hsl(var(--muted-foreground))]">
                   {bondedContacts.length} bonded contacts
@@ -459,10 +458,10 @@ export default function CirclePage() {
 
       {/* Trust Allocation - Show for all bonded contacts */}
       {bondedContacts.length > 0 && (
-        <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+        <Card className="border-card-border bg-card">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Heart className="w-5 h-5" />
+            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
+              <Heart className="w-5 h-5 text-neon-green" />
               Send Trust
             </CardTitle>
           </CardHeader>
@@ -471,17 +470,17 @@ export default function CirclePage() {
               {bondedContacts.map((contact) => {
                 const hasTrust = contact.trustLevel && contact.trustLevel > 0
                 return (
-                  <div key={contact.peerId} className="flex items-center justify-between p-3 border rounded">
+                  <div key={contact.peerId} className="flex items-center justify-between p-3 border-card-border bg-card rounded border">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-blue-600" />
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="font-medium text-sm">
+                        <div className="font-medium text-sm text-card-foreground">
                           {contact.handle || `User ${contact.peerId.slice(-6)}`}
                         </div>
                         {hasTrust && (
-                          <div className="text-xs text-green-600">
+                          <div className="text-xs text-neon-green">
                             Trust Level: {contact.trustLevel}
                           </div>
                         )}
@@ -497,7 +496,7 @@ export default function CirclePage() {
                             variant="outline"
                             onClick={() => handleAllocateTrust(contact.peerId, weight)}
                             disabled={trustStats.allocatedOut + trustStats.pendingOut + weight > 9}
-                            className="text-xs px-2 py-1 h-6 hover:bg-orange-100"
+                            className="text-xs px-2 py-1 h-6 border-card-border text-card-foreground hover:bg-card-border hover:text-card-foreground"
                           >
                             {weight}
                           </Button>

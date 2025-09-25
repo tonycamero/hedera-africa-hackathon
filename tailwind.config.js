@@ -56,6 +56,11 @@ module.exports = {
         professional: "hsl(var(--professional))",
         success: "hsl(var(--success))",
         trust: "hsl(var(--trust))",
+        // Card border utility
+        "card-border": "var(--card-border)",
+        // Neon colors
+        "neon-green": "var(--neon-green)",
+        "neon-cyan": "var(--neon-cyan)",
       },
       borderRadius: {
         lg: "var(--radius)",

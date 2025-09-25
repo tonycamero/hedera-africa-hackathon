@@ -410,6 +410,14 @@ html.theme-mesh-dark .badge-professional {
 .bg-success { background-color: hsl(var(--success)); }
 .text-trust { color: hsl(var(--trust)); }
 
+/* Neon color utilities */
+.text-neon-green { color: var(--neon-green); }
+.bg-neon-green { background-color: var(--neon-green); }
+.border-neon-green { border-color: var(--neon-green); }
+.text-neon-cyan { color: var(--neon-cyan); }
+.bg-neon-cyan { background-color: var(--neon-cyan); }
+.border-neon-cyan { border-color: var(--neon-cyan); }
+
 /* High contrast text utilities - WCAG AA compliant */
 .text-high-contrast { color: hsl(var(--foreground)) !important; }
 .text-medium-contrast { color: hsl(var(--muted-foreground)) !important; }

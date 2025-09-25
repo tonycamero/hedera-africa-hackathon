@@ -62,14 +62,14 @@ export class HCS2RegistryClient {
   async getEntry(key: FlexRegistryKeys): Promise<FlexEntry | null> {
     if (!this.registryId) return null;
     
-    // Fallback mode: return verified topics
+    // Use same environment variables as server-side registry
     const verifiedTopics = {
-      "topic/feed": { topicId: "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/contacts": { topicId: "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/trust": { topicId: "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/recognition": { topicId: "0.0.6895261", network: "testnet" as const, version: 1 },
-      "topic/profile": { topicId: "0.0.6896008", network: "testnet" as const, version: 1 },
-      "topic/system": { topicId: "0.0.6896008", network: "testnet" as const, version: 1 }
+      "topic/feed": { topicId: process.env.NEXT_PUBLIC_TOPIC_SIGNAL || "0.0.6895261", network: "testnet" as const, version: 1 },
+      "topic/contacts": { topicId: process.env.NEXT_PUBLIC_TOPIC_CONTACT || "0.0.6896005", network: "testnet" as const, version: 1 },
+      "topic/trust": { topicId: process.env.NEXT_PUBLIC_TOPIC_TRUST || "0.0.6896005", network: "testnet" as const, version: 1 },
+      "topic/recognition": { topicId: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || "0.0.6903900", network: "testnet" as const, version: 1 },
+      "topic/profile": { topicId: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008", network: "testnet" as const, version: 1 },
+      "topic/system": { topicId: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008", network: "testnet" as const, version: 1 }
     };
     
     const value = verifiedTopics[key];
@@ -87,12 +87,12 @@ export class HCS2RegistryClient {
   async listAll(): Promise<FlexEntry[]> {
     if (!this.registryId) return [];
     
-    // Return all verified topics
+    // Return all verified topics (TEMP: feed → recognition)
     const entries: FlexEntry[] = [
-      { key: "topic/feed", value: { topicId: "0.0.6896005", network: "testnet", version: 1 }, uid: "uid-topic/feed" },
+      { key: "topic/feed", value: { topicId: "0.0.6895261", network: "testnet", version: 1 }, uid: "uid-topic/feed" }, // TEMP
       { key: "topic/contacts", value: { topicId: "0.0.6896005", network: "testnet", version: 1 }, uid: "uid-topic/contacts" },
       { key: "topic/trust", value: { topicId: "0.0.6896005", network: "testnet", version: 1 }, uid: "uid-topic/trust" },
-      { key: "topic/recognition", value: { topicId: "0.0.6895261", network: "testnet", version: 1 }, uid: "uid-topic/recognition" },
+      { key: "topic/recognition", value: { topicId: "0.0.6903900", network: "testnet", version: 1 }, uid: "uid-topic/recognition" },
       { key: "topic/profile", value: { topicId: "0.0.6896008", network: "testnet", version: 1 }, uid: "uid-topic/profile" },
       { key: "topic/system", value: { topicId: "0.0.6896008", network: "testnet", version: 1 }, uid: "uid-topic/system" }
     ];
@@ -127,32 +127,45 @@ export class HCS2RegistryClient {
       return this.cachedTopics
     }
 
-    await this.ensureRegistry();
-    
-    console.log('[HCS2Registry] Resolving topics from registry (Flex mode)...')
+    console.log('[HCS2Registry] Fetching topics from server-side registry...')
 
-    // Use new Flex pattern - resolve from entries
-    const [feed, contacts, trust, recognition, profile, system] = await Promise.all([
-      this.getEntry("topic/feed"),
-      this.getEntry("topic/contacts"),
-      this.getEntry("topic/trust"),
-      this.getEntry("topic/recognition"),
-      this.getEntry("topic/profile"),
-      this.getEntry("topic/system"),
-    ]);
-
-    const topics: TrustMeshTopics = {
-      feed: feed?.value?.topicId,
-      contacts: contacts?.value?.topicId,
-      trust: trust?.value?.topicId,
-      recognition: recognition?.value?.topicId,
-      profiles: profile?.value?.topicId,
-      system: system?.value?.topicId
-    };
-    
-    this.cachedTopics = topics;
-    console.log('[HCS2Registry] Resolved topics (Flex):', topics);
-    return topics;
+    try {
+      // Fetch topics from server-side registry API
+      const response = await fetch('/api/registry/topics')
+      const result = await response.json()
+      
+      if (result.ok && result.topics) {
+        this.cachedTopics = {
+          feed: result.topics.feed,
+          contacts: result.topics.contacts,
+          trust: result.topics.trust,
+          recognition: result.topics.recognition,
+          profiles: result.topics.profile,
+          system: result.topics.system
+        }
+        
+        console.log('[HCS2Registry] Resolved topics from server registry:', this.cachedTopics)
+        return this.cachedTopics
+      } else {
+        throw new Error(result.error || 'Failed to fetch topics from server')
+      }
+    } catch (error) {
+      console.warn('[HCS2Registry] Failed to fetch from server, using fallback:', error)
+      
+      // Fallback to hardcoded topics if server fetch fails
+      const fallbackTopics: TrustMeshTopics = {
+        feed: process.env.NEXT_PUBLIC_TOPIC_SIGNAL || "0.0.6895261",
+        contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT || "0.0.6896005",
+        trust: process.env.NEXT_PUBLIC_TOPIC_TRUST || "0.0.6896005",
+        recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || "0.0.6903900",
+        profiles: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008",
+        system: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008"
+      }
+      
+      this.cachedTopics = fallbackTopics
+      console.log('[HCS2Registry] Using fallback topics:', this.cachedTopics)
+      return this.cachedTopics
+    }
   }
 
   private async registerDiscoveredTopics(): Promise<void> {
@@ -189,14 +202,14 @@ export class HCS2RegistryClient {
   }
 }
 
-// Fallback topics for production safety
+// Fallback topics for production safety  
 export function getFallbackTopics(): TrustMeshTopics {
   return process.env.NEXT_PUBLIC_ENABLE_FALLBACK === "1" || !process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID
     ? {
-        feed: '0.0.6896005',        // contacts + trust
+        feed: '0.0.6895261',        // TEMP: point feed to recognition so activity shows
         contacts: '0.0.6896005',    // shared with feed
         trust: '0.0.6896005',       // shared with feed
-        recognition: '0.0.6895261', // recognition definitions
+        recognition: '0.0.6903900', // recognition definitions and instances
         profiles: '0.0.6896008',    // profiles/system
         system: '0.0.6896008'       // system messages
       }

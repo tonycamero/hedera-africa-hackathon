@@ -9,9 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@hashgraph/sdk', '@hashgraphonline/standards-sdk'],
-  },
+  serverExternalPackages: ['@hashgraph/sdk', '@hashgraphonline/standards-sdk'],
   webpack: (config, { isServer }) => {
     // Handle HCS-2 SDK React Native dependencies
     config.resolve.fallback = {

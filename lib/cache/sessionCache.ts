@@ -113,3 +113,61 @@ export function saveDerivedState(s: DerivedState) {
 export function loadDerivedState(): DerivedState | null {
   return read<DerivedState>("derived")?.payload ?? null;
 }
+
+// Additional functions needed by bootstrap system
+const REGISTRY_NS_KEY = `${NS}:registry:ns`;
+const REGISTRY_SNAPSHOT_KEY = `${NS}:registry:snapshot`;
+const VERSION_KEY = `${NS}:version`;
+
+/** Clear all cached entries safely when version changes or other invalidation rules hit */
+export function maybeInvalidate(currentVersion = VERSION.toString()) {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = state.backend.getItem(VERSION_KEY);
+    if (existing === currentVersion) return;
+    // nuke only our namespace
+    const toRemove: string[] = [];
+    for (let i = 0; i < state.backend.length; i++) {
+      const k = state.backend.key(i);
+      if (k && k.startsWith(`${NS}:`)) toRemove.push(k);
+    }
+    toRemove.forEach((key) => state.backend.removeItem(key));
+    state.backend.setItem(VERSION_KEY, currentVersion);
+  } catch {}
+}
+
+/** Registry namespace lets you segment snapshots by registry id/network */
+export function setRegistryNamespace(ns: string) {
+  if (typeof window === "undefined") return;
+  try { state.backend.setItem(REGISTRY_NS_KEY, ns); } catch {}
+}
+
+export function getRegistryNamespace(): string | null {
+  if (typeof window === "undefined") return null;
+  try { return state.backend.getItem(REGISTRY_NS_KEY); } catch { return null; }
+}
+
+/** Persist a compact snapshot of resolved topics from HCS-2 (or fallback) */
+export function saveRegistrySnapshot(snapshot: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    state.backend.setItem(REGISTRY_SNAPSHOT_KEY, JSON.stringify({ v: VERSION, ts: Date.now(), snapshot }));
+  } catch {}
+}
+
+export function loadRegistrySnapshot<T = any>(): { snapshot: T; ts: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = state.backend.getItem(REGISTRY_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) ?? {};
+    const { snapshot, ts } = parsed;
+    if (!snapshot) return null;
+    return { snapshot, ts };
+  } catch {
+    return null;
+  }
+}
+
+// Export generic read/write for registryCache.ts
+export { write, read };

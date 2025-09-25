@@ -245,29 +245,11 @@ export class HCSFeedService {
   }
 
   private async seedInitialData(): Promise<void> {
-    // Only seed if enabled and not already seeded
-    const flags = await this.getRuntimeFlags()
-    if (!flags.seedOn || flags.isLiveMode || this.isSeeded) {
-      console.log("[HCSFeedService] Skipping initial seeding - seedOn:", flags.seedOn, "isLiveMode:", flags.isLiveMode, "isSeeded:", this.isSeeded)
-      return
-    }
-
-    console.log("[HCSFeedService] Seeding comprehensive demo data to HCS...")
-    const currentSessionId = await this.getCurrentSessionId()
+    // Client-side seeding is disabled for security - would require HCS writes
+    console.log("[HCSFeedService] Client-side seeding disabled for security. Demo data should be seeded server-side.")
+    console.log("[HCSFeedService] The app will display live recognition data from HCS topics and cached local data.")
     
-    try {
-      // Clear any existing local data first
-      await this.clearAllHCSData()
-      
-      // Seed complete demo dataset to HCS with real topics
-      await this.seedComprehensiveDemoData(currentSessionId)
-      
-      this.isSeeded = true
-      console.log("[HCSFeedService] Comprehensive demo data seeded successfully to real HCS topics")
-    } catch (error) {
-      console.error("[HCSFeedService] Failed to seed demo data to HCS:", error)
-      // Don't throw - let the service continue to work with empty data
-    }
+    this.isSeeded = true // Mark as seeded to avoid further attempts
   }
 
   async logContactRequest(from: string, to: string, fromName?: string, toName?: string): Promise<HCSFeedEvent> {
@@ -316,23 +298,13 @@ export class HCSFeedService {
       return event
     }
 
-    try {
-      await hederaClient.submitMessage(this.topics.contacts!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
-      event.status = "onchain"
-      
-      // Add to cache since it was successfully written to HCS
-      this.cachedEvents.push(event)
-      this.saveCachedEvents()
-      
-      console.log(`[HCSFeedService] Contact request logged to real HCS: ${from} → ${to}`)
-    } catch (error) {
-      console.error(`[HCSFeedService] Failed to log contact request to HCS:`, error)
-      event.status = "error"
-      // Still add to cache for UI consistency
-      this.cachedEvents.push(event)
-      this.saveCachedEvents()
-    }
+    // Client-side HCS writes are disabled for security - cache locally only
+    console.log(`[HCSFeedService] Contact request cached locally (client-side HCS write disabled): ${from} → ${to}`)
+    event.status = "local" // Keep as local since we can't write to HCS from client
+    
+    // Add to cache for UI consistency
+    this.cachedEvents.push(event)
+    this.saveCachedEvents()
 
     return event
   }
@@ -367,23 +339,13 @@ export class HCSFeedService {
       return event
     }
 
-    try {
-      await hederaClient.submitMessage(this.topics.contacts!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
-      event.status = "onchain"
-      
-      // Add to cache since it was successfully written to HCS
-      this.cachedEvents.push(event)
-      this.saveCachedEvents()
-      
-      console.log(`[HCSFeedService] Contact accepted logged to real HCS: ${from} → ${to}`)
-    } catch (error) {
-      console.error(`[HCSFeedService] Failed to log contact accept to HCS:`, error)
-      event.status = "error"
-      // Still add to cache for UI consistency
-      this.cachedEvents.push(event)
-      this.saveCachedEvents()
-    }
+    // Client-side HCS writes are disabled for security - cache locally only
+    console.log(`[HCSFeedService] Contact accept cached locally (client-side HCS write disabled): ${from} → ${to}`)
+    event.status = "local" // Keep as local since we can't write to HCS from client
+    
+    // Add to cache for UI consistency
+    this.cachedEvents.push(event)
+    this.saveCachedEvents()
 
     return event
   }
@@ -418,24 +380,13 @@ export class HCSFeedService {
       return event
     }
 
-    try {
-      await hederaClient.submitMessage(this.topics.trust!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
-      await hcsLogger.logTrustTokenIssued("trust", from, to, eventId, weight, reason)
-      event.status = "onchain"
-      
-      // Add to cache since it was successfully written to HCS
-      this.cachedEvents.push(event)
-      this.saveCachedEvents()
-      
-      console.log(`[HCSFeedService] Trust allocated to real HCS: ${from} → ${to} (${weight})`)
-    } catch (error) {
-      console.error(`[HCSFeedService] Failed to log trust allocation to HCS:`, error)
-      event.status = "error"
-      // Still add to cache for UI consistency
-      this.cachedEvents.push(event)
-      this.saveCachedEvents()
-    }
+    // Client-side HCS writes are disabled for security - cache locally only
+    console.log(`[HCSFeedService] Trust allocation cached locally (client-side HCS write disabled): ${from} → ${to} (${weight})`)
+    event.status = "local" // Keep as local since we can't write to HCS from client
+    
+    // Add to cache for UI consistency
+    this.cachedEvents.push(event)
+    this.saveCachedEvents()
 
     return event
   }
@@ -459,20 +410,13 @@ export class HCSFeedService {
       topicId: this.topics.trust!,
     }
 
-    try {
-      await hederaClient.submitMessage(this.topics.trust!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
-      await hcsLogger.logTrustTokenRevoked("trust", from, to, eventId, reason)
-      event.status = "onchain"
-      
-      // Add to cache since it was successfully written to HCS
-      this.cachedEvents.push(event)
-      
-      console.log(`[HCSFeedService] Trust revoked to real HCS: ${from} → ${to}`)
-    } catch (error) {
-      console.error(`[HCSFeedService] Failed to log trust revocation to HCS:`, error)
-      event.status = "error"
-    }
+    // Client-side HCS writes are disabled for security - cache locally only
+    console.log(`[HCSFeedService] Trust revocation cached locally (client-side HCS write disabled): ${from} → ${to}`)
+    event.status = "local" // Keep as local since we can't write to HCS from client
+    
+    // Add to cache for UI consistency
+    this.cachedEvents.push(event)
+    this.saveCachedEvents()
 
     return event
   }
@@ -532,14 +476,14 @@ export class HCSFeedService {
         return event
       }
 
-      await hederaClient.submitMessage(this.topics.recognition!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
-      event.status = "onchain"
+      // Client-side HCS writes are disabled for security - cache locally only
+      console.log(`[HCSFeedService] Recognition cached locally (client-side HCS write disabled): ${name} for ${to}`)
+      event.status = "local" // Keep as local since we can't write to HCS from client
       
-      // Add to cache since it was successfully written to HCS
+      // Add to cache for UI consistency
       this.cachedEvents.push(event)
+      this.saveCachedEvents()
       
-      console.log(`[HCSFeedService] Recognition minted to real HCS: ${name} for ${to}`)
       return event
     } catch (error) {
       console.error(`[HCSFeedService] Failed to log recognition to HCS:`, error)
@@ -589,7 +533,7 @@ export class HCSFeedService {
         signalClass = "system"
     }
 
-    return {
+    const base = {
       id: hcsEvent.id,
       type: signalType,
       class: signalClass,
@@ -607,15 +551,22 @@ export class HCSFeedService {
         category: hcsEvent.metadata.category,
         description: hcsEvent.metadata.description,
         explorerUrl: hcsEvent.metadata.explorerUrl
-      },
-      topicType: this.getTopicTypeFromId(hcsEvent.topicId)
-    }
+      }
+    } as const
+
+    // Hard override: recognition events should be SIGNAL even if topic id is wrong
+    const topicType =
+      hcsEvent.type === "recognition_mint"
+        ? "SIGNAL"
+        : this.getTopicTypeFromId(hcsEvent.topicId)
+
+    return { ...base, topicType }
   }
 
   private getTopicTypeFromId(topicId: string): "CONTACT" | "TRUST" | "SIGNAL" | "PROFILE" {
-    if (topicId === this.topics.contacts) return "CONTACT"
-    if (topicId === this.topics.trust) return "TRUST"  
-    if (topicId === this.topics.recognition) return "SIGNAL"
+    if (topicId && this.topics.recognition && topicId === this.topics.recognition) return "SIGNAL"
+    if (topicId && this.topics.trust && topicId === this.topics.trust) return "TRUST"
+    if (topicId && this.topics.contacts && topicId === this.topics.contacts) return "CONTACT"
     return "PROFILE"
   }
 
@@ -636,43 +587,69 @@ export class HCSFeedService {
         return []
       }
 
-      // FIRE-AND-FORGET: Return cached events immediately 
-      // Mirror Node data will be available eventually as it catches up
-      if (this.cachedEvents.length > 0) {
-        console.log(`[HCSFeedService] Returning ${this.cachedEvents.length} cached events (fire-and-forget mode)`)
-        const hcsEvents: HCSFeedEvent[] = [...this.cachedEvents].sort((a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        return hcsEvents.map(event => this.hcsEventToSignalEvent(event))
-      }
+      // Fetch LIVE Mirror data first (this is the key fix!)
+      const topics = [
+        this.topics.feed!,
+        this.topics.contacts!,
+        this.topics.trust!,
+        this.topics.recognition!,
+        this.topics.system!
+      ].filter(Boolean) as string[];
 
-      // Try Mirror Node data as fallback, but don't block on it
-      if (this.mirrorReader) {
-        try {
-          const mirrorMsgs = await Promise.race([
-            this.mirrorReader.readRecent(50),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Mirror Node timeout')), 2000))
-          ]) as any[]
-          
-          const fromMirror = toSignalEvents(mirrorMsgs, {
-            contacts: this.topics.contacts,
-            trust: this.topics.trust,
-            recognition: this.topics.recognition,
-            profile: this.topics.profiles
-          });
-          // persist raw mirror messages for debugging/offline improvements
-          saveMirrorRaw(mirrorMsgs);
+      console.log(`[HCSFeedService] Fetching from ${topics.length} topics:`, topics);
 
-          if (fromMirror.length > 0) {
-            console.log(`[HCSFeedService] Returning ${fromMirror.length} events from Mirror Node (fallback)`)
-            return fromMirror.sort((a, b) => b.ts - a.ts)
+      const { fetchTopicMessages } = await import("@/lib/services/MirrorReader");
+      const perTopic = await Promise.all(
+        topics.map(async tid => {
+          try {
+            const messages = await fetchTopicMessages(tid, 50);
+            console.log(`[HCSFeedService] Topic ${tid}: ${messages.length} messages`);
+            return messages;
+          } catch (e) {
+            console.warn(`[HCSFeedService] Topic ${tid} failed:`, e);
+            return [];
           }
-        } catch (error) {
-          console.log(`[HCSFeedService] Mirror Node unavailable (${error.message}), continuing without it`)
+        })
+      );
+      const flat = perTopic.flat();
+      console.log(`[HCSFeedService] Total raw messages: ${flat.length}`);
+
+      const live: HCSFeedEvent[] = [];
+      for (const m of flat) {
+        try {
+          const obj = JSON.parse(m.decoded);
+          if (obj?.type && obj?.timestamp && obj?.actor) {
+            live.push({
+              id: obj.id || `${obj.type}_${m.topicId}_${m.sequenceNumber}`,
+              type: obj.type,
+              timestamp: obj.timestamp,
+              actor: obj.actor,
+              target: obj.target,
+              metadata: obj.metadata || {},
+              status: obj.status || "onchain",
+              direction: obj.direction || "inbound",
+              topicId: m.topicId,
+              sequenceNumber: m.sequenceNumber,
+            });
+          } else {
+            console.log(`[HCSFeedService] Skipping non-Flex payload:`, obj?.type || 'no-type');
+          }
+        } catch (e) {
+          // Not JSON - ignore
+          console.log(`[HCSFeedService] Skipping non-JSON message from ${m.topicId}`);
         }
       }
 
-      return []
+      console.log(`[HCSFeedService] Parsed ${live.length} live events, cached: ${this.cachedEvents.length}`);
+
+      // Merge with cached events and dedupe by ID
+      const merged = [...live, ...this.cachedEvents]
+        .filter((event, index, array) => array.findIndex(e => e.id === event.id) === index)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      console.log(`[HCSFeedService] Returning ${merged.length} total events (${live.length} live + ${this.cachedEvents.length} cached)`);
+      
+      return merged.map(event => this.hcsEventToSignalEvent(event));
     } catch (error) {
       console.error("[HCSFeedService] Failed to get feed events:", error)
       return []
@@ -942,21 +919,13 @@ export class HCSFeedService {
       return event
     }
 
-    try {
-      await hederaClient.submitMessage(this.topics.system!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
-      event.status = "onchain"
-      
-      // Add to cache since it was successfully written to HCS
-      this.cachedEvents.push(event)
-      
-      console.log(`[HCSFeedService] System announcement logged to real HCS: ${message}`)
-    } catch (error) {
-      console.error(`[HCSFeedService] Failed to log system announcement to HCS:`, error)
-      event.status = "error"
-      // Still add to cache for UI consistency
-      this.cachedEvents.push(event)
-    }
+    // Client-side HCS writes are disabled for security - cache locally only
+    console.log(`[HCSFeedService] System announcement cached locally (client-side HCS write disabled): ${message}`)
+    event.status = "local" // Keep as local since we can't write to HCS from client
+    
+    // Add to cache for UI consistency
+    this.cachedEvents.push(event)
+    this.saveCachedEvents()
 
     return event
   }

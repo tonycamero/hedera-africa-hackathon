@@ -25,7 +25,7 @@ import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
 import { loadSignals as loadSignalsCache, saveSignals as saveSignalsCache, loadDerivedState, saveDerivedState } from "@/lib/cache/sessionCache"
 import { computeDerivedFromSignals } from "@/lib/ux/derive"
-import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
+// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 
 type FilterChip = {
   label: string
@@ -199,61 +199,56 @@ export default function SignalsPage() {
   const [sessionId, setSessionId] = useState("")
   const [hcsTopicIds, setHcsTopicIds] = useState<ReturnType<typeof hcsFeedService.getTopicIds> | null>(null)
   const [selectedRecognition, setSelectedRecognition] = useState<HCSRecognitionDefinition | null>(null)
-  const [bootstrapResult, setBootstrapResult] = useState<BootstrapResult | null>(null)
   const [isRecognitionModalOpen, setIsRecognitionModalOpen] = useState(false)
   
-  // Bootstrap with Flex system - instant paint + on-chain truth
+  // Direct HCS data loading - bypass broken bootstrap
   useEffect(() => {
-    const initializeWithBootstrap = async () => {
+    const loadDirectFromHCS = async () => {
       try {
-        console.log('🚀 [SignalsPage] Starting bootstrap sequence...')
-        
-        // Bootstrap: cache-first → registry → mirror
-        const result = await bootstrapFlex()
-        setBootstrapResult(result)
+        console.log('🚀 [SignalsPage] Loading directly from HCS...')
         
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
-        
-        console.log('✅ [SignalsPage] Bootstrap complete:', {
-          cachedSignals: result.cachedSignals.length,
-          registryId: result.registryId,
-          freshness: result.freshness
-        })
+        console.log('📋 [SignalsPage] Session ID:', currentSessionId)
         
         // Mark signals tab as seen
         signalsStore.markSeen("signals")
         
-        // Process initial cached data (instant paint)
-        if (result.cachedSignals.length > 0) {
+        // Initialize HCS service and get all events
+        await hcsFeedService.initialize()
+        const events = await hcsFeedService.getAllFeedEvents()
+        
+        console.log('📡 [SignalsPage] Loaded', events.length, 'events from HCS')
+        
+        if (events.length > 0) {
+          // Filter events based on scope
           const flags = getRuntimeFlags()
-          let filteredSignals = result.cachedSignals
+          let filteredSignals = events
           
           if (flags.scope === 'my') {
-            filteredSignals = result.cachedSignals.filter(signal => 
+            filteredSignals = events.filter(signal => 
               signal.actors.from === currentSessionId || signal.actors.to === currentSessionId
             )
           }
           
           setSignals(filteredSignals.sort((a, b) => b.ts - a.ts))
           
-          console.log('📦 [SignalsPage] Painted with cached signals:', filteredSignals.length)
+          console.log('✅ [SignalsPage] Data loaded:', {
+            total: events.length,
+            filtered: filteredSignals.length,
+            session: currentSessionId
+          })
+        } else {
+          console.log('⚠️ [SignalsPage] No events found')
+          setSignals([])
         }
         
-        // Update HCS topic IDs from resolved topics
-        const mockTopicIds = {
-          feed: result.resolvedTopics.feed,
-          contacts: result.resolvedTopics.contacts,
-          trust: result.resolvedTopics.trust,
-          recognition: result.resolvedTopics.recognition,
-          profile: result.resolvedTopics.profiles,
-          system: result.resolvedTopics.system
-        }
-        setHcsTopicIds(mockTopicIds)
+        // Update HCS topic IDs
+        const topicIds = hcsFeedService.getTopicIds()
+        setHcsTopicIds(topicIds)
         
       } catch (error) {
-        console.error('❌ [SignalsPage] Bootstrap failed:', error)
-        // Fallback to empty state
+        console.error('❌ [SignalsPage] Direct HCS load failed:', error)
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         setSignals([])
@@ -261,7 +256,7 @@ export default function SignalsPage() {
       }
     }
     
-    initializeWithBootstrap()
+    loadDirectFromHCS()
   }, [])
 
   // Filter signals based on active filter

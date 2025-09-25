@@ -79,7 +79,7 @@ export async function getSessionProfile(): Promise<SessionProfile> {
         handle,
         bio,
         visibility: 'public'
-      })
+      }, sessionId)
       profileHrl = result.hrl
     }
   } catch (error) {

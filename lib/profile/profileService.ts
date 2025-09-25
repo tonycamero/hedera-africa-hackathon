@@ -53,60 +53,58 @@ class ProfileService {
     }
   }
 
-  async publishProfileUpdate(profile: ProfileData): Promise<{ seq: number | string; hrl: string }> {
+  async publishProfileUpdate(profile: ProfileData, sessionId?: string): Promise<{ seq: number | string; hrl: string }> {
     try {
       // Validate profile data
       if (!this.validateProfileData(profile)) {
         throw new Error('Invalid profile data')
       }
 
-      const operatorId = process.env.NEXT_PUBLIC_HEDERA_OPERATOR_ID || "0.0.5864559"
-      const profileTopic = process.env.NEXT_PUBLIC_TOPIC_PROFILE || ""
       const hcsEnabled = process.env.NEXT_PUBLIC_HCS_ENABLED === "true"
-
       let seq: number | string = "local-latest"
-      let hrl = `hcs://11/${profileTopic}/${seq}`
+      let hrl = `local://profile/${seq}`
 
-      if (hcsEnabled && profileTopic) {
+      if (hcsEnabled && sessionId) {
         try {
-          // Build HCS-11 compliant envelope
-          const envelope = {
-            type: "PROFILE_UPDATE",
-            from: operatorId,
-            nonce: Date.now(),
-            ts: Math.floor(Date.now() / 1000),
-            payload: {
+          console.log('[ProfileService] Publishing profile via server-side API...')
+          
+          const response = await fetch('/api/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId,
               handle: profile.handle,
-              bio: profile.bio || "",
+              bio: profile.bio || '',
               visibility: profile.visibility,
-              location: profile.location || "",
-              avatar: profile.avatar || ""
-            },
-            sig: "demo_signature"
+              location: profile.location || '',
+              avatar: profile.avatar || ''
+            })
+          })
+          
+          const result = await response.json()
+          
+          if (result.ok) {
+            seq = result.sequenceNumber
+            hrl = result.profileHrl
+            console.log('[ProfileService] Profile published successfully:', hrl)
+            // Clear error cache on success
+            this.errorCache.delete('profile_publish')
+          } else {
+            throw new Error(result.error || 'Profile update failed')
           }
-
-          console.log('[ProfileService] Publishing profile to HCS:', profileTopic)
-          
-          // Submit to HCS (this should return sequence number in real implementation)
-          await hederaClient.submitMessage(profileTopic, JSON.stringify(envelope))
-          
-          // For demo, use timestamp as sequence
-          seq = Date.now()
-          hrl = this.generateValidHRL(profileTopic, seq)
-          
-          console.log('[ProfileService] Profile published with HRL:', hrl)
-          
-          // Clear error cache on success
-          this.errorCache.delete('profile_publish')
           
         } catch (error) {
-          console.error('[ProfileService] Failed to publish profile:', error)
+          console.error('[ProfileService] Failed to publish profile via server API:', error)
           // Cache the error
           this.errorCache.set('profile_publish', { error: error as Error, ts: Date.now() })
           // Fall back to local mode
+          seq = Date.now()
+          hrl = `local://profile/${seq}`
         }
       } else {
-        console.log('[ProfileService] HCS disabled, using local profile')
+        console.log('[ProfileService] Using local profile (HCS disabled or no session ID)')
+        seq = Date.now()
+        hrl = `local://profile/${seq}`
       }
 
       // Cache the snapshot
@@ -135,8 +133,11 @@ class ProfileService {
       location: "Demo City"
     }
 
-    console.log('[ProfileService] Creating fresh profile')
-    const { seq, hrl } = await this.publishProfileUpdate(defaultProfile)
+    console.log('[ProfileService] Creating fresh local profile (no server-side publishing without sessionId)')
+    
+    // Create local profile without server-side publishing
+    const seq = Date.now()
+    const hrl = `local://profile/${seq}`
     
     return {
       profileSeq: seq,

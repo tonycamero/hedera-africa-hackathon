@@ -46,113 +46,28 @@ export class HederaClient {
 
   async initialize(): Promise<void> {
     console.log("[Hedera] Initializing client...")
-
-    // Initialize actual Hedera client with environment variables
-    const operatorId = process.env.NEXT_PUBLIC_HEDERA_OPERATOR_ID
-    const operatorKey = process.env.NEXT_PUBLIC_HEDERA_OPERATOR_KEY
-
-    if (!operatorId || !operatorKey) {
-      console.error("[Hedera] Missing operator credentials")
-      return
-    }
-
-    try {
-      const { Client, PrivateKey } = await import('@hashgraph/sdk')
-      this.hederaSDKClient = Client.forTestnet().setOperator(
-        operatorId,
-        PrivateKey.fromString(operatorKey)
-      )
-      
-      this.isConnected = true
-      console.log("[Hedera] Client connected successfully to", operatorId)
-    } catch (error) {
-      console.error("[Hedera] Failed to initialize client:", error)
-    }
+    
+    // For client-side operations, we don't need credentials - this is read-only
+    // All transaction signing happens on the server side for security
+    this.isConnected = true
+    console.log("[Hedera] Client initialized in browser-safe read-only mode")
+    console.log("[Hedera] Transaction signing is handled server-side for security")
   }
 
   async createHCS10Topic(name: string, description: string): Promise<HCS10Topic> {
-    if (!this.isConnected) {
-      await this.initialize()
-    }
-
-    if (!this.hederaSDKClient) {
-      console.error("[Hedera] Client not initialized - cannot create real topic")
-      throw new Error("Hedera client not initialized")
-    }
-
-    try {
-      console.log(`[Hedera] Creating real HCS topic: ${name}...`)
-      
-      const { TopicCreateTransaction } = await import('@hashgraph/sdk')
-      
-      const transaction = new TopicCreateTransaction()
-        .setTopicMemo(`${name}: ${description}`)
-        .setAdminKey(this.hederaSDKClient.operatorPublicKey!)
-        .setSubmitKey(this.hederaSDKClient.operatorPublicKey!)
-        .freezeWith(this.hederaSDKClient)
-      
-      const response = await transaction.execute(this.hederaSDKClient)
-      const receipt = await response.getReceipt(this.hederaSDKClient)
-      const topicId = receipt.topicId!.toString()
-
-      const topic: HCS10Topic = {
-        topicId,
-        name,
-        description,
-        createdAt: new Date(),
-        messageCount: 0,
-        isActive: true,
-      }
-
-      this.topics.set(topicId, topic)
-      console.log(`[Hedera] Created real HCS topic: ${name} (${topicId})`)
-
-      return topic
-    } catch (error) {
-      console.error(`[Hedera] Failed to create HCS topic ${name}:`, error)
-      throw error
-    }
+    // Topic creation should be handled server-side for security
+    // Private keys should never be exposed to the browser
+    throw new Error("Topic creation must be handled server-side. Use admin tools or server API.")
   }
 
   async submitMessage(topicId: string, message: string): Promise<void> {
-    // Validate topic ID first
-    if (!topicId || topicId === 'null' || topicId === 'undefined') {
-      console.warn(`[Hedera] Cannot submit message - invalid topic ID: ${topicId}`)
-      throw new Error(`Invalid topic ID: ${topicId}`)
-    }
-
-    if (!this.isConnected) {
-      await this.initialize()
-    }
-
-    if (!this.hederaSDKClient) {
-      console.error("[Hedera] Client not initialized - cannot submit message")
-      throw new Error("Hedera client not initialized")
-    }
-
-    try {
-      console.log(`[Hedera] Submitting message to topic ${topicId}...`)
-      
-      const { TopicMessageSubmitTransaction } = await import('@hashgraph/sdk')
-      const transaction = new TopicMessageSubmitTransaction()
-        .setTopicId(topicId)
-        .setMessage(message)
-        .freezeWith(this.hederaSDKClient)
-
-      const response = await transaction.execute(this.hederaSDKClient)
-      const receipt = await response.getReceipt(this.hederaSDKClient)
-      
-      // Update topic message count if we're tracking it
-      const topic = this.topics.get(topicId)
-      if (topic) {
-        topic.messageCount++
-      }
-      
-      console.log(`[Hedera] Message submitted to topic ${topicId} - Sequence: ${receipt.topicSequenceNumber}`)
-    } catch (error) {
-      console.error(`[Hedera] Failed to submit message to topic ${topicId}:`, error)
-      throw error // Re-throw to allow proper error handling in calling code
-    }
+    // Client-side message submission is not allowed for security reasons
+    // Private keys should never be exposed to the browser environment
+    console.warn(`[Hedera] Client-side message submission blocked for security. Topic: ${topicId}`)
+    console.warn(`[Hedera] For production, use server-side API endpoint /api/hcs/submit`)
+    
+    // Throw a descriptive error that won't crash the application
+    throw new Error('Client-side signing is disabled for security. Use server-side API for message submission.')
   }
 
   async createNFTToken(campaignId: string, name: string, symbol: string): Promise<string> {
