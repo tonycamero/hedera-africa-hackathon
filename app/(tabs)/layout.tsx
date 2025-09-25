@@ -75,13 +75,13 @@ export default function TabsLayout({
             <div className="flex items-center gap-3">
               {/* TrustMesh Network Logo */}
               <div className="w-8 h-8 flex items-center justify-center">
-                <svg 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  className="text-primary"
-                >
+              <svg 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                className="text-white"
+              >
                   <circle cx="6" cy="18" r="2" stroke="currentColor" strokeWidth="2" fill="none"/>
                   <circle cx="18" cy="18" r="2" stroke="currentColor" strokeWidth="2" fill="none"/>
                   <circle cx="12" cy="6" r="2" stroke="currentColor" strokeWidth="2" fill="none"/>
@@ -90,7 +90,7 @@ export default function TabsLayout({
                 </svg>
               </div>
               <div>
-                <h1 className="font-bold text-lg text-primary">TrustMesh</h1>
+                <h1 className="font-bold text-lg text-white">TrustMesh</h1>
                 <p className="text-xs text-muted-foreground">
                   a Service of Scend Technologies
                 </p>
