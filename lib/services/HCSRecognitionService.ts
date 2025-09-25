@@ -72,6 +72,8 @@ export class HCSRecognitionService {
   async initialize(): Promise<void> {
     if (this.ready) return
     if (this.initPromise) return this.initPromise
+    
+    // Force Vercel deployment refresh - 2025-01-25
 
     this.initPromise = (async () => {
       console.log("[HCSRecognitionService] Initializing recognition service...")
