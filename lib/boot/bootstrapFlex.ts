@@ -1,5 +1,5 @@
 // lib/boot/bootstrapFlex.ts
-import { flexRegistry } from "@/lib/services/HCS2RegistryClient";
+import { flexRegistry, getFallbackTopics } from "@/lib/services/HCS2RegistryClient";
 import { 
   setRegistryNamespace, 
   beginCacheSession, 
@@ -55,10 +55,34 @@ export async function bootstrapFlex(): Promise<BootstrapResult> {
   
   // Registry id known from env (read-only)
   const registryId = flexRegistry.getRegistryId() || 
-                    process.env.NEXT_PUBLIC_FLEX_REGISTRY_ID || 
+                    process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID || 
                     "fallback-registry-0.0.simulation";
   
   setRegistryNamespace(registryId);
+
+  // Check if we have registry ID, otherwise use fallback
+  if (!process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID) {
+    console.log('⚠️ [FlexBootstrap] No NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID, using fallback topics...');
+    const fallbackTopics = getFallbackTopics();
+    
+    // Initialize HCS services with fallback topics
+    await hcsFeedService.initialize();
+    
+    // For fallback mode, we'll use the verified topics directly
+    const topics = fallbackTopics;
+    
+    return {
+      cachedSignals: [],
+      cachedDerived: null,
+      resolvedTopics: topics,
+      registryId: 'fallback-mode',
+      freshness: {
+        cacheAge: Infinity,
+        registryAge: 0,
+        isStale: false
+      }
+    };
+  }
 
   // Initialize HCS services (resolves topics via HCS-2)
   await hcsFeedService.initialize();

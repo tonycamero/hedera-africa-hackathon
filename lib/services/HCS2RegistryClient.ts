@@ -42,7 +42,7 @@ export class HCS2RegistryClient {
   constructor(params?: { registryId?: string; network?: "testnet" | "mainnet"; signer?: any }) {
     const network = params?.network ?? (process.env.NEXT_PUBLIC_HEDERA_NETWORK as "testnet" | "mainnet");
     // this.client = new HCS2BrowserClient({ network, signer: params?.signer }); // read-only works without signer
-    this.registryId = params?.registryId ?? (process.env.NEXT_PUBLIC_FLEX_REGISTRY_ID || "");
+    this.registryId = params?.registryId ?? (process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID || "");
     console.log('[HCS2Registry] Initialized in fallback mode - network:', network, 'registryId:', this.registryId);
   }
 
@@ -187,6 +187,20 @@ export class HCS2RegistryClient {
   getRegistryTopicId(): string | null {
     return this.registryId
   }
+}
+
+// Fallback topics for production safety
+export function getFallbackTopics(): TrustMeshTopics {
+  return process.env.NEXT_PUBLIC_ENABLE_FALLBACK === "1" || !process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID
+    ? {
+        feed: '0.0.6896005',        // contacts + trust
+        contacts: '0.0.6896005',    // shared with feed
+        trust: '0.0.6896005',       // shared with feed
+        recognition: '0.0.6895261', // recognition definitions
+        profiles: '0.0.6896008',    // profiles/system
+        system: '0.0.6896008'       // system messages
+      }
+    : {};
 }
 
 // Singleton instances
