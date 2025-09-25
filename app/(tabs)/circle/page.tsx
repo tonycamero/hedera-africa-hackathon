@@ -8,6 +8,7 @@ import { AddContactDialog } from "@/components/AddContactDialog"
 import { signalsStore, type BondedContact, type SignalEvent } from "@/lib/stores/signalsStore"
 import { hcsFeedService } from "@/lib/services/HCSFeedService"
 import { getBondedContactsFromHCS, getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
+import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 import Link from "next/link"
 import { 
   Users, 
@@ -200,72 +201,92 @@ export default function CirclePage() {
   const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9, pendingOut: 0 })
   const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
+  const [bootstrapResult, setBootstrapResult] = useState<BootstrapResult | null>(null)
 
-  // Initialize session and seed data
+  // Bootstrap with Flex system - instant paint + on-chain truth
   useEffect(() => {
-    const currentSessionId = getSessionId()
-    setSessionId(currentSessionId)
-    
-    // Seed demo data if needed
-    seedDemo(signalsStore, currentSessionId)
-  }, [])
-
-  // Load data from HCS feed service
-  useEffect(() => {
-    if (!sessionId) return
-    
-    const loadData = async () => {
+    const initializeWithBootstrap = async () => {
       try {
-        // Get all HCS events
-        const events = await hcsFeedService.getAllFeedEvents()
+        console.log('🚀 [CirclePage] Starting bootstrap sequence...')
         
-        // Derive data from HCS events
-        const bonded = getBondedContactsFromHCS(events, sessionId)
-        const recent = getRecentSignalsFromHCS(events, sessionId, 3)
+        // Bootstrap: cache-first → registry → mirror
+        const result = await bootstrapFlex()
+        setBootstrapResult(result)
         
-        // Simple trust workflow: count accepted (green) and pending (yellow) trust
-        const trustEvents = events.filter(e => e.class === 'trust' && e.actors.from === sessionId)
-        const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
-        const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+        const currentSessionId = getSessionId()
+        setSessionId(currentSessionId)
         
-        const simpleStats = { 
-          allocatedOut: acceptedTrust, 
-          cap: 9, 
-          pendingOut: pendingTrust 
+        console.log('✅ [CirclePage] Bootstrap complete:', {
+          cachedSignals: result.cachedSignals.length,
+          registryId: result.registryId,
+          freshness: result.freshness
+        })
+        
+        // Process initial cached data (instant paint)
+        if (result.cachedSignals.length > 0) {
+          const bonded = getBondedContactsFromHCS(result.cachedSignals, currentSessionId)
+          const recent = getRecentSignalsFromHCS(result.cachedSignals, currentSessionId, 3)
+          
+          const trustEvents = result.cachedSignals.filter(e => e.class === 'trust' && e.actors.from === currentSessionId)
+          const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
+          const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+          
+          const stats = { 
+            allocatedOut: acceptedTrust, 
+            cap: 9, 
+            pendingOut: pendingTrust 
+          }
+          
+          setBondedContacts(bonded)
+          setTrustStats(stats)
+          setRecentSignals(recent)
+          
+          console.log('📦 [CirclePage] Painted with cached data:', { bonded: bonded.length, stats })
         }
         
-        console.log('[CirclePage] Debug data (simple trust workflow):')
-        console.log('  - HCS Events:', events.length)
-        console.log('  - Bonded contacts:', bonded)
-        console.log('  - Trust stats (green=accepted, yellow=pending):', simpleStats)
-        console.log('  - Trust events:', trustEvents)
+        // Set up listener for background refresh completion
+        const handleSignalsUpdate = (event: CustomEvent) => {
+          const freshSignals = event.detail
+          console.log('🌐 [CirclePage] Received fresh signals from background:', freshSignals.length)
+          
+          const bonded = getBondedContactsFromHCS(freshSignals, currentSessionId)
+          const recent = getRecentSignalsFromHCS(freshSignals, currentSessionId, 3)
+          
+          const trustEvents = freshSignals.filter(e => e.class === 'trust' && e.actors.from === currentSessionId)
+          const acceptedTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status === 'onchain').length
+          const pendingTrust = trustEvents.filter(e => e.type === 'TRUST_ALLOCATE' && e.status !== 'onchain').length
+          
+          const stats = { 
+            allocatedOut: acceptedTrust, 
+            cap: 9, 
+            pendingOut: pendingTrust 
+          }
+          
+          setBondedContacts(bonded)
+          setTrustStats(stats)
+          setRecentSignals(recent)
+        }
         
-        setBondedContacts(bonded)
-        setTrustStats(simpleStats)
-        setRecentSignals(recent)
+        // Listen for background updates (when implemented)
+        // window.addEventListener('flex:signals-updated', handleSignalsUpdate)
+        
+        return () => {
+          // window.removeEventListener('flex:signals-updated', handleSignalsUpdate)
+        }
+        
       } catch (error) {
-        console.error('[CirclePage] Failed to load data from HCS:', error)
+        console.error('❌ [CirclePage] Bootstrap failed:', error)
         // Fallback to empty state
+        const currentSessionId = getSessionId()
+        setSessionId(currentSessionId)
         setBondedContacts([])
         setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
         setRecentSignals([])
       }
     }
-
-    // Load initially
-    loadData()
-
-    // Poll for updates only if HCS service is ready
-    const interval = setInterval(() => {
-      if (hcsFeedService.isReady()) {
-        loadData()
-      }
-    }, 5000) // Slower polling to reduce load
-
-    return () => {
-      clearInterval(interval)
-    }
-  }, [sessionId])
+    
+    initializeWithBootstrap()
+  }, [])
 
   const availableSlots = Math.max(0, 9 - trustStats.allocatedOut)
 

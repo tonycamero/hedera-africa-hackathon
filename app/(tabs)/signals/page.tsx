@@ -25,6 +25,7 @@ import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
 import { loadSignals as loadSignalsCache, saveSignals as saveSignalsCache, loadDerivedState, saveDerivedState } from "@/lib/cache/sessionCache"
 import { computeDerivedFromSignals } from "@/lib/ux/derive"
+import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 
 type FilterChip = {
   label: string
@@ -198,94 +199,70 @@ export default function SignalsPage() {
   const [sessionId, setSessionId] = useState("")
   const [hcsTopicIds, setHcsTopicIds] = useState<ReturnType<typeof hcsFeedService.getTopicIds> | null>(null)
   const [selectedRecognition, setSelectedRecognition] = useState<HCSRecognitionDefinition | null>(null)
+  const [bootstrapResult, setBootstrapResult] = useState<BootstrapResult | null>(null)
   const [isRecognitionModalOpen, setIsRecognitionModalOpen] = useState(false)
   
-  // Initialize session
+  // Bootstrap with Flex system - instant paint + on-chain truth
   useEffect(() => {
-    const currentSessionId = getSessionId()
-    setSessionId(currentSessionId)
-  }, [])
-  
-  // Load and mark as seen when visiting page
-  useEffect(() => {
-    if (!sessionId) return
-    
-    // Mark signals tab as seen
-    signalsStore.markSeen("signals")
-    
-    const loadSignals = async () => {
+    const initializeWithBootstrap = async () => {
       try {
-        console.log("[SignalsPage] Loading signals (cache → HCS)...")
-        // 1) Try cache first
-        const cached = loadSignalsCache()
-        if (cached && cached.length) {
+        console.log('🚀 [SignalsPage] Starting bootstrap sequence...')
+        
+        // Bootstrap: cache-first → registry → mirror
+        const result = await bootstrapFlex()
+        setBootstrapResult(result)
+        
+        const currentSessionId = getSessionId()
+        setSessionId(currentSessionId)
+        
+        console.log('✅ [SignalsPage] Bootstrap complete:', {
+          cachedSignals: result.cachedSignals.length,
+          registryId: result.registryId,
+          freshness: result.freshness
+        })
+        
+        // Mark signals tab as seen
+        signalsStore.markSeen("signals")
+        
+        // Process initial cached data (instant paint)
+        if (result.cachedSignals.length > 0) {
           const flags = getRuntimeFlags()
-          const scopeFiltered = flags.scope === 'my'
-            ? cached.filter(s => s.actors.from === sessionId || s.actors.to === sessionId)
-            : cached
-          setSignals(scopeFiltered.sort((a, b) => b.ts - a.ts))
-        }
-
-        // 2) Always fetch from HCS/Mirror and refresh cache
-        console.log("[SignalsPage] HCS feed service ready?", hcsFeedService.isReady())
-        console.log("[SignalsPage] HCS topic IDs:", hcsFeedService.getTopicIds())
-        
-        // Load ONLY from HCS - no local storage
-        const hcsSignals = await hcsFeedService.getAllFeedEvents()
-        console.log("[SignalsPage] Raw HCS signals:", hcsSignals)
-        
-        // Filter by scope if needed
-        const flags = getRuntimeFlags()
-        console.log("[SignalsPage] Runtime flags:", flags)
-        let filteredSignals = hcsSignals
-        
-        if (flags.scope === 'my') {
-          // Filter to only show signals involving current session
-          filteredSignals = hcsSignals.filter(signal => 
-            signal.actors.from === sessionId || signal.actors.to === sessionId
-          )
+          let filteredSignals = result.cachedSignals
+          
+          if (flags.scope === 'my') {
+            filteredSignals = result.cachedSignals.filter(signal => 
+              signal.actors.from === currentSessionId || signal.actors.to === currentSessionId
+            )
+          }
+          
+          setSignals(filteredSignals.sort((a, b) => b.ts - a.ts))
+          
+          console.log('📦 [SignalsPage] Painted with cached signals:', filteredSignals.length)
         }
         
-        setSignals(filteredSignals.sort((a, b) => b.ts - a.ts))
-
-        // 3) Save to cache for snappy reloads
-        saveSignalsCache(hcsSignals)
-
-        // 4) Save lightweight derived state (for header counters etc.)
-        const derived = computeDerivedFromSignals(hcsSignals, sessionId)
-        saveDerivedState(derived)
-        
-        // Update HCS topic IDs
-        if (hcsFeedService.isReady()) {
-          setHcsTopicIds(hcsFeedService.getTopicIds())
+        // Update HCS topic IDs from resolved topics
+        const mockTopicIds = {
+          feed: result.resolvedTopics.feed,
+          contacts: result.resolvedTopics.contacts,
+          trust: result.resolvedTopics.trust,
+          recognition: result.resolvedTopics.recognition,
+          profile: result.resolvedTopics.profiles,
+          system: result.resolvedTopics.system
         }
+        setHcsTopicIds(mockTopicIds)
         
-        console.log(`[SignalsPage] Loaded ${filteredSignals.length} HCS signals (scope: ${flags.scope})`)
       } catch (error) {
-        console.error("[SignalsPage] Failed to load HCS signals:", error)
-        setSignals([]) // No fallback to local - pure HCS mode
+        console.error('❌ [SignalsPage] Bootstrap failed:', error)
+        // Fallback to empty state
+        const currentSessionId = getSessionId()
+        setSessionId(currentSessionId)
+        setSignals([])
+        signalsStore.markSeen("signals")
       }
     }
-
-    // Load initially
-    loadSignals()
-
-    // Reload on storage changes
-    const handleStorageChange = () => loadSignals()
-    window.addEventListener('storage', handleStorageChange)
     
-    // Also poll for updates only if service is ready
-    const interval = setInterval(() => {
-      if (hcsFeedService.isReady()) {
-        loadSignals()
-      }
-    }, 5000) // Reduced frequency to prevent race conditions
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
-    }
-  }, [sessionId])
+    initializeWithBootstrap()
+  }, [])
 
   // Filter signals based on active filter
   const filteredSignals = signals.filter(signal => 
