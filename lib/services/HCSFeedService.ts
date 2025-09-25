@@ -5,6 +5,7 @@ import type { SignalEvent } from "@/lib/stores/signalsStore"
 import { MirrorNodeReader } from "@/lib/services/MirrorNodeReader"
 import { toSignalEvents } from "@/lib/services/MirrorNormalize"
 import { saveMirrorRaw } from "@/lib/cache/sessionCache"
+import { hcs2Registry, type TrustMeshTopics } from "@/lib/services/HCS2RegistryClient"
 
 export type HCSFeedEvent = {
   id: string
@@ -29,18 +30,15 @@ export type HCSFeedEvent = {
 }
 
 export class HCSFeedService {
-  private feedTopicId: string | null = null
-  private contactsTopicId: string | null = null
-  private trustTopicId: string | null = null
-  private recognitionTopicId: string | null = null
-  private profileTopicId: string | null = null
-  private systemTopicId: string | null = null
+  private topics: TrustMeshTopics = {}
   private isSeeded: boolean = false
   private cachedEvents: HCSFeedEvent[] = [] // Cache for events successfully written to HCS
   private readonly CACHE_KEY = 'trustmesh_demo_cache'
   private mirrorReader: MirrorNodeReader | null = null;
   private isInitializing: boolean = false
   private initPromise: Promise<void> | null = null
+  private useVerifiedTopics: boolean = true // Flag to use verified topics first
+  private registryPollHandle: any = null
   private demoUsers: string[] = [
     'tm-alice47',
     'tm-bob23k', 
@@ -71,101 +69,25 @@ export class HCSFeedService {
       }
 
       try {
-        // FIRE-AND-FORGET: Create all topics in parallel and don't wait for them
-        console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Starting parallel topic creation...")
-        
-        // Create all topics in parallel without awaiting (fire-and-forget)
-        const topicCreations = [
-          hederaClient.createHCS10Topic("TrustMesh Activity Feed", "Real-time activity feed for all TrustMesh interactions")
-            .then(topic => {
-              this.feedTopicId = topic.topicId
-              console.log(`[HCSFeedService] 🔥 Feed topic created: ${this.feedTopicId}`)
-            })
-            .catch(err => console.error("[HCSFeedService] Feed topic creation failed:", err)),
-            
-          hederaClient.createHCS10Topic("TrustMesh Contacts", "Contact requests, accepts, and bond management")
-            .then(topic => {
-              this.contactsTopicId = topic.topicId
-              console.log(`[HCSFeedService] 🔥 Contacts topic created: ${this.contactsTopicId}`)
-            })
-            .catch(err => console.error("[HCSFeedService] Contacts topic creation failed:", err)),
-            
-          hederaClient.createHCS10Topic("TrustMesh Trust Signals", "Trust allocation, adjustments, and revocations")
-            .then(topic => {
-              this.trustTopicId = topic.topicId
-              console.log(`[HCSFeedService] 🔥 Trust topic created: ${this.trustTopicId}`)
-            })
-            .catch(err => console.error("[HCSFeedService] Trust topic creation failed:", err)),
-            
-          hederaClient.createHCS10Topic("TrustMesh Recognition", "Recognition signals and achievement minting")
-            .then(topic => {
-              this.recognitionTopicId = topic.topicId
-              console.log(`[HCSFeedService] 🔥 Recognition topic created: ${this.recognitionTopicId}`)
-            })
-            .catch(err => console.error("[HCSFeedService] Recognition topic creation failed:", err)),
-            
-          hederaClient.createHCS10Topic("TrustMesh Profiles", "User profiles and session management")
-            .then(topic => {
-              this.profileTopicId = topic.topicId
-              console.log(`[HCSFeedService] 🔥 Profile topic created: ${this.profileTopicId}`)
-            })
-            .catch(err => console.error("[HCSFeedService] Profile topic creation failed:", err)),
-            
-          hederaClient.createHCS10Topic("TrustMesh System", "System announcements and platform updates")
-            .then(topic => {
-              this.systemTopicId = topic.topicId
-              console.log(`[HCSFeedService] 🔥 System topic created: ${this.systemTopicId}`)
-            })
-            .catch(err => console.error("[HCSFeedService] System topic creation failed:", err))
-        ]
-        
-        // Fire and forget - don't wait for all topics to be created
-        // They'll be available eventually as the blockchain processes them
-        console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Topics creation started in background...")
+        // First, try to load verified topics from environment
+        if (this.useVerifiedTopics) {
+          console.log("[HCSFeedService] Loading verified topics from environment...")
+          await this.loadVerifiedTopics()
+        }
 
-        // Set up a delayed validation and initialization process that doesn't block
-        setTimeout(async () => {
-          try {
-            // Wait a bit for at least some topics to be created
-            await Promise.race(topicCreations.slice(0, 3)) // Wait for first 3 topics
-            
-            console.log("[HCSFeedService] 🔥 Some topics ready, starting services...")
-            
-            // Initialize recognition service with HCS (fire-and-forget)
-            hcsRecognitionService.initialize().catch(err => 
-              console.error("[HCSFeedService] Recognition service init failed:", err)
-            )
-            
-            // Start seeding process (fire-and-forget)
-            this.seedInitialData().catch(err => 
-              console.error("[HCSFeedService] Seeding failed:", err)
-            )
-            
-            // Set up Mirror reader when topics are available
-            const setupMirrorReader = () => {
-              const topics = [
-                this.contactsTopicId,
-                this.trustTopicId,
-                this.recognitionTopicId,
-                this.systemTopicId
-              ].filter(Boolean) as string[];
-              
-              if (topics.length > 0) {
-                this.mirrorReader = new MirrorNodeReader(topics)
-                console.log(`[HCSFeedService] 🔥 Mirror reader set up with ${topics.length} topics`)
-              } else {
-                // Retry after some time if no topics are ready yet
-                setTimeout(setupMirrorReader, 5000)
-              }
-            }
-            setupMirrorReader()
-            
-          } catch (error) {
-            console.error("[HCSFeedService] Background initialization error:", error)
-          }
-        }, 100) // Start background processes after 100ms
+        // If we don't have all topics, create new ones or use HCS-2 registry
+        if (!this.hasEssentialTopics()) {
+          console.log("[HCSFeedService] Missing essential topics, initializing HCS-2 registry...")
+          await this.initializeWithRegistry()
+        }
+
+        // Log the final topic configuration
+        console.log("[HCSFeedService] Final topic configuration:", this.topics)
+
+        // Initialize services with the topics we have
+        await this.initializeServices()
         
-        console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Initialization completed immediately, topics will be ready soon...")
+        console.log("[HCSFeedService] Initialization completed with verified topics")
       } catch (error) {
         console.error("[HCSFeedService] Failed to initialize topics:", error)
         throw error
@@ -178,6 +100,147 @@ export class HCSFeedService {
       await this.initPromise
     } finally {
       this.initPromise = null
+    }
+  }
+
+  private async loadVerifiedTopics(): Promise<void> {
+    // Load the verified topics from environment variables
+    this.topics = {
+      feed: process.env.NEXT_PUBLIC_TOPIC_CONTACT || '0.0.6896005', // Using contacts topic as feed
+      contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT || '0.0.6896005',
+      trust: process.env.NEXT_PUBLIC_TOPIC_TRUST || '0.0.6896005',
+      recognition: process.env.NEXT_PUBLIC_TOPIC_SIGNAL || '0.0.6895261',
+      profiles: process.env.NEXT_PUBLIC_TOPIC_PROFILE || '0.0.6896008',
+      system: process.env.NEXT_PUBLIC_TOPIC_PROFILE || '0.0.6896008' // Using profile topic as system
+    }
+    console.log('[HCSFeedService] Loaded verified topics:', this.topics)
+  }
+
+  private hasEssentialTopics(): boolean {
+    return !!(this.topics.contacts && this.topics.trust && this.topics.recognition)
+  }
+
+  private async initializeWithRegistry(): Promise<void> {
+    try {
+      // Initialize HCS-2 registry
+      await hcs2Registry.initialize()
+      
+      // Try to resolve topics from registry
+      const registryTopics = await hcs2Registry.resolveTopics()
+      
+      // Use registry topics if available, otherwise use our verified ones as fallback
+      this.topics = {
+        feed: registryTopics.feed || this.topics.feed || '0.0.6896005',
+        contacts: registryTopics.contacts || this.topics.contacts || '0.0.6896005',
+        trust: registryTopics.trust || this.topics.trust || '0.0.6896005',
+        recognition: registryTopics.recognition || this.topics.recognition || '0.0.6895261',
+        profiles: registryTopics.profiles || this.topics.profiles || '0.0.6896008',
+        system: registryTopics.system || this.topics.system || '0.0.6896008'
+      }
+      
+      // Register our verified topics in the registry if not already there
+      if (!registryTopics.feed || !registryTopics.contacts) {
+        console.log('[HCSFeedService] Registering verified topics in HCS-2 registry...')
+        await hcs2Registry.registerTopics(this.topics)
+      }
+      
+      console.log('[HCSFeedService] Registry initialization complete:', this.topics)
+      
+    } catch (error) {
+      console.error('[HCSFeedService] Registry initialization failed:', error)
+      // Fall back to our verified topics
+      console.log('[HCSFeedService] Using verified topics as fallback')
+    }
+  }
+
+  private async initializeServices(): Promise<void> {
+    try {
+      // Initialize recognition service with HCS (fire-and-forget)
+      hcsRecognitionService.initialize().catch(err => 
+        console.error("[HCSFeedService] Recognition service init failed:", err)
+      )
+      
+      // Start seeding process (fire-and-forget)  
+      this.seedInitialData().catch(err => 
+        console.error("[HCSFeedService] Seeding failed:", err)
+      )
+      
+      // Set up Mirror reader with available topics
+      this.setupMirrorReader()
+      
+      // Start registry watcher for hot-swapping
+      this.startRegistryWatcher()
+      
+    } catch (error) {
+      console.error('[HCSFeedService] Service initialization failed:', error)
+    }
+  }
+
+  private setupMirrorReader(): void {
+    const topicIds = [
+      this.topics.contacts,
+      this.topics.trust, 
+      this.topics.recognition,
+      this.topics.system
+    ].filter(Boolean) as string[]
+    
+    if (topicIds.length > 0) {
+      this.mirrorReader = new MirrorNodeReader(topicIds)
+      console.log(`[HCSFeedService] Mirror reader set up with ${topicIds.length} topics:`, topicIds)
+    } else {
+      console.warn('[HCSFeedService] No topics available for Mirror reader')
+    }
+  }
+
+  private startRegistryWatcher(intervalMs = 15000): void {
+    if (this.registryPollHandle) return;
+    
+    console.log('[HCSFeedService] Starting registry watcher for hot-swapping');
+    
+    this.registryPollHandle = setInterval(async () => {
+      try {
+        // Re-resolve topics from registry
+        const resolved = await hcs2Registry.resolveTopics();
+        
+        // Check if topics changed
+        const currentTopics = JSON.stringify(this.topics);
+        const resolvedTopics = JSON.stringify(resolved);
+        
+        if (currentTopics !== resolvedTopics) {
+          console.log('[HCSFeedService] Registry rotation detected:', resolved);
+          
+          // Update local topics
+          this.topics = {
+            feed: resolved.feed || this.topics.feed,
+            contacts: resolved.contacts || this.topics.contacts,
+            trust: resolved.trust || this.topics.trust,
+            recognition: resolved.recognition || this.topics.recognition,
+            profiles: resolved.profiles || this.topics.profiles,
+            system: resolved.system || this.topics.system
+          };
+          
+          // Trigger hot-swap handler
+          const { handleRegistryRotation } = await import('@/lib/boot/bootstrapFlex');
+          handleRegistryRotation(resolved as any);
+          
+          // Re-setup Mirror reader with new topics
+          this.setupMirrorReader();
+          
+          console.log('[HCSFeedService] Hot-swap complete, new topics:', this.topics);
+        }
+        
+      } catch (error) {
+        // Non-fatal: keep previous topics
+        console.warn('[HCSFeedService] Registry watcher failed:', error);
+      }
+    }, intervalMs);
+  }
+
+  stopRegistryWatcher(): void {
+    if (this.registryPollHandle) {
+      clearInterval(this.registryPollHandle);
+      this.registryPollHandle = null;
+      console.log('[HCSFeedService] Registry watcher stopped');
     }
   }
 
@@ -211,8 +274,8 @@ export class HCSFeedService {
     const eventId = `contact_req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
     // Validate topic IDs before proceeding
-    if (!this.contactsTopicId || !this.feedTopicId) {
-      console.error(`[HCSFeedService] Cannot log contact request - missing topic IDs: contacts=${this.contactsTopicId}, feed=${this.feedTopicId}`)
+    if (!this.topics.contacts || !this.topics.feed) {
+      console.error(`[HCSFeedService] Cannot log contact request - missing topic IDs: contacts=${this.topics.contacts}, feed=${this.topics.feed}`)
       return {
         id: eventId,
         type: "contact_request",
@@ -222,7 +285,7 @@ export class HCSFeedService {
         metadata: { handle: fromName, name: toName },
         status: "error",
         direction: "outbound",
-        topicId: this.contactsTopicId || "unknown",
+        topicId: this.topics.contacts || "unknown",
       }
     }
     
@@ -235,17 +298,17 @@ export class HCSFeedService {
       metadata: {
         handle: fromName,
         name: toName,
-        topicId: this.contactsTopicId,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.contactsTopicId}`
+        topicId: this.topics.contacts!,
+        explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.contacts}`
       },
       status: "local",
       direction: "outbound",
-      topicId: this.contactsTopicId,
+      topicId: this.topics.contacts!,
     }
 
     // Check if topics are ready before submitting
-    if (!this.contactsTopicId || !this.feedTopicId) {
-      console.warn(`[HCSFeedService] Topics not ready yet for contact request - contacts: ${this.contactsTopicId}, feed: ${this.feedTopicId}`)
+    if (!this.topics.contacts || !this.topics.feed) {
+      console.warn(`[HCSFeedService] Topics not ready yet for contact request - contacts: ${this.topics.contacts}, feed: ${this.topics.feed}`)
       event.status = "pending"
       // Add to cache anyway for immediate UI availability
       this.cachedEvents.push(event)
@@ -254,8 +317,8 @@ export class HCSFeedService {
     }
 
     try {
-      await hederaClient.submitMessage(this.contactsTopicId, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.contacts!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
       event.status = "onchain"
       
       // Add to cache since it was successfully written to HCS
@@ -286,17 +349,17 @@ export class HCSFeedService {
       metadata: {
         handle: fromName,
         name: toName,
-        topicId: this.contactsTopicId!,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.contactsTopicId}`
+        topicId: this.topics.contacts!,
+        explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.contacts}`
       },
       status: "local",
       direction: "outbound",
-      topicId: this.contactsTopicId!,
+      topicId: this.topics.contacts!,
     }
 
     // Check if topics are ready before submitting
-    if (!this.contactsTopicId || !this.feedTopicId) {
-      console.warn(`[HCSFeedService] Topics not ready yet for contact accept - contacts: ${this.contactsTopicId}, feed: ${this.feedTopicId}`)
+    if (!this.topics.contacts || !this.topics.feed) {
+      console.warn(`[HCSFeedService] Topics not ready yet for contact accept - contacts: ${this.topics.contacts}, feed: ${this.topics.feed}`)
       event.status = "pending"
       // Add to cache anyway for immediate UI availability
       this.cachedEvents.push(event)
@@ -305,8 +368,8 @@ export class HCSFeedService {
     }
 
     try {
-      await hederaClient.submitMessage(this.contactsTopicId!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.contacts!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
       event.status = "onchain"
       
       // Add to cache since it was successfully written to HCS
@@ -337,17 +400,17 @@ export class HCSFeedService {
       metadata: {
         weight,
         description: reason,
-        topicId: this.trustTopicId!,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.trustTopicId}`
+        topicId: this.topics.trust!,
+        explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.trust}`
       },
       status: "local",
       direction: "outbound",
-      topicId: this.trustTopicId!,
+      topicId: this.topics.trust!,
     }
 
     // Check if topics are ready before submitting
-    if (!this.trustTopicId || !this.feedTopicId) {
-      console.warn(`[HCSFeedService] Topics not ready yet for trust allocation - trust: ${this.trustTopicId}, feed: ${this.feedTopicId}`)
+    if (!this.topics.trust || !this.topics.feed) {
+      console.warn(`[HCSFeedService] Topics not ready yet for trust allocation - trust: ${this.topics.trust}, feed: ${this.topics.feed}`)
       event.status = "pending"
       // Add to cache anyway for immediate UI availability
       this.cachedEvents.push(event)
@@ -356,8 +419,8 @@ export class HCSFeedService {
     }
 
     try {
-      await hederaClient.submitMessage(this.trustTopicId!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.trust!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
       await hcsLogger.logTrustTokenIssued("trust", from, to, eventId, weight, reason)
       event.status = "onchain"
       
@@ -388,17 +451,17 @@ export class HCSFeedService {
       target: to,
       metadata: {
         description: reason,
-        topicId: this.trustTopicId!,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.trustTopicId}`
+        topicId: this.topics.trust!,
+        explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.trust}`
       },
       status: "local",
       direction: "outbound",
-      topicId: this.trustTopicId!,
+      topicId: this.topics.trust!,
     }
 
     try {
-      await hederaClient.submitMessage(this.trustTopicId!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.trust!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
       await hcsLogger.logTrustTokenRevoked("trust", from, to, eventId, reason)
       event.status = "onchain"
       
@@ -446,8 +509,8 @@ export class HCSFeedService {
           description,
           category,
           rarity: Math.random() > 0.7 ? "rare" : "common",
-          topicId: this.recognitionTopicId!,
-          explorerUrl: `https://hashscan.io/testnet/topic/${this.recognitionTopicId}`,
+          topicId: this.topics.recognition!,
+          explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.recognition}`,
           // Include recognition instance data if available
           ...(recognitionInstance && {
             recognitionInstanceId: recognitionInstance.id,
@@ -457,20 +520,20 @@ export class HCSFeedService {
         },
         status: "local",
         direction: "outbound",
-        topicId: this.recognitionTopicId!,
+        topicId: this.topics.recognition!,
       }
 
       // Check if topics are ready before submitting
-      if (!this.recognitionTopicId || !this.feedTopicId) {
-        console.warn(`[HCSFeedService] Topics not ready yet for recognition mint - recognition: ${this.recognitionTopicId}, feed: ${this.feedTopicId}`)
+      if (!this.topics.recognition || !this.topics.feed) {
+        console.warn(`[HCSFeedService] Topics not ready yet for recognition mint - recognition: ${this.topics.recognition}, feed: ${this.topics.feed}`)
         event.status = "pending"
         // Add to cache anyway for immediate UI availability
         this.cachedEvents.push(event)
         return event
       }
 
-      await hederaClient.submitMessage(this.recognitionTopicId!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.recognition!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
       event.status = "onchain"
       
       // Add to cache since it was successfully written to HCS
@@ -489,7 +552,7 @@ export class HCSFeedService {
         metadata: { name, description, category },
         status: "error",
         direction: "outbound",
-        topicId: this.recognitionTopicId!,
+        topicId: this.topics.recognition!,
       }
       return errorEvent
     }
@@ -550,9 +613,9 @@ export class HCSFeedService {
   }
 
   private getTopicTypeFromId(topicId: string): "CONTACT" | "TRUST" | "SIGNAL" | "PROFILE" {
-    if (topicId === this.contactsTopicId) return "CONTACT"
-    if (topicId === this.trustTopicId) return "TRUST"  
-    if (topicId === this.recognitionTopicId) return "SIGNAL"
+    if (topicId === this.topics.contacts) return "CONTACT"
+    if (topicId === this.topics.trust) return "TRUST"  
+    if (topicId === this.topics.recognition) return "SIGNAL"
     return "PROFILE"
   }
 
@@ -592,10 +655,10 @@ export class HCSFeedService {
           ]) as any[]
           
           const fromMirror = toSignalEvents(mirrorMsgs, {
-            contacts: this.contactsTopicId,
-            trust: this.trustTopicId,
-            recognition: this.recognitionTopicId,
-            profile: this.profileTopicId
+            contacts: this.topics.contacts,
+            trust: this.topics.trust,
+            recognition: this.topics.recognition,
+            profile: this.topics.profiles
           });
           // persist raw mirror messages for debugging/offline improvements
           saveMirrorRaw(mirrorMsgs);
@@ -640,8 +703,8 @@ export class HCSFeedService {
     // FIRE-AND-FORGET: In this mode, we're more lenient about topic readiness
     // We consider the service ready if we have at least the core topics (contacts, trust)
     const coreTopicIds = [
-      this.contactsTopicId,
-      this.trustTopicId
+      this.topics.contacts,
+      this.topics.trust
     ]
     
     const coreValid = coreTopicIds.some(id => {
@@ -657,12 +720,12 @@ export class HCSFeedService {
     
     if (!isReady && !this.isInitializing) {
       console.warn("[HCSFeedService] 🔥 Service not ready in fire-and-forget mode - no core topics yet:", {
-        contacts: this.contactsTopicId || 'pending',
-        trust: this.trustTopicId || 'pending',
-        feed: this.feedTopicId || 'pending',
-        recognition: this.recognitionTopicId || 'pending',
-        profile: this.profileTopicId || 'pending',
-        system: this.systemTopicId || 'pending',
+        contacts: this.topics.contacts || 'pending',
+        trust: this.topics.trust || 'pending',
+        feed: this.topics.feed || 'pending',
+        recognition: this.topics.recognition || 'pending',
+        profile: this.topics.profiles || 'pending',
+        system: this.topics.system || 'pending',
         initializing: this.isInitializing
       })
     }
@@ -680,12 +743,12 @@ export class HCSFeedService {
 
   getTopicIds() {
     return {
-      feed: this.feedTopicId,
-      contacts: this.contactsTopicId,  
-      trust: this.trustTopicId,
-      recognition: this.recognitionTopicId,
-      profile: this.profileTopicId,
-      system: this.systemTopicId
+      feed: this.topics.feed,
+      contacts: this.topics.contacts,  
+      trust: this.topics.trust,
+      recognition: this.topics.recognition,
+      profile: this.topics.profiles,
+      system: this.topics.system
     }
   }
 
@@ -862,17 +925,17 @@ export class HCSFeedService {
         description: message,
         category: type,
         name: version,
-        topicId: this.systemTopicId!,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.systemTopicId}`
+        topicId: this.topics.system!,
+        explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.system}`
       },
       status: "local",
       direction: "inbound",
-      topicId: this.systemTopicId!,
+      topicId: this.topics.system!,
     }
 
     // Check if topics are ready before submitting
-    if (!this.systemTopicId || !this.feedTopicId) {
-      console.warn(`[HCSFeedService] Topics not ready yet for system announcement - system: ${this.systemTopicId}, feed: ${this.feedTopicId}`)
+    if (!this.topics.system || !this.topics.feed) {
+      console.warn(`[HCSFeedService] Topics not ready yet for system announcement - system: ${this.topics.system}, feed: ${this.topics.feed}`)
       event.status = "pending"
       // Add to cache anyway for immediate UI availability
       this.cachedEvents.push(event)
@@ -880,8 +943,8 @@ export class HCSFeedService {
     }
 
     try {
-      await hederaClient.submitMessage(this.systemTopicId!, JSON.stringify(event))
-      await hederaClient.submitMessage(this.feedTopicId!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.system!, JSON.stringify(event))
+      await hederaClient.submitMessage(this.topics.feed!, JSON.stringify(event))
       event.status = "onchain"
       
       // Add to cache since it was successfully written to HCS
