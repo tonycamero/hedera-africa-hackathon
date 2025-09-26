@@ -37,185 +37,67 @@ export interface CampaignData {
   isActive: boolean
 }
 
+/**
+ * CLIENT-SIDE ONLY Hedera client - NO LEDGER OPERATIONS ALLOWED
+ * All blockchain operations must go through server-side APIs
+ */
 export class HederaClient {
-  private topics: Map<string, HCS10Topic> = new Map()
-  private nfts: Map<string, HederaNFT> = new Map()
-  private campaigns: Map<string, CampaignData> = new Map()
   private isConnected = false
-  private hederaSDKClient: any = null
 
   async initialize(): Promise<void> {
-    console.log("[Hedera] Initializing client...")
-    
-    // For client-side operations, we don't need credentials - this is read-only
-    // All transaction signing happens on the server side for security
+    console.log("[Hedera] Client initialized - READ-ONLY mode")
+    console.log("[Hedera] All ledger operations are server-side only")
     this.isConnected = true
-    console.log("[Hedera] Client initialized in browser-safe read-only mode")
-    console.log("[Hedera] Transaction signing is handled server-side for security")
   }
 
-  async createHCS10Topic(name: string, description: string): Promise<HCS10Topic> {
-    // Topic creation should be handled server-side for security
-    // Private keys should never be exposed to the browser
-    throw new Error("Topic creation must be handled server-side. Use admin tools or server API.")
+  async createHCS10Topic(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API /api/hcs/create-topic")
   }
 
-  async submitMessage(topicId: string, message: string): Promise<void> {
-    // Client-side message submission is not allowed for security reasons
-    // Private keys should never be exposed to the browser environment
-    console.warn(`[Hedera] Client-side message submission blocked for security. Topic: ${topicId}`)
-    console.warn(`[Hedera] For production, use server-side API endpoint /api/hcs/submit`)
-    
-    // Throw a descriptive error that won't crash the application
-    throw new Error('Client-side signing is disabled for security. Use server-side API for message submission.')
+  async submitMessage(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API /api/hcs/submit")
   }
 
-  async createNFTToken(campaignId: string, name: string, symbol: string): Promise<string> {
-    const tokenId = `0.0.${Math.floor(Math.random() * 1000000)}`
-
-    // TODO: Create actual NFT token on Hedera
-    // const transaction = new TokenCreateTransaction()
-    //   .setTokenName(name)
-    //   .setTokenSymbol(symbol)
-    //   .setTokenType(TokenType.NonFungibleUnique)
-
-    console.log(`[Hedera] Created NFT token for campaign ${campaignId}: ${tokenId}`)
-    return tokenId
+  // ALL LEDGER OPERATIONS REMOVED
+  // Use server-side APIs for any blockchain operations
+  async createNFTToken(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API")
   }
 
-  async mintHashinal(campaignId: string, recipient: string, metadata: HederaNFT["metadata"]): Promise<HederaNFT> {
-    const campaign = this.campaigns.get(campaignId)
-    if (!campaign) {
-      throw new Error(`Campaign not found: ${campaignId}`)
-    }
-
-    let tokenId = campaign.nftTokenId
-    if (!tokenId) {
-      tokenId = await this.createNFTToken(campaignId, `${campaign.name} Reward`, "HASH")
-      campaign.nftTokenId = tokenId
-    }
-
-    const serialNumber = Math.floor(Math.random() * 1000000)
-    const nftId = `${tokenId}:${serialNumber}`
-
-    const nft: HederaNFT = {
-      tokenId,
-      serialNumber,
-      metadata,
-      owner: recipient,
-      campaignId,
-      isRevocable: true,
-      isTransferable: false, // Hashinals are non-transferable
-      mintedAt: new Date(),
-    }
-
-    this.nfts.set(nftId, nft)
-    campaign.rewards.push(nft)
-
-    // Log to HCS10 topic
-    await this.submitMessage(
-      campaign.topicId,
-      JSON.stringify({
-        type: "nft_mint",
-        nftId,
-        recipient,
-        campaignId,
-        timestamp: new Date().toISOString(),
-      }),
-    )
-
-    console.log(`[Hedera] Minted hashinal NFT: ${nftId} for ${recipient}`)
-    return nft
+  async mintHashinal(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API")
   }
 
-  async revokeNFT(nftId: string, reason: string): Promise<void> {
-    const nft = this.nfts.get(nftId)
-    if (!nft) {
-      throw new Error(`NFT not found: ${nftId}`)
-    }
-
-    if (!nft.isRevocable) {
-      throw new Error(`NFT is not revocable: ${nftId}`)
-    }
-
-    nft.revokedAt = new Date()
-
-    const campaign = this.campaigns.get(nft.campaignId)
-    if (campaign) {
-      await this.submitMessage(
-        campaign.topicId,
-        JSON.stringify({
-          type: "nft_revoke",
-          nftId,
-          reason,
-          timestamp: new Date().toISOString(),
-        }),
-      )
-    }
-
-    console.log(`[Hedera] Revoked NFT: ${nftId} - ${reason}`)
+  async revokeNFT(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API")
   }
 
-  async createCampaign(name: string, description: string): Promise<CampaignData> {
-    const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    // Create HCS10 topic for campaign
-    const topic = await this.createHCS10Topic(`Campaign: ${name}`, description)
-
-    const campaign: CampaignData = {
-      id: campaignId,
-      name,
-      description,
-      topicId: topic.topicId,
-      participants: [],
-      rewards: [],
-      startDate: new Date(),
-      isActive: true,
-    }
-
-    this.campaigns.set(campaignId, campaign)
-    console.log(`[Hedera] Created campaign: ${name} (${campaignId})`)
-
-    return campaign
+  async createCampaign(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API")
   }
 
-  async joinCampaign(campaignId: string, userId: string): Promise<void> {
-    const campaign = this.campaigns.get(campaignId)
-    if (!campaign) {
-      throw new Error(`Campaign not found: ${campaignId}`)
-    }
-
-    if (!campaign.participants.includes(userId)) {
-      campaign.participants.push(userId)
-
-      await this.submitMessage(
-        campaign.topicId,
-        JSON.stringify({
-          type: "participant_join",
-          userId,
-          campaignId,
-          timestamp: new Date().toISOString(),
-        }),
-      )
-
-      console.log(`[Hedera] User ${userId} joined campaign ${campaignId}`)
-    }
+  async joinCampaign(): Promise<never> {
+    throw new Error("CLIENT-SIDE LEDGER OPERATIONS DISABLED: Use server-side API")
   }
 
-  getCampaign(campaignId: string): CampaignData | null {
-    return this.campaigns.get(campaignId) || null
+  getCampaign(): null {
+    console.warn("CLIENT-SIDE DATA ACCESS DISABLED: Use server-side API")
+    return null
   }
 
-  getAllCampaigns(): CampaignData[] {
-    return Array.from(this.campaigns.values())
+  getAllCampaigns(): never[] {
+    console.warn("CLIENT-SIDE DATA ACCESS DISABLED: Use server-side API")
+    return []
   }
 
-  getUserNFTs(userId: string): HederaNFT[] {
-    return Array.from(this.nfts.values()).filter((nft) => nft.owner === userId && !nft.revokedAt)
+  getUserNFTs(): never[] {
+    console.warn("CLIENT-SIDE DATA ACCESS DISABLED: Use server-side API")
+    return []
   }
 
-  getTopic(topicId: string): HCS10Topic | null {
-    return this.topics.get(topicId) || null
+  getTopic(): null {
+    console.warn("CLIENT-SIDE DATA ACCESS DISABLED: Use server-side API")
+    return null
   }
 
   isReady(): boolean {
