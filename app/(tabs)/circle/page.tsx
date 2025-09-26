@@ -23,11 +23,11 @@ import { toast } from "sonner"
 import { hederaClient } from "@/packages/hedera/HederaClient"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { HCS_ENABLED, TOPICS, MIRROR_REST, MIRROR_WS } from "@/lib/env"
+import { HCS_ENABLED, TOPIC, MIRROR_REST, MIRROR_WS } from "@/lib/env"
 import { seedDemo } from "@/lib/demo/seed"
 import { RecognitionGrid } from "@/components/RecognitionGrid"
 
-const TRUST_TOPIC = TOPICS.trust || ""
+const TRUST_TOPIC = TOPIC.trust || ""
 
 // Expose store for debugging
 if (typeof window !== 'undefined') {
@@ -259,7 +259,7 @@ export default function CirclePage() {
           HCS_ENABLED,
           MIRROR_REST,
           MIRROR_WS,
-          TOPICS,
+          TOPIC,
           raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
           raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
         });

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { initializeMirrorWithStore } from '@/lib/services/MirrorToStore';
 import { signalsStore } from '@/lib/stores/signalsStore';
-import { HCS_ENABLED, DEMO_SEED, MIRROR_REST, MIRROR_WS, TOPICS } from '@/lib/env';
+import { HCS_ENABLED, DEMO_SEED, MIRROR_REST, MIRROR_WS, TOPIC } from '@/lib/env';
 
 /**
  * Global HCS service initialization component.
@@ -22,7 +22,7 @@ export default function BootHCSClient() {
           NODE_ENV: process.env.NODE_ENV,
           MIRROR_REST,
           MIRROR_WS,
-          TOPICS,
+          TOPIC,
           raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
           raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
         });
