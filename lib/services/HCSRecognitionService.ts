@@ -124,41 +124,9 @@ export class HCSRecognitionService {
         }
       }
       
-      // Load from HCS or create demo data for immediate demo functionality
-      // TODO: Remove demo data once HCS transaction signing is fixed
+      // NO DEMO DATA - Only load from HCS topics
       if (this.definitions.size === 0) {
-        console.log(`[HCSRecognitionService] Loading demo recognition data for hackathon demo...`)
-        try {
-          const { recognitionSignals } = await import("@/lib/data/recognitionSignals")
-          
-          // Load all recognition signals from demo data
-          // This includes social, academic, and professional categories
-          // to support the full range of minted recognition instances
-          const demoSignals = recognitionSignals
-          
-          demoSignals.forEach(signal => {
-            const def: Def = { 
-              id: signal.id, 
-              name: signal.name, 
-              category: signal.category, 
-              description: signal.description 
-            }
-            this.definitions.set(signal.id, def)
-            
-            // Store full definition in cache for recognition page
-            this.definitionsCache.set(signal.id, {
-              ...signal,
-              emoji: signal.icon, // Add emoji alias for compatibility
-              topicId: this.topics.definitions || '',
-              createdAt: new Date().toISOString(),
-              definitionHash: signal.id
-            })
-          })
-          
-          console.log(`[HCSRecognitionService] Loaded ${demoSignals.length} demo recognition signals (hackathon demo)`)
-        } catch (error) {
-          console.error(`[HCSRecognitionService] Failed to load demo recognition signals:`, error)
-        }
+        console.log(`[HCSRecognitionService] No recognition definitions found on HCS topics. Will only show real HCS data.`)
       }
 
       this.ready = true
