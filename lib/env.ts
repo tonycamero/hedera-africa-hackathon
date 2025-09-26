@@ -14,9 +14,9 @@ export const TOPIC = {
 // Clean other environment variables
 export const MIRROR_REST = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_URL);
 export const MIRROR_WS = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_WS);
-export const HCS_ENABLED = process.env.NEXT_PUBLIC_HCS_ENABLED === "true";
+export const HCS_ENABLED = clean(process.env.NEXT_PUBLIC_HCS_ENABLED) === "true";
 export const DEMO_SEED = clean(process.env.NEXT_PUBLIC_DEMO_SEED);
-export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+export const DEMO_MODE = clean(process.env.NEXT_PUBLIC_DEMO_MODE) === 'true';
 
 // Hedera client configuration
 export const HEDERA_NETWORK = clean(process.env.NEXT_PUBLIC_HEDERA_NETWORK) || 'testnet';
