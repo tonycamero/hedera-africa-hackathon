@@ -281,6 +281,10 @@ export default function CirclePage() {
         }
         
         const currentSessionId = getSessionId();
+        setSessionId(currentSessionId)
+        console.log('📋 [CirclePage] Session ID:', currentSessionId)
+        console.log('📋 [CirclePage] Expected recognition owner ID:', currentSessionId)
+        
         if (storeEvents.length > 0) {
           console.log('📋 [UI] Sample store event:', storeEvents[0]);
           
@@ -293,13 +297,7 @@ export default function CirclePage() {
           })));
         }
         
-        const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        console.log('📋 [CirclePage] Session ID:', currentSessionId)
-        console.log('📋 [CirclePage] Expected recognition owner ID:', currentSessionId)
-        
         // Get events from the signalsStore (already populated by MirrorToStore)
-        const storeEvents = signalsStore.getAllSignals()
         console.log('📁 [CirclePage] Using', storeEvents.length, 'events from SignalsStore')
         
         // Convert SignalEvent[] to the format expected by legacy helper functions
