@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { initializeFeed } from '@/lib/services/MirrorBackfill';
+import { initializeMirrorWithStore } from '@/lib/services/MirrorToStore';
 import { HCS_ENABLED, DEMO_SEED } from '@/lib/env';
 
 /**
@@ -22,9 +22,9 @@ export default function BootHCSClient() {
           return;
         }
 
-        // Use the robust backfill + WS subscribe service
-        console.log('📡 [BootHCSClient] Initializing Mirror Node backfill + WebSocket...');
-        const dispose = await initializeFeed();
+        // Use the robust backfill + WS subscribe service with store integration
+        console.log('📡 [BootHCSClient] Initializing Mirror Node backfill + WebSocket + Store...');
+        const dispose = await initializeMirrorWithStore();
         cleanup = dispose;
         
         console.log('🎉 [BootHCSClient] Mirror Node initialization complete');
