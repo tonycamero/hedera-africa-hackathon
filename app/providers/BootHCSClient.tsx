@@ -40,18 +40,29 @@ export default function BootHCSClient() {
         const dispose = await initializeMirrorWithStore();
         cleanup = dispose;
         
-        console.log('🎉 [BootHCSClient] Mirror Node initialization complete');
+        // Initialize recognition service
+        console.log('🔍 [BootHCSClient] Initializing HCS Recognition Service...');
+        const { hcsRecognitionService } = await import('@/lib/services/HCSRecognitionService');
+        await hcsRecognitionService.initialize();
+        
+        console.log('🎉 [BootHCSClient] All services initialized complete');
         
         // Add to global scope for debugging
         if (typeof window !== 'undefined') {
+          // Import and expose recognition service for debugging
+          const { hcsRecognitionService } = await import('@/lib/services/HCSRecognitionService');
+          
           (window as any).signalsStore = signalsStore;
           (window as any).debugStore = {
             getBonded: (id: string) => signalsStore.getBondedContacts(id),
             getTrust: (id: string) => signalsStore.getTrustStats(id),
             getSignals: () => signalsStore.getAllSignals?.() || 'getAllSignals method not available',
-            getRecognition: (id: string) => signalsStore.getRecognitionSignals?.(id) || 'getRecognitionSignals method not available'
+            getRecognition: (id: string) => signalsStore.getRecognitionSignals?.(id) || 'getRecognitionSignals method not available',
+            recognitionDebug: () => hcsRecognitionService.getDebugInfo(),
+            recognitionService: hcsRecognitionService
           };
           console.log('🔧 [BootHCSClient] Debug helpers added to window.signalsStore and window.debugStore');
+          console.log('🔧 [BootHCSClient] Use window.debugStore.recognitionDebug() to inspect recognition service state');
         }
         
       } catch (error) {

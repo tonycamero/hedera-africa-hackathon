@@ -1,284 +1,312 @@
-import { hederaClient } from "@/packages/hedera/HederaClient"
-import type { RecognitionSignal, SignalCategory } from "@/lib/data/recognitionSignals"
+'use client';
 
-// HCS-based recognition signal definition and instance management
-export interface HCSRecognitionDefinition {
-  id: string
-  name: string
-  description: string
-  category: SignalCategory
-  number: number
-  icon: string
-  isActive: boolean
-  extendedDescription: string
-  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary'
-  stats: {
-    popularity: number
-    impact: number
-    authenticity: number
-    difficulty: number
-  }
-  traits: {
-    personality: string[]
-    skills: string[]
-    environment: string[]
-  }
-  relatedLinks: {
-    name: string
-    url: string
-    type: 'article' | 'meme' | 'guide' | 'reference'
-  }[]
-  backstory: string
-  tips: string[]
-  // HCS-specific fields
-  topicId: string
-  createdAt: string
-  definitionHash: string // Hash of the definition for integrity
-}
+import { decodeRecognition, type RecognitionDecoded, type RecognitionDefinitionDecoded, type RecognitionInstanceDecoded, type MirrorMsg } from './mirror/decodeRecognition';
+import { MIRROR_REST, MIRROR_WS, TOPIC } from '@/lib/env';
+import { signalsStore } from '@/lib/stores/signalsStore';
 
-// Recognition signal instance (when someone gets awarded one)
-export interface HCSRecognitionInstance {
-  id: string
-  definitionId: string // References the recognition definition
-  ownerId: string // User who owns this instance
-  mintedBy: string // Who awarded it
-  mintedAt: string
-  tokenId: string // Hedera NFT token ID if minted as NFT
-  serialNumber?: number
-  metadata: {
-    customMessage?: string // Personal message when awarded
-    context?: string // Context of why it was awarded
-    explorerUrl?: string
-    topicId: string
-  }
-  status: "onchain" | "local" | "error"
-  isActive: boolean
-}
+type Def = {
+  id: string;               // canonical
+  slug?: string;
+  name?: string;
+  description?: string;
+  icon?: string;
+  _hrl: string;
+  _ts: string;
+};
 
-type Def = { id: string; name: string; category: string; description?: string };
-type Inst = { id: string; definitionId: string; owner: string; mintedBy: string; ts: number };
+type Inst = {
+  owner?: string;
+  definitionId?: string;
+  definitionSlug?: string;
+  note?: string;
+  issuer?: string;
+  _hrl: string;
+  _ts: string;
+};
 
 export class HCSRecognitionService {
-  private ready = false
-  private initPromise: Promise<void> | null = null
-  private topics: { definitions?: string; instances?: string } = {}
-  private definitions: Map<string, Def> = new Map()
-  
-  private definitionsCache: Map<string, HCSRecognitionDefinition> = new Map()
-  private instancesCache: Map<string, HCSRecognitionInstance> = new Map()
+  private defsById = new Map<string, Def>();
+  private defsBySlug = new Map<string, Def>();
+  private pending: Inst[] = [];
+  private disposeFns: Array<() => void> = [];
+  private initialized = false;
 
-  isReady() { return this.ready }
-  
-  async initialize(): Promise<void> {
-    if (this.ready) return
-    if (this.initPromise) return this.initPromise
-    
-    // Force Vercel deployment refresh - 2025-01-25
+  public get isInitialized() { return this.initialized; }
 
-    this.initPromise = (async () => {
-      console.log("[HCSRecognitionService] Initializing recognition service...")
-      
-      // Resolve topics from registry or fallback
-      const { hcs2Registry } = await import("@/lib/services/HCS2RegistryClient")
-      const topics = await hcs2Registry.resolveTopics()
-      
-      this.topics = {
-        definitions: topics.recognition,
-        instances: topics.recognition, // Same topic for now
-      }
+  async initialize() {
+    if (this.initialized) return;
+    this.initialized = true;
 
-      if (!this.topics.instances) {
-        console.warn("[HCSRecognitionService] Recognition instances topic is missing")
-        return
-      }
+    console.log('[HCSRecognitionService] init: backfill + WS on', TOPIC.recognition);
 
-      // Load definitions (best effort) or create demo definitions
-      if (this.topics.definitions) {
-        try {
-          const { fetchTopicMessages } = await import("@/lib/services/MirrorReader")
-          const msgs = await fetchTopicMessages(this.topics.definitions, 200)
-          const defs = msgs
-            .map(m => {
-              try {
-                return JSON.parse(m.decoded)
-              } catch {
-                return null
-              }
-            })
-            .filter(x => x && (x.type === "recognition_definition_created" || x.type === "RECOG_DEF"))
-          
-          defs.forEach((d: any) => {
-            const defData = d.data || d
-            const def: Def = { 
-              id: defData.id, 
-              name: defData.name, 
-              category: defData.category, 
-              description: defData.description 
-            }
-            this.definitions.set(def.id, def)
-            
-            // Also populate the full definition cache for UI consumption
-            const fullDef: HCSRecognitionDefinition = {
-              id: defData.id,
-              name: defData.name,
-              description: defData.description || '',
-              category: defData.category,
-              number: defData.number || 1,
-              icon: defData.icon || this.getCategoryIcon(defData.category),
-              isActive: defData.isActive !== false,
-              extendedDescription: defData.extendedDescription || defData.description || '',
-              rarity: defData.rarity || 'Common',
-              stats: defData.stats || {
-                popularity: 50,
-                impact: 50,
-                authenticity: 75,
-                difficulty: 25
-              },
-              traits: defData.traits || {
-                personality: [],
-                skills: [],
-                environment: []
-              },
-              relatedLinks: defData.relatedLinks || [],
-              backstory: defData.backstory || '',
-              tips: defData.tips || [],
-              topicId: this.topics.definitions || '',
-              createdAt: defData.createdAt || new Date().toISOString(),
-              definitionHash: defData.definitionHash || ''
-            }
-            this.definitionsCache.set(def.id, fullDef)
-          })
-          
-          console.log(`[HCSRecognitionService] Loaded ${this.definitions.size} recognition definitions`)
-        } catch (error) {
-          console.warn(`[HCSRecognitionService] Failed to load definitions:`, error)
-        }
-      }
-      
-      // NO DEMO DATA - Only load from HCS topics
-      if (this.definitions.size === 0) {
-        console.log(`[HCSRecognitionService] No recognition definitions found on HCS topics. Will only show real HCS data.`)
-      }
-
-      this.ready = true
-      console.log(`[HCSRecognitionService] Initialized successfully. Ready: ${this.ready}`)
-    })()
-
-    try { 
-      await this.initPromise 
-    } finally { 
-      this.initPromise = null 
-    }
-  }
-
-  async getAllRecognitionDefinitions(): Promise<HCSRecognitionDefinition[]> {
-    if (!this.ready) await this.initialize()
-    
-    // Return only real HCS recognition definitions - no mock data
-    return Array.from(this.definitionsCache.values())
-  }
-  
-  private getCategoryIcon(category: string): string {
-    switch (category) {
-      case 'social': return '🎭'
-      case 'academic': return '🎓' 
-      case 'professional': return '💼'
-      default: return '🏆'
-    }
-  }
-
-  async getAllRecognitionInstances(): Promise<Inst[]> {
-    if (!this.ready) await this.initialize()
-    if (!this.topics.instances) return []
-    
     try {
-      const { fetchTopicMessages } = await import("@/lib/services/MirrorReader")
-      const msgs = await fetchTopicMessages(this.topics.instances, 500)
-      return msgs
-        .map(m => {
-          try {
-            return JSON.parse(m.decoded)
-          } catch {
-            return null
-          }
-        })
-        .filter(x => x && (x.type === "recognition_mint" || x.type === "RECOG_MINT" || x.type === "RECOGNITION_MINT"))
-        .map((x: any): Inst => ({
-          id: x.id ?? `${x.tokenId ?? x.sequenceNumber ?? x.nonce}`,
-          definitionId: x.metadata?.definitionId ?? x.definitionId ?? x.payload?.definitionId ?? "",
-          owner: x.target ?? x.to ?? x.payload?.to ?? "",
-          mintedBy: x.actor ?? x.from ?? x.payload?.mintedBy ?? "",
-          ts: (x.timestamp ? Date.parse(x.timestamp) : x.ts * 1000) || Date.now(),
-        }))
+      // 1) Backfill from REST (ascending so older defs land first; order-independent logic still used)
+      const decoded = await this.backfill(TOPIC.recognition, 200, 'asc');
+
+      const defs = decoded.filter(d => d._kind === 'definition') as RecognitionDefinitionDecoded[];
+      const inst = decoded.filter(d => d._kind === 'instance') as RecognitionInstanceDecoded[];
+
+      console.log('[HCSRecognitionService] Raw decoded messages:', {
+        total: decoded.length,
+        defs: defs.length,
+        inst: inst.length
+      });
+
+      // Show sample messages if no definitions found for debugging
+      if (defs.length === 0 && decoded.length > 0) {
+        console.log('[HCSRecognitionService] No definitions detected. Sample messages:');
+        decoded.slice(0, 3).forEach((msg, i) => {
+          console.log(`  Sample ${i + 1}:`, {
+            _kind: msg._kind,
+            type: (msg as any).type,
+            schema: (msg as any).schema,
+            hasName: 'name' in msg,
+            hasSlug: 'slug' in msg,
+            hasOwner: 'owner' in msg,
+            keys: Object.keys(msg).filter(k => !k.startsWith('_'))
+          });
+        });
+      }
+
+      this.ingestDefinitions(defs);
+      this.ingestInstances(inst);
+
+      console.log('[HCSRecognitionService] backfill summary', {
+        total: decoded.length, defs: defs.length, inst: inst.length,
+        defsInCache: this.defsById.size, pendingInstances: this.pending.length
+      });
+
+      // 2) Live via WS
+      const dispose = this.subscribe(TOPIC.recognition, (d) => {
+        console.log('[HCSRecognitionService] WS message:', d._kind, d._hrl);
+        if (d._kind === 'definition') this.ingestDefinitions([d]);
+        else this.ingestInstances([d]);
+      });
+      this.disposeFns.push(dispose);
+
     } catch (error) {
-      console.warn(`[HCSRecognitionService] Failed to load instances:`, error)
-      return []
+      console.error('[HCSRecognitionService] Initialization failed:', error);
+      throw error;
     }
   }
 
-  async getInstancesForOwner(owner: string): Promise<Inst[]> {
-    const all = await this.getAllRecognitionInstances()
-    return all.filter(i => i.owner === owner)
+  dispose() {
+    this.disposeFns.splice(0).forEach(fn => fn());
+    this.initialized = false;
+    console.log('[HCSRecognitionService] Disposed');
   }
 
-  // Method used by RecognitionGrid
-  async getUserRecognitionInstances(ownerId: string): Promise<Inst[]> {
-    return this.getInstancesForOwner(ownerId)
+  // ---------- ingestion ----------
+
+  private ingestDefinitions(defs: RecognitionDefinitionDecoded[]) {
+    let added = 0;
+    for (const d of defs) {
+      const id = d.id || d.slug || d._hrl; // tolerates partial defs
+      if (!id) { 
+        console.warn('[HCSRecognitionService] definition missing id/slug', d); 
+        continue; 
+      }
+
+      const def: Def = {
+        id, 
+        slug: d.slug, 
+        name: d.name, 
+        description: d.description, 
+        icon: d.icon,
+        _hrl: d._hrl, 
+        _ts: d._ts,
+      };
+
+      // overwrite by latest ts if needed (optional)
+      const existing = this.defsById.get(id);
+      if (!existing || existing._ts <= def._ts) {
+        this.defsById.set(id, def);
+        if (def.slug) this.defsBySlug.set(def.slug, def);
+        added++;
+      }
+    }
+
+    // Try to resolve any queued instances
+    if (this.pending.length) {
+      const still: Inst[] = [];
+      for (const p of this.pending) {
+        if (!this.tryResolveAndPublish(p)) still.push(p);
+      }
+      const resolved = this.pending.length - still.length;
+      this.pending = still;
+      
+      if (resolved > 0) {
+        console.log('[HCSRecognitionService] Resolved', resolved, 'pending instances');
+      }
+    }
+
+    console.log('[HCSRecognitionService] defs cached +', added,
+      'total:', this.defsById.size, 'ids:', [...this.defsById.keys()], 'slugs:', [...this.defsBySlug.keys()]);
   }
 
-  // Method to get recognition definition by ID
-  async getRecognitionDefinition(definitionId: string): Promise<HCSRecognitionDefinition | null> {
-    if (!this.ready) await this.initialize()
-    
-    console.log(`[HCSRecognitionService] Looking for definition: ${definitionId}`)
-    console.log(`[HCSRecognitionService] Available definitions in cache:`, Array.from(this.definitionsCache.keys()))
-    
-    const result = this.definitionsCache.get(definitionId) || null
-    console.log(`[HCSRecognitionService] Found definition:`, result ? result.name : 'null')
-    
-    return result
+  private ingestInstances(instances: RecognitionInstanceDecoded[]) {
+    let resolved = 0, queued = 0;
+    for (const i of instances) {
+      const inst: Inst = {
+        owner: i.owner, 
+        definitionId: i.definitionId, 
+        definitionSlug: i.definitionSlug,
+        note: i.note, 
+        issuer: i.issuer, 
+        _hrl: i._hrl, 
+        _ts: i._ts,
+      };
+      if (this.tryResolveAndPublish(inst)) resolved++;
+      else { 
+        this.pending.push(inst); 
+        queued++; 
+      }
+    }
+    console.log('[HCSRecognitionService] instances resolved', resolved, 'queued', queued, 'pending total', this.pending.length);
   }
 
-  // Legacy compatibility methods for existing code
-  async mintRecognitionInstance(
-    definitionId: string,
-    ownerId: string,
-    mintedBy: string,
-    customMessage?: string,
-    context?: string
-  ): Promise<HCSRecognitionInstance> {
-    // Return mock instance for now - this method is called but not used in the demo
-    const instanceId = `${definitionId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  private tryResolveAndPublish(inst: Inst): boolean {
+    const def =
+      (inst.definitionId && this.defsById.get(inst.definitionId)) ||
+      (inst.definitionSlug && this.defsBySlug.get(inst.definitionSlug));
     
-    const mockInstance: HCSRecognitionInstance = {
-      id: instanceId,
-      definitionId,
-      ownerId,
-      mintedBy,
-      mintedAt: new Date().toISOString(),
-      tokenId: `TM-${definitionId}-${Date.now()}`,
-      serialNumber: Math.floor(Math.random() * 1000000),
-      metadata: {
-        customMessage,
-        context,
-        explorerUrl: `https://hashscan.io/testnet/topic/${this.topics.instances}`,
-        topicId: this.topics.instances || ''
+    if (!def) {
+      console.log('[HCSRecognitionService] Cannot resolve instance - missing definition for:', 
+        inst.definitionId || inst.definitionSlug, 'available defs:', [...this.defsById.keys()]);
+      return false;
+    }
+
+    // 🔁 Map to SignalEvent format for the store
+    const signalEvent = {
+      id: `recognition_${inst._hrl.replace(/[:/]/g, '_')}`,
+      class: 'recognition' as const,
+      topicType: 'SIGNAL' as const,
+      direction: 'inbound' as const,
+      actors: {
+        from: inst.issuer || 'system',
+        to: inst.owner
       },
-      status: "onchain",
-      isActive: true
-    }
-    
-    console.log(`[HCSRecognitionService] Mock minted ${definitionId} for ${ownerId}`)
-    return mockInstance
+      payload: {
+        definitionId: def.id,
+        definitionSlug: def.slug,
+        definitionName: def.name,
+        definitionIcon: def.icon,
+        note: inst.note,
+        owner: inst.owner,
+        issuer: inst.issuer
+      },
+      ts: new Date(inst._ts).getTime(),
+      status: 'onchain' as const,
+      type: 'recognition_mint',
+      meta: {
+        tag: 'hcs_recognition',
+        hrl: inst._hrl
+      }
+    };
+
+    // ✅ Add to SignalsStore
+    signalsStore.addSignal(signalEvent);
+
+    console.log('[HCSRecognitionService] resolved instance →', def.slug || def.id, 'owner=', inst.owner);
+    return true;
   }
 
+  // ---------- Public API for UI ----------
+
+  getDefinition(idOrSlug: string): Def | null {
+    console.log('[HCSRecognitionService] Looking for definition:', idOrSlug);
+    console.log('[HCSRecognitionService] Available definitions in cache:', [...this.defsById.keys()]);
+    
+    const def = this.defsById.get(idOrSlug) || this.defsBySlug.get(idOrSlug);
+    console.log('[HCSRecognitionService] Found definition:', def ? 'YES' : 'null');
+    
+    return def || null;
+  }
+
+  getAllDefinitions(): Def[] {
+    return Array.from(this.defsById.values());
+  }
+
+  // ---------- IO (REST + WS) ----------
+
+  private async backfill(topicId: string, limit = 200, order: 'asc'|'desc' = 'asc') {
+    const url = `${MIRROR_REST}/api/v1/topics/${encodeURIComponent(topicId)}/messages?limit=${limit}&order=${order}`;
+    console.log('[HCSRecognitionService] REST backfill', url);
+    
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`[HCSRecognitionService] REST ${res.status} for ${url}`);
+    
+    const json = await res.json();
+    const msgs = (json?.messages ?? []) as MirrorMsg[];
+    
+    const decoded = msgs.map(m => decodeRecognition(m)).filter(Boolean) as RecognitionDecoded[];
+    console.log('[HCSRecognitionService] Decoded', decoded.length, 'messages from', msgs.length, 'raw messages');
+    
+    return decoded;
+  }
+
+  private subscribe(topicId: string, onDecoded: (d: RecognitionDecoded) => void) {
+    const url = `${MIRROR_WS}:5600/api/v1/topics/${encodeURIComponent(topicId)}/messages`;
+    console.log('[HCSRecognitionService] WS subscribe', url);
+    
+    const ws = new WebSocket(url);
+    ws.addEventListener('open', () => console.log('[HCSRecognitionService] WS open'));
+    ws.addEventListener('error', (e) => console.error('[HCSRecognitionService] WS error', e));
+    ws.addEventListener('close', (e) => console.log('[HCSRecognitionService] WS closed', e.code));
+    ws.addEventListener('message', (ev) => {
+      try {
+        const raw = JSON.parse(ev.data);
+        // mirror WS payload has 'message' base64; normalize to MirrorMsg shape for reuse
+        const msg: MirrorMsg = {
+          consensus_timestamp: raw?.consensus_timestamp,
+          message: raw?.message,
+          sequence_number: raw?.sequence_number,
+          topic_id: topicId,
+        };
+        const d = decodeRecognition(msg);
+        if (d) onDecoded(d);
+      } catch (e) {
+        console.error('[HCSRecognitionService] WS parse error', e, ev.data);
+      }
+    });
+    
+    return () => {
+      console.log('[HCSRecognitionService] Closing WS');
+      ws.close();
+    };
+  }
+
+  // Debug methods
+  getDebugInfo() {
+    return {
+      initialized: this.initialized,
+      definitionsCount: this.defsById.size,
+      pendingInstancesCount: this.pending.length,
+      definitionIds: Array.from(this.defsById.keys()),
+      definitionSlugs: Array.from(this.defsBySlug.keys()),
+      pendingInstancesDefIds: this.pending.map(i => 
+        i.definitionId || i.definitionSlug
+      ).filter(Boolean),
+      topics: { recognition: TOPIC.recognition }
+    };
+  }
+  
   // Clear cache for demo resets
   clearCache(): void {
-    this.definitions.clear()
-    this.definitionsCache.clear()
-    this.instancesCache.clear()
-    console.log("[HCSRecognitionService] Cache cleared")
+    this.defsById.clear();
+    this.defsBySlug.clear();
+    this.pending = [];
+    console.log('[HCSRecognitionService] Cache cleared');
   }
 }
 
-export const hcsRecognitionService = new HCSRecognitionService()
+export const hcsRecognitionService = new HCSRecognitionService();
+
+// Legacy compatibility exports
+export type RecognitionDefinition = Def;
+export type RecognitionInstance = Inst;
+
+// (Optional) expose for debugging:
+if (typeof window !== 'undefined') {
+  (window as any).debugRecognition = hcsRecognitionService;
+}
