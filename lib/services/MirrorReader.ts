@@ -21,11 +21,14 @@ function b64ToString(b64: string) {
 }
 
 export async function fetchTopicMessages(topicId: string, limit = 50) {
-  const url = `${MIRROR_URL}/api/v1/topics/${topicId}/messages?limit=${limit}&order=desc`;
+  // MIRROR_URL already includes /api/v1, so don't add it again
+  const url = `${MIRROR_URL}/topics/${topicId}/messages?limit=${limit}&order=desc`;
+  console.log(`[MirrorReader] Fetching: ${url}`);
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Mirror ${res.status} ${topicId}`);
   const json = await res.json();
   const msgs: MirrorMsg[] = json?.messages ?? [];
+  console.log(`[MirrorReader] Topic ${topicId}: ${msgs.length} messages`);
   return msgs.map(m => ({
     topicId: m.topic_id,
     sequenceNumber: m.sequence_number,
