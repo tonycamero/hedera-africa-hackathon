@@ -91,6 +91,19 @@ export function upsertMessages(messages: MirrorMessage[]): void {
   });
   
   console.log(`[MirrorToStore] Added ${signalEvents.length} events to SignalsStore`);
+  
+  // Verification log to check store state
+  const allStoreEvents = signalsStore.getAllSignals();
+  console.log(`[MirrorToStore] Store now contains ${allStoreEvents.length} total events`);
+  
+  if (signalEvents.length > 0) {
+    console.log(`[MirrorToStore] Sample added event:`, {
+      id: signalEvents[0].id,
+      type: signalEvents[0].type,
+      class: signalEvents[0].class,
+      actors: signalEvents[0].actors
+    });
+  }
 }
 
 /**

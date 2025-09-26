@@ -29,6 +29,11 @@ import { RecognitionGrid } from "@/components/RecognitionGrid"
 const TRUST_TOPIC = process.env.NEXT_PUBLIC_TOPIC_TRUST || ""
 const HCS_ENABLED = process.env.NEXT_PUBLIC_HCS_ENABLED === "true"
 
+// Expose store for debugging
+if (typeof window !== 'undefined') {
+  (window as any).__signalsStore = signalsStore;
+}
+
 // Generate circular trust visualization
 function TrustCircle({ allocatedOut, pendingOut, maxSlots }: { allocatedOut: number; pendingOut: number; maxSlots: number }) {
   const totalSlots = 9
@@ -202,22 +207,70 @@ export default function CirclePage() {
   const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
   const [allEvents, setAllEvents] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
+  
+  // Subscribe to store changes
+  useEffect(() => {
+    const unsubscribe = signalsStore.subscribe(() => {
+      console.log('🔄 [CirclePage] Store updated, refreshing UI...');
+      const currentSessionId = getSessionId();
+      const storeEvents = signalsStore.getAllSignals();
+      
+      if (storeEvents.length > 0) {
+        const bonded = getBondedContactsFromHCS(storeEvents, currentSessionId);
+        const recent = getRecentSignalsFromHCS(storeEvents, currentSessionId, 5);
+        const allSignals = getRecentSignalsFromHCS(storeEvents, currentSessionId, 1000);
+        
+        setBondedContacts(bonded);
+        setRecentSignals(recent);
+        setAllEvents(allSignals);
+        
+        console.log('🔄 [CirclePage] UI updated from store:', {
+          bonded: bonded.length,
+          recent: recent.length,
+          total: allSignals.length
+        });
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
+  
   // Direct HCS data loading - bypass broken bootstrap
   useEffect(() => {
     const loadDirectFromHCS = async () => {
       try {
         console.log('🚀 [CirclePage] Loading directly from HCS...')
         
+        // Check environment variables at runtime
+        console.log('📋 [CirclePage] Environment check:', {
+          REST: process.env.NEXT_PUBLIC_MIRROR_NODE_URL,
+          WS: process.env.NEXT_PUBLIC_MIRROR_NODE_WS,
+          HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED
+        });
+        
+        // Check what's in the store first
+        const storeEvents = signalsStore.getAllSignals();
+        console.log('📋 [UI] Store contains', storeEvents.length, 'events');
+        
+        const currentSessionId = getSessionId();
+        if (storeEvents.length > 0) {
+          console.log('📋 [UI] Sample store event:', storeEvents[0]);
+          
+          const bonded = signalsStore.getBondedContacts(currentSessionId);
+          console.log('📋 [UI] Store bonded contacts:', bonded.length, bonded.map(b => b.handle));
+        }
+        
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         console.log('📋 [CirclePage] Session ID:', currentSessionId)
         console.log('📋 [CirclePage] Expected recognition owner ID:', currentSessionId)
         
-        // Initialize HCS service and get all events
-        await hcsFeedService.initialize()
-        const events = await hcsFeedService.getAllFeedEvents()
+        // Get events from the signalsStore (already populated by MirrorToStore)
+        const storeEvents = signalsStore.getAllSignals()
+        console.log('📁 [CirclePage] Using', storeEvents.length, 'events from SignalsStore')
         
-        console.log('📡 [CirclePage] Loaded', events.length, 'events from HCS')
+        // Convert SignalEvent[] to the format expected by legacy helper functions
+        const events = storeEvents
         
         if (events.length > 0) {
           // Process events into UI data
@@ -288,18 +341,26 @@ export default function CirclePage() {
 
   const handleAllocateTrust = async (peerId: string, weight: number) => {
     try {
-      // Use HCS feed service to log trust allocation
-      const trustEvent = await hcsFeedService.logTrustAllocation(
-        sessionId,
-        peerId,
-        weight,
-        "circle_allocation"
-      )
+      // Create a trust allocation signal and add to store
+      const trustSignal: SignalEvent = {
+        id: `trust_${sessionId}_${peerId}_${Date.now()}`,
+        class: 'trust',
+        topicType: 'TRUST',
+        direction: 'outbound',
+        actors: { from: sessionId, to: peerId },
+        payload: { weight },
+        ts: Date.now(),
+        status: 'local',
+        type: 'TRUST_ALLOCATE',
+        meta: { tag: 'circle_allocation' }
+      }
+      
+      signalsStore.addSignal(trustSignal)
       
       toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
       
       // Refresh data immediately to show the updated connection status
-      const events = await hcsFeedService.getAllFeedEvents()
+      const events = signalsStore.getAllSignals()
       const bonded = getBondedContactsFromHCS(events, sessionId)
       
       // Recalculate connection status for LEDs (not trust allocation amounts)

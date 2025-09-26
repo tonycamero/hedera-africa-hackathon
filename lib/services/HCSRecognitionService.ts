@@ -116,6 +116,37 @@ export class HCSRecognitionService {
               description: defData.description 
             }
             this.definitions.set(def.id, def)
+            
+            // Also populate the full definition cache for UI consumption
+            const fullDef: HCSRecognitionDefinition = {
+              id: defData.id,
+              name: defData.name,
+              description: defData.description || '',
+              category: defData.category,
+              number: defData.number || 1,
+              icon: defData.icon || this.getCategoryIcon(defData.category),
+              isActive: defData.isActive !== false,
+              extendedDescription: defData.extendedDescription || defData.description || '',
+              rarity: defData.rarity || 'Common',
+              stats: defData.stats || {
+                popularity: 50,
+                impact: 50,
+                authenticity: 75,
+                difficulty: 25
+              },
+              traits: defData.traits || {
+                personality: [],
+                skills: [],
+                environment: []
+              },
+              relatedLinks: defData.relatedLinks || [],
+              backstory: defData.backstory || '',
+              tips: defData.tips || [],
+              topicId: this.topics.definitions || '',
+              createdAt: defData.createdAt || new Date().toISOString(),
+              definitionHash: defData.definitionHash || ''
+            }
+            this.definitionsCache.set(def.id, fullDef)
           })
           
           console.log(`[HCSRecognitionService] Loaded ${this.definitions.size} recognition definitions`)
