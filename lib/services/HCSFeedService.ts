@@ -104,14 +104,17 @@ export class HCSFeedService {
   }
 
   private async loadVerifiedTopics(): Promise<void> {
+    // Helper function to clean environment variables of whitespace/newlines
+    const clean = (value?: string) => (value || '').trim();
+    
     // Load the verified topics from environment variables
     this.topics = {
-      feed: process.env.NEXT_PUBLIC_TOPIC_CONTACT || '0.0.6896005', // Using contacts topic as feed
-      contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT || '0.0.6896005',
-      trust: process.env.NEXT_PUBLIC_TOPIC_TRUST || '0.0.6896005',
-      recognition: process.env.NEXT_PUBLIC_TOPIC_SIGNAL || '0.0.6895261',
-      profiles: process.env.NEXT_PUBLIC_TOPIC_PROFILE || '0.0.6896008',
-      system: process.env.NEXT_PUBLIC_TOPIC_PROFILE || '0.0.6896008' // Using profile topic as system
+      feed: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACT) || '0.0.6896005', // Using contacts topic as feed
+      contacts: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACT) || '0.0.6896005',
+      trust: clean(process.env.NEXT_PUBLIC_TOPIC_TRUST) || '0.0.6896005',
+      recognition: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL) || '0.0.6895261',
+      profiles: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE) || '0.0.6896008',
+      system: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE) || '0.0.6896008' // Using profile topic as system
     }
     console.log('[HCSFeedService] Loaded verified topics:', this.topics)
   }
