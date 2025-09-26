@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     await hederaClient.initialize()
     
-    const recognitionTopicId = process.env.NEXT_PUBLIC_TOPIC_RECOGNITION
+    const recognitionTopicId = process.env.NEXT_PUBLIC_HCS_RECOGNITION_TOPIC
     if (!recognitionTopicId) {
       throw new Error('Recognition topic not configured')
     }
