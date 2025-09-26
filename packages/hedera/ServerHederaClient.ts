@@ -20,9 +20,9 @@ export class ServerHederaClient {
 
     console.log('[ServerHedera] Initializing server-side Hedera client...')
     
-    const network = process.env.HEDERA_NETWORK || 'testnet'
-    const operatorId = process.env.HEDERA_OPERATOR_ID
-    const operatorKey = process.env.HEDERA_OPERATOR_KEY
+    const network = (process.env.HEDERA_NETWORK || 'testnet').trim()
+    const operatorId = process.env.HEDERA_OPERATOR_ID?.trim()
+    const operatorKey = process.env.HEDERA_OPERATOR_KEY?.trim()
 
     if (!operatorId || !operatorKey) {
       throw new Error('HEDERA_OPERATOR_ID and HEDERA_OPERATOR_KEY must be set in server environment')

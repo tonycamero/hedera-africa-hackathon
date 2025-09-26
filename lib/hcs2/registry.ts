@@ -9,15 +9,18 @@ type RegistryTopics = {
   recognitionInstances?: string
 }
 
+// Helper function to clean environment variables of whitespace/newlines
+const clean = (value?: string) => (value || '').trim();
+
 const FALLBACK: RegistryTopics = {
-  feed: process.env.NEXT_PUBLIC_TOPIC_SIGNAL, // Using signal topic as feed
-  contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
-  trust: process.env.NEXT_PUBLIC_TOPIC_TRUST,
-  profile: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
-  system: process.env.NEXT_PUBLIC_TOPIC_SIGNAL, // Using signal topic as system
-  recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION,
-  recognitionDefinitions: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION,
-  recognitionInstances: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION,
+  feed: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL), // Using signal topic as feed
+  contacts: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACT),
+  trust: clean(process.env.NEXT_PUBLIC_TOPIC_TRUST),
+  profile: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE),
+  system: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL), // Using signal topic as system
+  recognition: clean(process.env.NEXT_PUBLIC_TOPIC_RECOGNITION),
+  recognitionDefinitions: clean(process.env.NEXT_PUBLIC_TOPIC_RECOGNITION),
+  recognitionInstances: clean(process.env.NEXT_PUBLIC_TOPIC_RECOGNITION),
 }
 
 let cached: RegistryTopics | null = null

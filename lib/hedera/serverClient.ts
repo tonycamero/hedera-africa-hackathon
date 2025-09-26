@@ -4,7 +4,7 @@ import { Client, PrivateKey, TopicMessageSubmitTransaction } from '@hashgraph/sd
 function mustGet(name: string) {
   const v = process.env[name]
   if (!v) throw new Error(`Missing env: ${name}`)
-  return v
+  return v.trim() // Remove any whitespace/newlines
 }
 
 let _client: Client | null = null
@@ -13,7 +13,7 @@ export function getHederaClient(): Client {
   if (_client) return _client
   const operatorId = mustGet('HEDERA_OPERATOR_ID')
   const operatorKey = mustGet('HEDERA_OPERATOR_KEY')
-  const network = process.env.HEDERA_NETWORK ?? 'testnet'
+  const network = (process.env.HEDERA_NETWORK ?? 'testnet').trim()
   
   console.log(`[Hedera Client] Network: ${network}, Operator: ${operatorId}`)
   console.log(`[Hedera Client] Key length: ${operatorKey.length} chars`)
