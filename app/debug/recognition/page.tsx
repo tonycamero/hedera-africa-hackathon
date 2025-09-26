@@ -35,23 +35,22 @@ export default function RecognitionDebug() {
         console.log("[RecognitionDebug] Recognition events for Alex:", recognitionEvents);
 
         // Try to get recognition definitions
-        if (hcsRecognitionService.isReady()) {
-          const defs = await hcsRecognitionService.getAllRecognitionDefinitions();
+        if (hcsRecognitionService.isInitialized) {
+          const defs = hcsRecognitionService.getAllDefinitions();
           setDefinitions(defs);
           console.log("[RecognitionDebug] Recognition definitions:", defs.length);
 
-          // Try to get all instances
-          const allInstances = await hcsRecognitionService.getAllRecognitionInstances();
-          setInstances(allInstances);
-          console.log("[RecognitionDebug] All recognition instances:", allInstances.length);
-
-          // Try to get user instances
-          const userInsts = await hcsRecognitionService.getUserRecognitionInstances(currentSessionId);
-          setUserInstances(userInsts);
-          console.log("[RecognitionDebug] User recognition instances:", userInsts.length);
+          // Get debug info
+          const debugInfo = hcsRecognitionService.getDebugInfo();
+          console.log("[RecognitionDebug] Service debug info:", debugInfo);
+          
+          // Show some sample instances (from pending if any)
+          setInstances([]);
+          setUserInstances([]);
+          
         } else {
-          console.warn("[RecognitionDebug] HCS Recognition Service not ready");
-          setError("HCS Recognition Service not ready");
+          console.warn("[RecognitionDebug] HCS Recognition Service not initialized");
+          setError("HCS Recognition Service not initialized");
         }
 
       } catch (e: any) {
@@ -92,7 +91,7 @@ export default function RecognitionDebug() {
       <div style={{marginBottom: 20}}>
         <h3>📋 Session Info</h3>
         <p><strong>Session ID:</strong> {sessionId}</p>
-        <p><strong>HCS Recognition Service Ready:</strong> {hcsRecognitionService.isReady() ? "✅ Yes" : "❌ No"}</p>
+        <p><strong>HCS Recognition Service Ready:</strong> {hcsRecognitionService.isInitialized ? "✅ Yes" : "❌ No"}</p>
         {error && (
           <div style={{background: "#ffebee", padding: 10, marginTop: 10, border: "1px solid #f44336"}}>
             <strong>Error:</strong> {error}

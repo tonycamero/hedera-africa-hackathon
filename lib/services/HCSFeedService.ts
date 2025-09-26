@@ -6,7 +6,7 @@ import { MirrorNodeReader } from "@/lib/services/MirrorNodeReader"
 import { toSignalEvents } from "@/lib/services/MirrorNormalize"
 import { saveMirrorRaw } from "@/lib/cache/sessionCache"
 import { hcs2Registry, type TrustMeshTopics } from "@/lib/services/HCS2RegistryClient"
-import { TOPICS } from "@/lib/env"
+import { TOPIC } from "@/lib/env"
 
 export type HCSFeedEvent = {
   id: string
@@ -107,12 +107,12 @@ export class HCSFeedService {
   private async loadVerifiedTopics(): Promise<void> {
     // Load the verified topics from centralized env configuration
     this.topics = {
-      feed: TOPICS.contacts || '0.0.6896005', // Using contacts topic as feed
-      contacts: TOPICS.contacts || '0.0.6896005',
-      trust: TOPICS.trust || '0.0.6896005',
-      recognition: TOPICS.recognition || '0.0.6895261',
-      profiles: TOPICS.profile || '0.0.6896008',
-      system: TOPICS.profile || '0.0.6896008' // Using profile topic as system
+      feed: TOPIC.contacts || '0.0.6896005', // Using contacts topic as feed
+      contacts: TOPIC.contacts || '0.0.6896005',
+      trust: TOPIC.trust || '0.0.6896005',
+      recognition: TOPIC.recognition || '0.0.6895261',
+      profiles: TOPIC.profile || '0.0.6896008',
+      system: TOPIC.profile || '0.0.6896008' // Using profile topic as system
     }
     console.log('[HCSFeedService] Loaded verified topics:', this.topics)
   }

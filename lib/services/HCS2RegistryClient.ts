@@ -4,7 +4,7 @@
 // Using fallback mode until HCS-2 SDK dependencies are resolved
 // import { HCS2BrowserClient, HCS2RegistryType } from "@hashgraphonline/standards-sdk";
 import { hederaClient } from '@/packages/hedera/HederaClient'
-import { TOPICS, HEDERA_NETWORK, REGISTRY_ID } from '@/lib/env'
+import { TOPIC, HEDERA_NETWORK, REGISTRY_ID } from '@/lib/env'
 
 export type FlexRegistryKeys =
   | "topic/feed"
@@ -65,12 +65,12 @@ export class HCS2RegistryClient {
     
     // Use same environment variables as server-side registry
     const verifiedTopics = {
-      "topic/feed": { topicId: TOPICS.recognition || "0.0.6895261", network: "testnet" as const, version: 1 },
-      "topic/contacts": { topicId: TOPICS.contacts || "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/trust": { topicId: TOPICS.trust || "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/recognition": { topicId: TOPICS.recognition || "0.0.6903900", network: "testnet" as const, version: 1 },
-      "topic/profile": { topicId: TOPICS.profile || "0.0.6896008", network: "testnet" as const, version: 1 },
-      "topic/system": { topicId: TOPICS.profile || "0.0.6896008", network: "testnet" as const, version: 1 }
+      "topic/feed": { topicId: TOPIC.recognition || "0.0.6895261", network: "testnet" as const, version: 1 },
+      "topic/contacts": { topicId: TOPIC.contacts || "0.0.6896005", network: "testnet" as const, version: 1 },
+      "topic/trust": { topicId: TOPIC.trust || "0.0.6896005", network: "testnet" as const, version: 1 },
+      "topic/recognition": { topicId: TOPIC.recognition || "0.0.6903900", network: "testnet" as const, version: 1 },
+      "topic/profile": { topicId: TOPIC.profile || "0.0.6896008", network: "testnet" as const, version: 1 },
+      "topic/system": { topicId: TOPIC.profile || "0.0.6896008", network: "testnet" as const, version: 1 }
     };
     
     const value = verifiedTopics[key];
@@ -107,7 +107,7 @@ export class HCS2RegistryClient {
   }
 
   async registerTopics(topics: TrustMeshTopics): Promise<void> {
-    if (!this.registryTopicId) {
+    if (!this.registryId) {
       await this.getOrCreateRegistry()
     }
 
@@ -155,12 +155,12 @@ export class HCS2RegistryClient {
       
       // Fallback to hardcoded topics if server fetch fails
       const fallbackTopics: TrustMeshTopics = {
-        feed: TOPICS.recognition || "0.0.6895261",
-        contacts: TOPICS.contacts || "0.0.6896005",
-        trust: TOPICS.trust || "0.0.6896005",
-        recognition: TOPICS.recognition || "0.0.6903900",
-        profiles: TOPICS.profile || "0.0.6896008",
-        system: TOPICS.profile || "0.0.6896008"
+        feed: TOPIC.recognition || "0.0.6895261",
+        contacts: TOPIC.contacts || "0.0.6896005",
+        trust: TOPIC.trust || "0.0.6896005",
+        recognition: TOPIC.recognition || "0.0.6903900",
+        profiles: TOPIC.profile || "0.0.6896008",
+        system: TOPIC.profile || "0.0.6896008"
       }
       
       this.cachedTopics = fallbackTopics
@@ -186,7 +186,7 @@ export class HCS2RegistryClient {
   }
 
   async updateTopic(type: keyof TrustMeshTopics, newTopicId: string): Promise<void> {
-    if (!this.registryTopicId) {
+    if (!this.registryId) {
       await this.getOrCreateRegistry()
     }
 
