@@ -36,6 +36,15 @@ export default function BootHCSClient() {
           console.log('✅ [BootHCSClient] Seed mode enabled');
         }
 
+        // Force fetch existing data from Mirror Node
+        console.log('📡 [BootHCSClient] Fetching existing events from Mirror Node...');
+        try {
+          const events = await hcsFeedService.getAllFeedEvents();
+          console.log(`✅ [BootHCSClient] Loaded ${events.length} existing events`);
+        } catch (error) {
+          console.error('❌ [BootHCSClient] Failed to fetch existing events:', error);
+        }
+
         console.log('🎉 [BootHCSClient] Global HCS initialization complete');
         
       } catch (error) {
