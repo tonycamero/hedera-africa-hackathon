@@ -4,6 +4,7 @@
 // Using fallback mode until HCS-2 SDK dependencies are resolved
 // import { HCS2BrowserClient, HCS2RegistryType } from "@hashgraphonline/standards-sdk";
 import { hederaClient } from '@/packages/hedera/HederaClient'
+import { TOPICS, HEDERA_NETWORK, REGISTRY_ID } from '@/lib/env'
 
 export type FlexRegistryKeys =
   | "topic/feed"
@@ -40,9 +41,9 @@ export class HCS2RegistryClient {
   private cachedTopics: TrustMeshTopics | null = null
 
   constructor(params?: { registryId?: string; network?: "testnet" | "mainnet"; signer?: any }) {
-    const network = params?.network ?? (process.env.NEXT_PUBLIC_HEDERA_NETWORK as "testnet" | "mainnet");
+    const network = params?.network ?? HEDERA_NETWORK;
     // this.client = new HCS2BrowserClient({ network, signer: params?.signer }); // read-only works without signer
-    this.registryId = params?.registryId ?? (process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID || "");
+    this.registryId = params?.registryId ?? REGISTRY_ID;
     console.log('[HCS2Registry] Initialized in fallback mode - network:', network, 'registryId:', this.registryId);
   }
 
@@ -64,12 +65,12 @@ export class HCS2RegistryClient {
     
     // Use same environment variables as server-side registry
     const verifiedTopics = {
-      "topic/feed": { topicId: process.env.NEXT_PUBLIC_TOPIC_SIGNAL || "0.0.6895261", network: "testnet" as const, version: 1 },
-      "topic/contacts": { topicId: process.env.NEXT_PUBLIC_TOPIC_CONTACT || "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/trust": { topicId: process.env.NEXT_PUBLIC_TOPIC_TRUST || "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/recognition": { topicId: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || "0.0.6903900", network: "testnet" as const, version: 1 },
-      "topic/profile": { topicId: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008", network: "testnet" as const, version: 1 },
-      "topic/system": { topicId: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008", network: "testnet" as const, version: 1 }
+      "topic/feed": { topicId: TOPICS.recognition || "0.0.6895261", network: "testnet" as const, version: 1 },
+      "topic/contacts": { topicId: TOPICS.contacts || "0.0.6896005", network: "testnet" as const, version: 1 },
+      "topic/trust": { topicId: TOPICS.trust || "0.0.6896005", network: "testnet" as const, version: 1 },
+      "topic/recognition": { topicId: TOPICS.recognition || "0.0.6903900", network: "testnet" as const, version: 1 },
+      "topic/profile": { topicId: TOPICS.profile || "0.0.6896008", network: "testnet" as const, version: 1 },
+      "topic/system": { topicId: TOPICS.profile || "0.0.6896008", network: "testnet" as const, version: 1 }
     };
     
     const value = verifiedTopics[key];
@@ -154,12 +155,12 @@ export class HCS2RegistryClient {
       
       // Fallback to hardcoded topics if server fetch fails
       const fallbackTopics: TrustMeshTopics = {
-        feed: process.env.NEXT_PUBLIC_TOPIC_SIGNAL || "0.0.6895261",
-        contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT || "0.0.6896005",
-        trust: process.env.NEXT_PUBLIC_TOPIC_TRUST || "0.0.6896005",
-        recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || "0.0.6903900",
-        profiles: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008",
-        system: process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008"
+        feed: TOPICS.recognition || "0.0.6895261",
+        contacts: TOPICS.contacts || "0.0.6896005",
+        trust: TOPICS.trust || "0.0.6896005",
+        recognition: TOPICS.recognition || "0.0.6903900",
+        profiles: TOPICS.profile || "0.0.6896008",
+        system: TOPICS.profile || "0.0.6896008"
       }
       
       this.cachedTopics = fallbackTopics

@@ -6,6 +6,7 @@ import { MirrorNodeReader } from "@/lib/services/MirrorNodeReader"
 import { toSignalEvents } from "@/lib/services/MirrorNormalize"
 import { saveMirrorRaw } from "@/lib/cache/sessionCache"
 import { hcs2Registry, type TrustMeshTopics } from "@/lib/services/HCS2RegistryClient"
+import { TOPICS } from "@/lib/env"
 
 export type HCSFeedEvent = {
   id: string
@@ -104,17 +105,14 @@ export class HCSFeedService {
   }
 
   private async loadVerifiedTopics(): Promise<void> {
-    // Helper function to clean environment variables of whitespace/newlines
-    const clean = (value?: string) => (value || '').trim();
-    
-    // Load the verified topics from environment variables
+    // Load the verified topics from centralized env configuration
     this.topics = {
-      feed: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACT) || '0.0.6896005', // Using contacts topic as feed
-      contacts: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACT) || '0.0.6896005',
-      trust: clean(process.env.NEXT_PUBLIC_TOPIC_TRUST) || '0.0.6896005',
-      recognition: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL) || '0.0.6895261',
-      profiles: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE) || '0.0.6896008',
-      system: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE) || '0.0.6896008' // Using profile topic as system
+      feed: TOPICS.contacts || '0.0.6896005', // Using contacts topic as feed
+      contacts: TOPICS.contacts || '0.0.6896005',
+      trust: TOPICS.trust || '0.0.6896005',
+      recognition: TOPICS.recognition || '0.0.6895261',
+      profiles: TOPICS.profile || '0.0.6896008',
+      system: TOPICS.profile || '0.0.6896008' // Using profile topic as system
     }
     console.log('[HCSFeedService] Loaded verified topics:', this.topics)
   }

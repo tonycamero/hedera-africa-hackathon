@@ -23,11 +23,11 @@ import { toast } from "sonner"
 import { hederaClient } from "@/packages/hedera/HederaClient"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
+import { HCS_ENABLED, TOPICS, MIRROR_REST, MIRROR_WS } from "@/lib/env"
 import { seedDemo } from "@/lib/demo/seed"
 import { RecognitionGrid } from "@/components/RecognitionGrid"
 
-const TRUST_TOPIC = process.env.NEXT_PUBLIC_TOPIC_TRUST || ""
-const HCS_ENABLED = process.env.NEXT_PUBLIC_HCS_ENABLED === "true"
+const TRUST_TOPIC = TOPICS.trust || ""
 
 // Expose store for debugging
 if (typeof window !== 'undefined') {
@@ -208,6 +208,19 @@ export default function CirclePage() {
   const [allEvents, setAllEvents] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
   
+  // Log changes to UI state for debugging
+  useEffect(() => {
+    console.log('📋 [UI] bonded contacts updated:', bondedContacts.length, bondedContacts.map(b => b.handle || b.peerId.slice(-6)));
+  }, [bondedContacts]);
+  
+  useEffect(() => {
+    console.log('📋 [UI] recent signals updated:', recentSignals.length, recentSignals.map(s => s.type));
+  }, [recentSignals]);
+  
+  useEffect(() => {
+    console.log('📋 [UI] trust stats updated:', trustStats);
+  }, [trustStats]);
+  
   // Subscribe to store changes
   useEffect(() => {
     const unsubscribe = signalsStore.subscribe(() => {
@@ -243,21 +256,41 @@ export default function CirclePage() {
         
         // Check environment variables at runtime
         console.log('📋 [CirclePage] Environment check:', {
-          REST: process.env.NEXT_PUBLIC_MIRROR_NODE_URL,
-          WS: process.env.NEXT_PUBLIC_MIRROR_NODE_WS,
-          HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED
+          HCS_ENABLED,
+          MIRROR_REST,
+          MIRROR_WS,
+          TOPICS,
+          raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
+          raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
         });
         
         // Check what's in the store first
         const storeEvents = signalsStore.getAllSignals();
         console.log('📋 [UI] Store contains', storeEvents.length, 'events');
         
+        if (storeEvents.length > 0) {
+          console.log('📋 [UI] Store event types:', [...new Set(storeEvents.map(e => e.type))]);
+          console.log('📋 [UI] Store event classes:', [...new Set(storeEvents.map(e => e.class))]);
+          console.log('📋 [UI] Sample store events:', storeEvents.slice(0, 3).map(e => ({
+            id: e.id,
+            type: e.type,
+            class: e.class,
+            actors: e.actors,
+            ts: new Date(e.ts).toISOString()
+          })));
+        }
+        
         const currentSessionId = getSessionId();
         if (storeEvents.length > 0) {
           console.log('📋 [UI] Sample store event:', storeEvents[0]);
           
           const bonded = signalsStore.getBondedContacts(currentSessionId);
-          console.log('📋 [UI] Store bonded contacts:', bonded.length, bonded.map(b => b.handle));
+          console.log('📋 [UI] Store bonded contacts:', bonded.length, bonded.map(b => ({
+            peerId: b.peerId,
+            handle: b.handle,
+            trustLevel: b.trustLevel,
+            bondedAt: new Date(b.bondedAt).toISOString()
+          })));
         }
         
         const currentSessionId = getSessionId()

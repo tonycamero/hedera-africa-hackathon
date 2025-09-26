@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { initializeMirrorWithStore } from '@/lib/services/MirrorToStore';
 import { signalsStore } from '@/lib/stores/signalsStore';
-import { HCS_ENABLED, DEMO_SEED } from '@/lib/env';
+import { HCS_ENABLED, DEMO_SEED, MIRROR_REST, MIRROR_WS, TOPICS } from '@/lib/env';
 
 /**
  * Global HCS service initialization component.
@@ -20,12 +20,18 @@ export default function BootHCSClient() {
           HCS_ENABLED,
           DEMO_SEED,
           NODE_ENV: process.env.NODE_ENV,
-          MIRROR_REST: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
+          MIRROR_REST,
+          MIRROR_WS,
+          TOPICS,
+          raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
+          raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
         });
         
         // Only initialize if HCS is enabled
         if (!HCS_ENABLED) {
-          console.log('📍 [BootHCSClient] HCS disabled, skipping initialization');
+          console.warn('🚫 [BootHCSClient] HCS_ENABLED=false, skipping Mirror Node initialization');
+          console.warn('🚫 [BootHCSClient] Raw env value:', process.env.NEXT_PUBLIC_HCS_ENABLED);
+          console.warn('🚫 [BootHCSClient] To enable: Set NEXT_PUBLIC_HCS_ENABLED=true in environment');
           return;
         }
 
