@@ -16,6 +16,12 @@ export default function BootHCSClient() {
     const initializeServices = async () => {
       try {
         console.log('🚀 [BootHCSClient] Starting robust Mirror Node initialization...');
+        console.log('🚀 [BootHCSClient] Environment check:', {
+          HCS_ENABLED,
+          DEMO_SEED,
+          NODE_ENV: process.env.NODE_ENV,
+          MIRROR_REST: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
+        });
         
         // Only initialize if HCS is enabled
         if (!HCS_ENABLED) {
