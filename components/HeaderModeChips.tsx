@@ -135,9 +135,13 @@ export function HeaderModeChips() {
     return null
   }
   
-  // Don't show chips in production or if disabled
-  if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_DEMO_MODE) {
-    return null
+  // Show chips in demo mode or development
+  const demoVisible =
+    process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
+    process.env.NODE_ENV !== 'production';
+
+  if (!demoVisible) {
+    return null;
   }
 
   return (

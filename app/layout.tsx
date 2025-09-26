@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
+import BootHCSClient from "./providers/BootHCSClient"
 import "./globals.css"
 
 const playfair = Playfair_Display({
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfair.variable} ${sourceSans.variable} theme-mesh-dark`} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased">
+        <BootHCSClient />
         {children}
         <Toaster />
       </body>
