@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { hcsFeedService } from '@/lib/services/HCSFeedService';
+import { initializeFeed } from '@/lib/services/MirrorBackfill';
 import { HCS_ENABLED, DEMO_SEED } from '@/lib/env';
 
 /**
@@ -10,9 +10,11 @@ import { HCS_ENABLED, DEMO_SEED } from '@/lib/env';
  */
 export default function BootHCSClient() {
   useEffect(() => {
-    const initializeHCSServices = async () => {
+    let cleanup = () => {};
+    
+    const initializeServices = async () => {
       try {
-        console.log('🚀 [BootHCSClient] Starting global HCS initialization...');
+        console.log('🚀 [BootHCSClient] Starting robust Mirror Node initialization...');
         
         // Only initialize if HCS is enabled
         if (!HCS_ENABLED) {
@@ -20,48 +22,25 @@ export default function BootHCSClient() {
           return;
         }
 
-        // Initialize the HCS feed service
-        if (!hcsFeedService.isReady()) {
-          console.log('🔧 [BootHCSClient] Initializing HCS feed service...');
-          await hcsFeedService.initialize();
-          console.log('✅ [BootHCSClient] HCS feed service initialized');
-        } else {
-          console.log('✅ [BootHCSClient] HCS feed service already ready');
-        }
-
-        // Auto-enable seed mode if configured
-        if (DEMO_SEED === 'on') {
-          console.log('🌱 [BootHCSClient] Auto-enabling seed mode...');
-          await hcsFeedService.enableSeedMode();
-          console.log('✅ [BootHCSClient] Seed mode enabled');
-        }
-
-        // Force fetch existing data from Mirror Node
-        console.log('📡 [BootHCSClient] Fetching existing events from Mirror Node...');
-        try {
-          const events = await hcsFeedService.getAllFeedEvents();
-          console.log(`✅ [BootHCSClient] Loaded ${events.length} existing events`);
-        } catch (error) {
-          console.error('❌ [BootHCSClient] Failed to fetch existing events:', error);
-        }
-
-        console.log('🎉 [BootHCSClient] Global HCS initialization complete');
+        // Use the robust backfill + WS subscribe service
+        console.log('📡 [BootHCSClient] Initializing Mirror Node backfill + WebSocket...');
+        const dispose = await initializeFeed();
+        cleanup = dispose;
+        
+        console.log('🎉 [BootHCSClient] Mirror Node initialization complete');
         
       } catch (error) {
-        console.error('❌ [BootHCSClient] Global HCS initialization failed:', error);
+        console.error('❌ [BootHCSClient] Mirror Node initialization failed:', error);
         // Don't throw - let the app continue with empty state
       }
     };
 
     // Initialize services on mount
-    initializeHCSServices();
+    initializeServices();
 
     // Cleanup function
     return () => {
-      // Optional: dispose services if they have cleanup methods
-      if (hcsFeedService.dispose) {
-        hcsFeedService.dispose();
-      }
+      cleanup();
     };
   }, []);
 
