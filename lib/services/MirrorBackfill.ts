@@ -10,8 +10,8 @@ export interface MirrorMessage {
 
 export async function backfillFromRest(topicId: string, limit = 50): Promise<MirrorMessage[]> {
   const cleanTopicId = clean(topicId);
-  const baseUrl = MIRROR_REST?.includes('/api/v1') ? MIRROR_REST : `${MIRROR_REST}/api/v1`;
-  const url = `${baseUrl}/topics/${encodeURIComponent(cleanTopicId)}/messages?limit=${limit}&order=desc`;
+  // MIRROR_REST already includes /api/v1, so use it directly
+  const url = `${MIRROR_REST}/topics/${encodeURIComponent(cleanTopicId)}/messages?limit=${limit}&order=desc`;
   
   console.log(`[MirrorBackfill] REST backfill ${cleanTopicId}:`, url);
   

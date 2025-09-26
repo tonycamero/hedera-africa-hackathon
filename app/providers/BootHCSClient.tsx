@@ -44,12 +44,30 @@ export default function BootHCSClient() {
         
       } catch (error) {
         console.error('❌ [BootHCSClient] Mirror Node initialization failed:', error);
+        console.error('❌ [BootHCSClient] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          HCS_ENABLED,
+          DEMO_SEED
+        });
         // Don't throw - let the app continue with empty state
       }
     };
 
     // Initialize services on mount
     initializeServices();
+
+    // Always set up debug helpers, even if initialization fails
+    if (typeof window !== 'undefined') {
+      (window as any).signalsStore = signalsStore;
+      (window as any).debugStore = {
+        getBonded: (id: string) => signalsStore.getBondedContacts(id),
+        getTrust: (id: string) => signalsStore.getTrustStats(id),
+        getSignals: () => signalsStore.getAllSignals(),
+        getRecognition: (id: string) => signalsStore.getRecognitionSignals?.(id) || 'getRecognitionSignals method not available'
+      };
+      console.log('🔧 [BootHCSClient] Debug helpers setup (fallback)');
+    }
 
     // Cleanup function
     return () => {
