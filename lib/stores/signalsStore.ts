@@ -297,6 +297,11 @@ class SignalsStore {
     return filtered.slice(-this.VIEW_CAP).reverse()
   }
 
+  // Get all signals (for debugging)
+  getAllSignals(): SignalEvent[] {
+    return [...this.signals]
+  }
+
   // Get recent signals for mini-feed
   getRecentSignals(limit = 3): SignalEvent[] {
     return this.signals

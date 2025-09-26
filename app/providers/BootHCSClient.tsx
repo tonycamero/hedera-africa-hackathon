@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { initializeMirrorWithStore } from '@/lib/services/MirrorToStore';
+import { signalsStore } from '@/lib/stores/signalsStore';
 import { HCS_ENABLED, DEMO_SEED } from '@/lib/env';
 
 /**
@@ -28,6 +29,18 @@ export default function BootHCSClient() {
         cleanup = dispose;
         
         console.log('🎉 [BootHCSClient] Mirror Node initialization complete');
+        
+        // Add to global scope for debugging
+        if (typeof window !== 'undefined') {
+          (window as any).signalsStore = signalsStore;
+          (window as any).debugStore = {
+            getBonded: (id: string) => signalsStore.getBondedContacts(id),
+            getTrust: (id: string) => signalsStore.getTrustStats(id),
+            getSignals: () => signalsStore.getAllSignals?.() || 'getAllSignals method not available',
+            getRecognition: (id: string) => signalsStore.getRecognitionSignals?.(id) || 'getRecognitionSignals method not available'
+          };
+          console.log('🔧 [BootHCSClient] Debug helpers added to window.signalsStore and window.debugStore');
+        }
         
       } catch (error) {
         console.error('❌ [BootHCSClient] Mirror Node initialization failed:', error);
