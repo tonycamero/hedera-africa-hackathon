@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRegistryTopics } from '@/lib/hcs2/registry'
-import { clean } from '@/lib/env'
+import { getRegistry, getRegistrySource, getAllTopicIds, getTopicId } from '@/lib/registry/serverRegistry'
 
 // Force dynamic rendering and disable caching
 export const dynamic = 'force-dynamic'
@@ -9,41 +8,62 @@ export const fetchCache = 'force-no-store'
 
 export async function GET() {
   try {
-    const topics = await getRegistryTopics()
+    const registry = getRegistry()
+    const source = getRegistrySource()
+    const allTopics = getAllTopicIds()
     
-    // Clean all topic IDs to remove any CR/LF characters
-    const sanitizedTopics = {
-      feed: clean(topics.feed),
-      contacts: clean(topics.contacts),
-      trust: clean(topics.trust),
-      recognition: clean(topics.recognition),
-      recognitionDefinitions: clean(topics.recognitionDefinitions),
-      recognitionInstances: clean(topics.recognitionInstances),
-      profile: clean(topics.profile),
-      system: clean(topics.system)
+    // Build comprehensive topic map with legacy compatibility
+    const topics = {
+      // Primary topics
+      contacts: getTopicId('contacts'),
+      trust: getTopicId('trust'),
+      profile: getTopicId('profile'),
+      recognition: getTopicId('recognition'),
+      
+      // Legacy aliases for backward compatibility
+      feed: getTopicId('recognition'), // Feed uses recognition topic
+      system: getTopicId('profile'),   // System uses profile topic
+      
+      // Recognition sub-topics (if configured)
+      recognitionDefinitions: allTopics.recognition_definitions || getTopicId('recognition'),
+      recognitionInstances: allTopics.recognition_instances || getTopicId('recognition')
     }
+    
+    console.log(`[Registry Topics API] Serving topics from ${source}:`, {
+      contacts: topics.contacts,
+      trust: topics.trust,
+      profile: topics.profile,
+      recognition: topics.recognition
+    })
     
     return NextResponse.json({
       ok: true,
-      topics: sanitizedTopics,
-      timestamp: new Date().toISOString()
+      topics,
+      meta: {
+        source,
+        timestamp: new Date().toISOString(),
+        sharedContactsTrust: registry.flags.SHARED_CONTACTS_TRUST_TOPIC
+      }
     }, {
       headers: { 
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Cache-Control': process.env.NODE_ENV === 'production'
+          ? 's-maxage=30, stale-while-revalidate=300'
+          : 'no-store, no-cache, must-revalidate',
+        'Content-Type': 'application/json'
       }
     })
   } catch (error: any) {
-    console.error('[Registry API] Failed to get topics:', error)
+    console.error('[Registry Topics API] Failed to get topics:', error)
     return NextResponse.json(
-      { ok: false, error: error.message || 'Failed to get registry topics' },
+      { 
+        ok: false, 
+        error: error.message || 'Failed to get registry topics',
+        fallback: 'Check registry configuration'
+      },
       { 
         status: 500,
         headers: { 
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-store, no-cache, must-revalidate'
         }
       }
     )

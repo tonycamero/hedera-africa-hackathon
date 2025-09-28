@@ -16,6 +16,7 @@ import { clearCache, beginCacheSession, configureCacheBackend } from "@/lib/cach
 import { removeSeedData, SEED_TAG } from "@/lib/demo/seed"
 import { hcsFeedService } from "@/lib/services/HCSFeedService"
 import { hcsRecognitionService } from "@/lib/services/HCSRecognitionService"
+import { assertDemoAllowed } from "@/lib/demo/guard"
 import { RefreshCw, Eye, EyeOff, Globe, User, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 
@@ -34,6 +35,8 @@ export function HeaderModeChips() {
   }, [])
 
   const toggleSeed = async () => {
+    if (!assertDemoAllowed('HeaderModeChips.seedToggle')) return;
+    
     const newSeedOn = !flags.seedOn
     console.log(`[HeaderModeChips] Toggling seed from ${flags.seedOn} to ${newSeedOn}`)
     
@@ -100,6 +103,8 @@ export function HeaderModeChips() {
   }
 
   const resetDemo = async () => {
+    if (!assertDemoAllowed('HeaderModeChips.resetDemo')) return;
+    
     if (confirm("Reset all demo data? This will clear HCS topics, signals, and generate a new session ID.")) {
       // Reset HCS demo completely
       await hcsFeedService.resetDemo()

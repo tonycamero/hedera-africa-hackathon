@@ -37,11 +37,14 @@ export class HCSRecognitionService {
     if (this.initialized) return;
     this.initialized = true;
 
-    console.log('[HCSRecognitionService] init: backfill + WS on', TOPIC.recognition);
+    // Use verified/fallback topic if env is missing, to match original behavior
+    const recognitionTopic = TOPIC.recognition || '0.0.6895261';
+
+    console.log('[HCSRecognitionService] init: backfill + WS on', recognitionTopic);
 
     try {
       // 1) Backfill from REST (ascending so older defs land first; order-independent logic still used)
-      const decoded = await this.backfill(TOPIC.recognition, 200, 'asc');
+      const decoded = await this.backfill(recognitionTopic, 200, 'asc');
 
       const defs = decoded.filter(d => d._kind === 'definition') as RecognitionDefinitionDecoded[];
       const inst = decoded.filter(d => d._kind === 'instance') as RecognitionInstanceDecoded[];
@@ -77,7 +80,7 @@ export class HCSRecognitionService {
       });
 
       // 2) Live via WS
-      const dispose = this.subscribe(TOPIC.recognition, (d) => {
+      const dispose = this.subscribe(recognitionTopic, (d) => {
         console.log('[HCSRecognitionService] WS message:', d._kind, d._hrl);
         if (d._kind === 'definition') this.ingestDefinitions([d]);
         else this.ingestInstances([d]);
@@ -234,25 +237,19 @@ export class HCSRecognitionService {
   getUserRecognitionInstances(owner: string): Inst[] {
     console.log('[HCSRecognitionService] Getting recognition instances for owner:', owner);
     
-    // Get recognition signals from the signals store
-    const recognitionSignals = signalsStore.getSignalsByClass('recognition');
-    console.log('[HCSRecognitionService] Found', recognitionSignals.length, 'recognition signals in store');
+    // Get recognition instances directly from HCS via cached data
+    // Filter the pending array and resolved instances for this owner
+    const ownerInstances: Inst[] = [];
     
-    // Filter by owner and map to Inst format
-    const instances: Inst[] = recognitionSignals
-      .filter(signal => signal.payload?.owner === owner)
-      .map(signal => ({
-        owner: signal.payload?.owner,
-        definitionId: signal.payload?.definitionId,
-        definitionSlug: signal.payload?.definitionSlug,
-        note: signal.payload?.note,
-        issuer: signal.payload?.issuer,
-        _hrl: signal.meta?.hrl || signal.id,
-        _ts: new Date(signal.ts).toISOString()
-      }));
+    // Check pending instances
+    this.pending.forEach(inst => {
+      if (inst.owner === owner) {
+        ownerInstances.push(inst);
+      }
+    });
     
-    console.log('[HCSRecognitionService] Returning', instances.length, 'instances for owner:', owner);
-    return instances;
+    console.log('[HCSRecognitionService] Found', ownerInstances.length, 'instances for owner (direct HCS):', owner);
+    return ownerInstances;
   }
 
   getRecognitionDefinition(idOrSlug: string): Def | null {
@@ -262,7 +259,7 @@ export class HCSRecognitionService {
   // ---------- IO (REST + WS) ----------
 
   private async backfill(topicId: string, limit = 200, order: 'asc'|'desc' = 'asc') {
-    const url = `${MIRROR_REST}/api/v1/topics/${encodeURIComponent(topicId)}/messages?limit=${limit}&order=${order}`;
+    const url = `${MIRROR_REST}/topics/${encodeURIComponent(topicId)}/messages?limit=${limit}&order=${order}`;
     console.log('[HCSRecognitionService] REST backfill', url);
     
     const res = await fetch(url, { cache: 'no-store' });
@@ -310,6 +307,7 @@ export class HCSRecognitionService {
 
   // Debug methods
   getDebugInfo() {
+    const recognitionTopic = TOPIC.recognition || '0.0.6895261';
     return {
       initialized: this.initialized,
       definitionsCount: this.defsById.size,
@@ -319,7 +317,7 @@ export class HCSRecognitionService {
       pendingInstancesDefIds: this.pending.map(i => 
         i.definitionId || i.definitionSlug
       ).filter(Boolean),
-      topics: { recognition: TOPIC.recognition }
+      topics: { recognition: recognitionTopic }
     };
   }
   

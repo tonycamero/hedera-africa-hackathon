@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { hcsFeedService } from '@/lib/services/HCSFeedService'
+import { assertDemoAllowed } from '@/lib/demo/guard'
 
 export async function GET() {
+  if (!assertDemoAllowed('GET /api/seed-hcs')) {
+    return NextResponse.json({ ok: false, error: 'demo-disabled' }, { status: 403 });
+  }
+  
   try {
     console.log('🚀 Manual HCS seeding requested...')
     
@@ -50,6 +55,10 @@ export async function GET() {
 }
 
 export async function POST() {
+  if (!assertDemoAllowed('POST /api/seed-hcs')) {
+    return NextResponse.json({ ok: false, error: 'demo-disabled' }, { status: 403 });
+  }
+  
   try {
     console.log('🔥 FIRE-AND-FORGET: Manual HCS seeding triggered...')
     
@@ -90,3 +99,6 @@ export async function POST() {
     }, { status: 500 })
   }
 }
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

@@ -414,7 +414,15 @@ class SignalsStore {
       .filter(s => s.type === 'CONTACT_REQUEST' && s.actors.from === peerId)
       .sort((a, b) => b.ts - a.ts)
     
-    return peerRequests[0]?.payload?.fromProfileHrl
+    // Try both payload and metadata locations for compatibility
+    const latestRequest = peerRequests[0]
+    if (!latestRequest) return undefined
+    
+    // Check for profile HRL in various possible locations
+    return latestRequest.payload?.fromProfileHrl || 
+           latestRequest.payload?.profileHrl ||
+           latestRequest.meta?.profileHrl ||
+           undefined
   }
 
   // Get owned hashinals (recognition tokens) by replaying SIGNAL_MINT/TRANSFER events

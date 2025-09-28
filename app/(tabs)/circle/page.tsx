@@ -221,90 +221,26 @@ export default function CirclePage() {
     console.log('📋 [UI] trust stats updated:', trustStats);
   }, [trustStats]);
   
-  // Subscribe to store changes
-  useEffect(() => {
-    const unsubscribe = signalsStore.subscribe(() => {
-      console.log('🔄 [CirclePage] Store updated, refreshing UI...');
-      const currentSessionId = getSessionId();
-      const storeEvents = signalsStore.getAllSignals();
-      
-      if (storeEvents.length > 0) {
-        const bonded = getBondedContactsFromHCS(storeEvents, currentSessionId);
-        const recent = getRecentSignalsFromHCS(storeEvents, currentSessionId, 5);
-        const allSignals = getRecentSignalsFromHCS(storeEvents, currentSessionId, 1000);
-        
-        setBondedContacts(bonded);
-        setRecentSignals(recent);
-        setAllEvents(allSignals);
-        
-        console.log('🔄 [CirclePage] UI updated from store:', {
-          bonded: bonded.length,
-          recent: recent.length,
-          total: allSignals.length
-        });
-      }
-    });
-    
-    return unsubscribe;
-  }, []);
+  // Note: Removed signalsStore subscription since we're using direct HCS loading for consistency
   
-  // Direct HCS data loading - bypass broken bootstrap
+  // Direct HCS data loading - use same approach as Contacts page for consistency
   useEffect(() => {
     const loadDirectFromHCS = async () => {
       try {
-        console.log('🚀 [CirclePage] Loading directly from HCS...')
+        console.log('🚀 [CirclePage] Loading directly from HCS (consistent approach)...')
         
-        // Check environment variables at runtime
-        console.log('📋 [CirclePage] Environment check:', {
-          HCS_ENABLED,
-          MIRROR_REST,
-          MIRROR_WS,
-          TOPIC,
-          raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
-          raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
-        });
-        
-        // Check what's in the store first
-        const storeEvents = signalsStore.getAllSignals();
-        console.log('📋 [UI] Store contains', storeEvents.length, 'events');
-        
-        if (storeEvents.length > 0) {
-          console.log('📋 [UI] Store event types:', [...new Set(storeEvents.map(e => e.type))]);
-          console.log('📋 [UI] Store event classes:', [...new Set(storeEvents.map(e => e.class))]);
-          console.log('📋 [UI] Sample store events:', storeEvents.slice(0, 3).map(e => ({
-            id: e.id,
-            type: e.type,
-            class: e.class,
-            actors: e.actors,
-            ts: new Date(e.ts).toISOString()
-          })));
-        }
-        
-        const currentSessionId = getSessionId();
+        const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         console.log('📋 [CirclePage] Session ID:', currentSessionId)
-        console.log('📋 [CirclePage] Expected recognition owner ID:', currentSessionId)
         
-        if (storeEvents.length > 0) {
-          console.log('📋 [UI] Sample store event:', storeEvents[0]);
-          
-          const bonded = signalsStore.getBondedContacts(currentSessionId);
-          console.log('📋 [UI] Store bonded contacts:', bonded.length, bonded.map(b => ({
-            peerId: b.peerId,
-            handle: b.handle,
-            trustLevel: b.trustLevel,
-            bondedAt: new Date(b.bondedAt).toISOString()
-          })));
-        }
+        // Initialize HCS service and get all events - same as Contacts page
+        await hcsFeedService.initialize()
+        const events = await hcsFeedService.getAllFeedEvents()
         
-        // Get events from the signalsStore (already populated by MirrorToStore)
-        console.log('📁 [CirclePage] Using', storeEvents.length, 'events from SignalsStore')
-        
-        // Convert SignalEvent[] to the format expected by legacy helper functions
-        const events = storeEvents
+        console.log('📡 [CirclePage] Loaded', events.length, 'events from HCS')
         
         if (events.length > 0) {
-          // Process events into UI data
+          // Process events into UI data using HCS utility functions
           const bonded = getBondedContactsFromHCS(events, currentSessionId)
           const recent = getRecentSignalsFromHCS(events, currentSessionId, 5)
           const allSignals = getRecentSignalsFromHCS(events, currentSessionId, 1000) // Get all events for counting
@@ -341,10 +277,11 @@ export default function CirclePage() {
           setRecentSignals(recent)
           setAllEvents(allSignals)
           
-          console.log('✅ [CirclePage] Data loaded:', { 
-            bonded: bonded.length, 
-            stats, 
+          console.log('✅ [CirclePage] Data loaded (consistent approach):', {
+            bonded: bonded.length,
+            stats,
             recent: recent.length,
+            total: events.length,
             session: currentSessionId
           })
         } else {
@@ -352,6 +289,7 @@ export default function CirclePage() {
           setBondedContacts([])
           setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
           setRecentSignals([])
+          setAllEvents([])
         }
         
       } catch (error) {
@@ -390,8 +328,9 @@ export default function CirclePage() {
       
       toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
       
-      // Refresh data immediately to show the updated connection status
-      const events = signalsStore.getAllSignals()
+      // Refresh data using same approach as main data loading
+      await hcsFeedService.initialize()
+      const events = await hcsFeedService.getAllFeedEvents()
       const bonded = getBondedContactsFromHCS(events, sessionId)
       
       // Recalculate connection status for LEDs (not trust allocation amounts)

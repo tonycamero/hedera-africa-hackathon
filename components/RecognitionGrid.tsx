@@ -3,9 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { directHCSRecognitionService, type RecognitionDefinition, type RecognitionInstance } from "@/lib/services/DirectHCSRecognitionService"
+// Legacy fallback service
 import { hcsRecognitionService } from "@/lib/services/HCSRecognitionService"
-import type { RecognitionSignal } from "@/lib/stores/signalsStore"
-import type { HCSRecognitionInstance, HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
 import { Award, ExternalLink, Plus } from "lucide-react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -15,16 +15,17 @@ interface RecognitionGridProps {
   maxItems?: number
 }
 
-// Convert HCS recognition instance + definition to display format
-interface HCSRecognitionDisplay {
+// Display format for recognition instances
+interface RecognitionDisplay {
   id: string
   name: string
   emoji: string
   category: 'social' | 'academic' | 'professional'
   tokenId: string
+  rarity?: string
 }
 
-function MiniRecognitionCard({ signal }: { signal: HCSRecognitionDisplay }) {
+function MiniRecognitionCard({ signal }: { signal: RecognitionDisplay }) {
   const categoryColors = {
     social: "border-cyan-500/50 bg-cyan-500/10",
     academic: "border-purple-500/50 bg-purple-500/10", 
@@ -42,48 +43,85 @@ function MiniRecognitionCard({ signal }: { signal: HCSRecognitionDisplay }) {
   )
 }
 
+// Service selection based on environment flag
+const getRecognitionService = () => {
+  const useDirectService = process.env.NEXT_PUBLIC_RECOG_DIRECT === 'true';
+  console.log('[RecognitionGrid] Using', useDirectService ? 'DirectHCS' : 'Legacy', 'recognition service');
+  return useDirectService ? directHCSRecognitionService : hcsRecognitionService;
+};
+
 export function RecognitionGrid({ ownerId, maxItems = 6 }: RecognitionGridProps) {
-  const [ownedSignals, setOwnedSignals] = useState<HCSRecognitionDisplay[]>([])
+  const [ownedSignals, setOwnedSignals] = useState<RecognitionDisplay[]>([]);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
     if (!ownerId) return
 
     const loadOwnedSignals = async () => {
       try {
-        // Get owned recognition instances from HCS
-        const instances = await hcsRecognitionService.getUserRecognitionInstances(ownerId)
-        console.log(`[RecognitionGrid] Found ${instances.length} instances for owner ${ownerId}:`, instances)
+        const recognitionService = getRecognitionService();
+        const serviceType = recognitionService === directHCSRecognitionService ? 'DirectHCS' : 'Legacy';
+        console.log(`[RecognitionGrid] Loading recognition data for owner ${ownerId} (${serviceType} service)...`);
+        
+        // Initialize recognition service
+        await recognitionService.initialize();
+        
+        // Get all definitions for debug
+        const allDefinitions = recognitionService.getAllDefinitions ? 
+          recognitionService.getAllDefinitions() : 
+          recognitionService.getDefinitions();
+        
+        // Get user's recognition instances  
+        const instances = recognitionService.getUserInstances(ownerId);
+        console.log(`[RecognitionGrid] Found ${instances.length} instances for owner ${ownerId}:`, instances);
+        
+        // Store debug info for DevTools access
+        const debugData = {
+          serviceType,
+          definitions: allDefinitions,
+          userInstances: instances,
+          definitionsCount: allDefinitions.length,
+          instancesCount: instances.length,
+          timestamp: new Date().toISOString()
+        };
+        setDebugInfo(debugData);
+        
+        // Expose in window object for quick verification
+        if (typeof window !== 'undefined') {
+          (window as any).debugRecognitionPage = debugData;
+          console.log('[RecognitionGrid] Debug data exposed:', debugData);
+        }
         
         // Convert instances to display format
-        const displaySignals: HCSRecognitionDisplay[] = []
+        const displaySignals: RecognitionDisplay[] = []
         
         for (const instance of instances.slice(0, maxItems)) {
-          console.log(`[RecognitionGrid] Processing instance ${instance.id} with definitionId: ${instance.definitionId}`)
-          try {
-            const definition = await hcsRecognitionService.getRecognitionDefinition(instance.definitionId)
-            console.log(`[RecognitionGrid] Found definition for ${instance.definitionId}:`, definition ? definition.name : 'NOT FOUND')
-            if (definition) {
-              const displaySignal = {
-                id: instance.id,
-                name: definition.name,
-                emoji: definition.emoji,
-                category: definition.category as 'social' | 'academic' | 'professional',
-                tokenId: instance.id.slice(-8) // Show last 8 chars as token ID
-              }
-              displaySignals.push(displaySignal)
-              console.log(`[RecognitionGrid] Added display signal:`, displaySignal)
-            } else {
-              console.warn(`[RecognitionGrid] No definition found for definitionId: ${instance.definitionId}`)
+          console.log(`[RecognitionGrid] Processing instance:`, instance)
+          
+          // Get definition for this instance
+          const definition = recognitionService.getDefinition(instance.definitionId)
+          
+          if (definition) {
+            const displaySignal: RecognitionDisplay = {
+              id: instance.id,
+              name: definition.name,
+              emoji: definition.icon || '🏆',
+              category: definition.category || 'social',
+              tokenId: instance.id.slice(-8),
+              rarity: definition.rarity
             }
-          } catch (error) {
-            console.error('[RecognitionGrid] Failed to load definition for instance:', instance.id, error)
+            displaySignals.push(displaySignal)
+            console.log(`[RecognitionGrid] Added display signal:`, displaySignal)
+          } else {
+            console.warn(`[RecognitionGrid] No definition found for instance:`, instance.definitionId)
           }
         }
         
-        console.log(`[RecognitionGrid] Setting ${displaySignals.length} display signals:`, displaySignals)
+        console.log(`[RecognitionGrid] Setting ${displaySignals.length} display signals (direct HCS)`)
         setOwnedSignals(displaySignals)
+        
       } catch (error) {
-        console.error('[RecognitionGrid] Failed to load owned recognition from HCS:', error)
+        console.error('[RecognitionGrid] Failed to load recognition data:', error)
         setOwnedSignals([])
       }
     }
@@ -92,10 +130,11 @@ export function RecognitionGrid({ ownerId, maxItems = 6 }: RecognitionGridProps)
 
     // Poll for updates only if recognition service is ready
     const interval = setInterval(() => {
-      if (hcsRecognitionService.isReady()) {
-        loadOwnedSignals()
+      const recognitionService = getRecognitionService();
+      if (recognitionService.isReady && recognitionService.isReady()) {
+        loadOwnedSignals();
       }
-    }, 5000) // Slower polling to reduce load
+    }, 10000); // Less frequent polling
     return () => clearInterval(interval)
   }, [ownerId, maxItems])
 

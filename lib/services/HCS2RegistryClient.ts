@@ -68,7 +68,7 @@ export class HCS2RegistryClient {
       "topic/feed": { topicId: TOPIC.recognition || "0.0.6895261", network: "testnet" as const, version: 1 },
       "topic/contacts": { topicId: TOPIC.contacts || "0.0.6896005", network: "testnet" as const, version: 1 },
       "topic/trust": { topicId: TOPIC.trust || "0.0.6896005", network: "testnet" as const, version: 1 },
-      "topic/recognition": { topicId: TOPIC.recognition || "0.0.6903900", network: "testnet" as const, version: 1 },
+      "topic/recognition": { topicId: TOPIC.recognition || "0.0.6895261", network: "testnet" as const, version: 1 },
       "topic/profile": { topicId: TOPIC.profile || "0.0.6896008", network: "testnet" as const, version: 1 },
       "topic/system": { topicId: TOPIC.profile || "0.0.6896008", network: "testnet" as const, version: 1 }
     };
@@ -93,7 +93,7 @@ export class HCS2RegistryClient {
       { key: "topic/feed", value: { topicId: "0.0.6895261", network: "testnet", version: 1 }, uid: "uid-topic/feed" }, // TEMP
       { key: "topic/contacts", value: { topicId: "0.0.6896005", network: "testnet", version: 1 }, uid: "uid-topic/contacts" },
       { key: "topic/trust", value: { topicId: "0.0.6896005", network: "testnet", version: 1 }, uid: "uid-topic/trust" },
-      { key: "topic/recognition", value: { topicId: "0.0.6903900", network: "testnet", version: 1 }, uid: "uid-topic/recognition" },
+      { key: "topic/recognition", value: { topicId: "0.0.6895261", network: "testnet", version: 1 }, uid: "uid-topic/recognition" },
       { key: "topic/profile", value: { topicId: "0.0.6896008", network: "testnet", version: 1 }, uid: "uid-topic/profile" },
       { key: "topic/system", value: { topicId: "0.0.6896008", network: "testnet", version: 1 }, uid: "uid-topic/system" }
     ];
@@ -158,7 +158,7 @@ export class HCS2RegistryClient {
         feed: TOPIC.recognition || "0.0.6895261",
         contacts: TOPIC.contacts || "0.0.6896005",
         trust: TOPIC.trust || "0.0.6896005",
-        recognition: TOPIC.recognition || "0.0.6903900",
+        recognition: TOPIC.recognition || "0.0.6895261",
         profiles: TOPIC.profile || "0.0.6896008",
         system: TOPIC.profile || "0.0.6896008"
       }

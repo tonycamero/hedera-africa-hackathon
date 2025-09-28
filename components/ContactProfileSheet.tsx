@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { signalsStore } from "@/lib/stores/signalsStore"
+import { getSessionId } from "@/lib/session"
 import { 
   MapPin, 
   Globe, 
@@ -70,15 +71,25 @@ export function ContactProfileSheet({
     // Get the peer's profile HRL from contact handshake
     const profileHrl = signalsStore.getPeerProfileHrl(peerId)
     setHrl(profileHrl || null)
-
+    
+    // Get contact info from signals store using current session ID
+    const currentSessionId = getSessionId()
+    const contacts = signalsStore.deriveContacts(currentSessionId)
+    const contact = contacts.find(c => c.peerId === peerId)
+    
     if (!profileHrl) {
-      // No HRL on record, show basic profile
-      setData({
-        handle: peerId,
-        bio: "No profile data available",
-        visibility: "public"
-      })
-      setSource("local")
+      // No HCS profile HRL found - show basic contact info from HCS signals only
+      const contactInfo = {
+        handle: contact?.handle || peerId,
+        bio: contact?.bonded 
+          ? `Contact established via Hedera Consensus Service` 
+          : "Profile not published to HCS",
+        visibility: "unknown",
+        joinedAt: contact?.bondedAt,
+        reputation: contact?.trustWeightOut || undefined
+      }
+      setData(contactInfo)
+      setSource(contact?.bonded ? "hcs_signals_only" : "hcs_contact_only")
       return
     }
 
@@ -314,8 +325,12 @@ export function ContactProfileSheet({
               )}
               <div className="text-xs text-[hsl(var(--muted-foreground))]">
                 Source: {source}
-                {source === "mirror_node" && <span className="ml-1 text-green-600">✓ Verified on-chain</span>}
+                {source === "mirror_node" && <span className="ml-1 text-green-600">✓ HCS Profile + Mirror Node</span>}
+                {source === "hcs_signals" && <span className="ml-1 text-blue-600">✓ From HCS signals</span>}
+                {source === "hcs_signals_only" && <span className="ml-1 text-blue-600">✓ HCS Contact (No Profile)</span>}
+                {source === "hcs_contact_only" && <span className="ml-1 text-amber-600">⚠ Contact ID Only</span>}
                 {source === "fallback" && <span className="ml-1 text-amber-600">⚠ Offline fallback</span>}
+                {source === "error" && <span className="ml-1 text-red-600">⚠ HCS Fetch Failed</span>}
               </div>
             </div>
           </div>

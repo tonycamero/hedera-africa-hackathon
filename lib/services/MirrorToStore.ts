@@ -15,53 +15,83 @@ interface HCSMessage {
  */
 function mirrorToSignalEvent(message: MirrorMessage): SignalEvent | null {
   try {
-    const hcsData: HCSMessage = JSON.parse(message.decoded);
+    const hcsData = JSON.parse(message.decoded);
     
-    if (!hcsData.type || !hcsData.from || !hcsData.ts) {
+    // Map to standardized fields regardless of the original format
+    // Handle both legacy format (type, from, ts, payload) and new format (type, actor, target, timestamp, metadata)
+    // Also handle recognition format where recipient is in payload.to
+    const normalized = {
+      type: hcsData.type,
+      from: hcsData.from || hcsData.actor,
+      to: hcsData.to || hcsData.target || hcsData.payload?.to, // Recognition messages use payload.to
+      ts: hcsData.ts || (hcsData.timestamp ? new Date(hcsData.timestamp).getTime() : Date.now()),
+      payload: hcsData.payload || hcsData.metadata || {}
+    };
+    
+    // Validate required fields
+    if (!normalized.type || !normalized.from) {
       console.log(`[MirrorToStore] Skipping incomplete message:`, hcsData);
       return null;
     }
 
-    // Determine signal class and direction
+    // Determine signal class and direction based on normalized data
     let signalClass: SignalEvent['class'] = 'system';
-    let signalType: SignalEvent['type'] = hcsData.type;
+    let signalType: SignalEvent['type'] = normalized.type.toUpperCase();
     let topicType: SignalEvent['topicType'] = 'SIGNAL';
     
-    if (hcsData.type.includes('CONTACT')) {
+    // Handle various message types from Mirror Node
+    if (normalized.type.includes('contact') || normalized.type.includes('CONTACT')) {
       signalClass = 'contact';
       topicType = 'CONTACT';
-    } else if (hcsData.type.includes('TRUST')) {
+      // Normalize contact types
+      if (normalized.type.includes('request')) {
+        signalType = 'CONTACT_REQUEST';
+      } else if (normalized.type.includes('accept')) {
+        signalType = 'CONTACT_ACCEPT';
+      }
+    } else if (normalized.type.includes('trust') || normalized.type.includes('TRUST')) {
       signalClass = 'trust';
       topicType = 'TRUST';
-    } else if (hcsData.type.includes('PROFILE')) {
+      // Normalize trust types
+      if (normalized.type.includes('allocate')) {
+        signalType = 'TRUST_ALLOCATE';
+      } else if (normalized.type.includes('revoke')) {
+        signalType = 'TRUST_REVOKE';
+      }
+    } else if (normalized.type.includes('profile') || normalized.type.includes('PROFILE')) {
       signalClass = 'system';
       topicType = 'PROFILE';
-    } else if (hcsData.type.includes('RECOGNITION') || hcsData.type.includes('NFT')) {
+    } else if (normalized.type.includes('recognition') || normalized.type.includes('RECOGNITION') || normalized.type.includes('nft') || normalized.type.includes('NFT')) {
       signalClass = 'recognition';
       topicType = 'SIGNAL';
+      if (normalized.type.includes('mint') || normalized.type.includes('MINT')) {
+        signalType = 'RECOGNITION_MINT';
+      } else if (normalized.type.includes('definition') || normalized.type.includes('DEFINITION')) {
+        signalType = 'RECOGNITION_DEFINITION';
+      }
     }
 
-    // Determine direction (simplified - could be enhanced based on current session)
-    // For now, assume outbound if from matches known pattern, inbound otherwise
-    const direction: SignalEvent['direction'] = 'inbound'; // Default, could be enhanced
+    // Preserve direction from original message or default to inbound
+    const direction: SignalEvent['direction'] = hcsData.direction || 'inbound';
     
     const signalEvent: SignalEvent = {
-      id: `mirror_${message.topicId}_${message.sequenceNumber}`,
+      id: hcsData.id || `mirror_${message.topicId}_${message.sequenceNumber}`,
       class: signalClass,
       topicType,
       direction,
       actors: {
-        from: hcsData.from,
-        to: hcsData.payload?.target || hcsData.payload?.to
+        from: normalized.from,
+        to: normalized.to
       },
-      payload: hcsData.payload || {},
-      ts: hcsData.ts * 1000, // Convert to milliseconds
+      payload: normalized.payload,
+      ts: normalized.ts,
       status: 'onchain', // Data from Mirror is already on-chain
       type: signalType,
       meta: {
         tag: 'mirror_backfill',
         topicId: message.topicId,
-        sequenceNumber: message.sequenceNumber
+        sequenceNumber: message.sequenceNumber,
+        originalType: hcsData.type // Preserve original format for debugging
       }
     };
 

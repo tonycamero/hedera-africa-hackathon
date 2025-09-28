@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hederaClient } from '@/packages/hedera/HederaClient'
+import { assertDemoAllowed } from '@/lib/demo/guard'
 
 const ALEX_CHEN_SESSION = 'alex-chen-demo-session-2024'
 
@@ -14,6 +15,10 @@ const RECOGNITION_DEFINITIONS = [
 ]
 
 export async function POST(request: NextRequest) {
+  if (!assertDemoAllowed('POST /api/seed-recognition')) {
+    return NextResponse.json({ ok: false, error: 'demo-disabled' }, { status: 403 });
+  }
+  
   console.log('🌱 Starting recognition seeding to HCS...')
   
   try {
@@ -134,9 +139,16 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  if (!assertDemoAllowed('GET /api/seed-recognition')) {
+    return NextResponse.json({ ok: false, error: 'demo-disabled' }, { status: 403 });
+  }
+  
   return NextResponse.json({
     message: 'Use POST to seed recognition data to HCS',
     definitions: RECOGNITION_DEFINITIONS.length,
     alexTokens: ['chad', 'delulu', 'prof-fav', 'code-monkey']
   })
 }
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

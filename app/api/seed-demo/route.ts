@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hcsFeedService } from '@/lib/services/HCSFeedService'
+import { assertDemoAllowed } from '@/lib/demo/guard'
 
 export async function POST(request: NextRequest) {
+  if (!assertDemoAllowed('POST /api/seed-demo')) {
+    return NextResponse.json({ ok: false, error: 'demo-disabled' }, { status: 403 });
+  }
+  
   try {
     console.log('🔥 Manual demo seeding requested via API...')
     
@@ -61,6 +66,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  if (!assertDemoAllowed('GET /api/seed-demo')) {
+    return NextResponse.json({ ok: false, error: 'demo-disabled' }, { status: 403 });
+  }
+  
   try {
     // Get current state
     const isReady = hcsFeedService.isReady()
@@ -81,3 +90,6 @@ export async function GET() {
     })
   }
 }
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
