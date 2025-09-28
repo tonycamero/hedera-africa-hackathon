@@ -213,6 +213,10 @@ export class HCSRecognitionService {
 
   // ---------- Public API for UI ----------
 
+  isReady(): boolean {
+    return this.initialized;
+  }
+
   getDefinition(idOrSlug: string): Def | null {
     console.log('[HCSRecognitionService] Looking for definition:', idOrSlug);
     console.log('[HCSRecognitionService] Available definitions in cache:', [...this.defsById.keys()]);
@@ -225,6 +229,34 @@ export class HCSRecognitionService {
 
   getAllDefinitions(): Def[] {
     return Array.from(this.defsById.values());
+  }
+
+  getUserRecognitionInstances(owner: string): Inst[] {
+    console.log('[HCSRecognitionService] Getting recognition instances for owner:', owner);
+    
+    // Get recognition signals from the signals store
+    const recognitionSignals = signalsStore.getSignalsByClass('recognition');
+    console.log('[HCSRecognitionService] Found', recognitionSignals.length, 'recognition signals in store');
+    
+    // Filter by owner and map to Inst format
+    const instances: Inst[] = recognitionSignals
+      .filter(signal => signal.payload?.owner === owner)
+      .map(signal => ({
+        owner: signal.payload?.owner,
+        definitionId: signal.payload?.definitionId,
+        definitionSlug: signal.payload?.definitionSlug,
+        note: signal.payload?.note,
+        issuer: signal.payload?.issuer,
+        _hrl: signal.meta?.hrl || signal.id,
+        _ts: new Date(signal.ts).toISOString()
+      }));
+    
+    console.log('[HCSRecognitionService] Returning', instances.length, 'instances for owner:', owner);
+    return instances;
+  }
+
+  getRecognitionDefinition(idOrSlug: string): Def | null {
+    return this.getDefinition(idOrSlug);
   }
 
   // ---------- IO (REST + WS) ----------
@@ -246,7 +278,7 @@ export class HCSRecognitionService {
   }
 
   private subscribe(topicId: string, onDecoded: (d: RecognitionDecoded) => void) {
-    const url = `${MIRROR_WS}:5600/api/v1/topics/${encodeURIComponent(topicId)}/messages`;
+    const url = `${MIRROR_WS}/api/v1/topics/${encodeURIComponent(topicId)}/messages`;
     console.log('[HCSRecognitionService] WS subscribe', url);
     
     const ws = new WebSocket(url);

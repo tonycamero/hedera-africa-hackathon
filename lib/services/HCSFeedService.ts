@@ -619,8 +619,13 @@ export class HCSFeedService {
       for (const m of flat) {
         try {
           const obj = JSON.parse(m.decoded);
+          
+          // Handle both Flex format and real HCS message formats
+          let event: HCSFeedEvent | null = null;
+          
           if (obj?.type && obj?.timestamp && obj?.actor) {
-            live.push({
+            // Flex format
+            event = {
               id: obj.id || `${obj.type}_${m.topicId}_${m.sequenceNumber}`,
               type: obj.type,
               timestamp: obj.timestamp,
@@ -631,10 +636,124 @@ export class HCSFeedService {
               direction: obj.direction || "inbound",
               topicId: m.topicId,
               sequenceNumber: m.sequenceNumber,
-            });
+            };
+          } else if (obj?.type) {
+            // Real HCS message formats
+            const eventId = `hcs_${obj.type.toLowerCase()}_${m.topicId}_${m.sequenceNumber}`;
+            const timestamp = m.consensusTimestamp || new Date().toISOString();
+            
+            switch (obj.type) {
+              case 'CONTACT_REQUEST':
+                event = {
+                  id: eventId,
+                  type: 'contact_request',
+                  timestamp,
+                  actor: obj.from || obj.actor || 'unknown',
+                  target: obj.to || obj.target || 'unknown',
+                  metadata: {
+                    handle: obj.fromHandle || obj.handle,
+                    name: obj.toHandle || obj.name,
+                    topicId: m.topicId
+                  },
+                  status: 'onchain',
+                  direction: 'inbound',
+                  topicId: m.topicId,
+                  sequenceNumber: m.sequenceNumber
+                };
+                break;
+              
+              case 'CONTACT_ACCEPT':
+                event = {
+                  id: eventId,
+                  type: 'contact_accept',
+                  timestamp,
+                  actor: obj.from || obj.actor || 'unknown',
+                  target: obj.to || obj.target || 'unknown',
+                  metadata: {
+                    handle: obj.fromHandle || obj.handle,
+                    name: obj.toHandle || obj.name,
+                    topicId: m.topicId
+                  },
+                  status: 'onchain',
+                  direction: 'inbound',
+                  topicId: m.topicId,
+                  sequenceNumber: m.sequenceNumber
+                };
+                break;
+              
+              case 'TRUST_ALLOCATE':
+                event = {
+                  id: eventId,
+                  type: 'trust_allocate',
+                  timestamp,
+                  actor: obj.from || obj.actor || 'unknown',
+                  target: obj.to || obj.target || 'unknown',
+                  metadata: {
+                    weight: obj.weight || obj.amount || 1,
+                    topicId: m.topicId
+                  },
+                  status: 'onchain',
+                  direction: 'inbound',
+                  topicId: m.topicId,
+                  sequenceNumber: m.sequenceNumber
+                };
+                break;
+              
+              case 'RECOGNITION_MINT':
+                event = {
+                  id: eventId,
+                  type: 'recognition_mint',
+                  timestamp,
+                  actor: obj.issuer || obj.from || obj.actor || 'system',
+                  target: obj.owner || obj.to || obj.target || 'unknown',
+                  metadata: {
+                    name: obj.definitionName || obj.name,
+                    description: obj.definitionDescription || obj.description,
+                    category: obj.category || 'recognition',
+                    definitionId: obj.definitionId,
+                    definitionSlug: obj.definitionSlug,
+                    note: obj.note,
+                    topicId: m.topicId
+                  },
+                  status: 'onchain',
+                  direction: 'inbound',
+                  topicId: m.topicId,
+                  sequenceNumber: m.sequenceNumber
+                };
+                break;
+              
+              case 'PROFILE_UPDATE':
+                event = {
+                  id: eventId,
+                  type: 'profile_update',
+                  timestamp,
+                  actor: obj.sessionId || obj.actor || 'unknown',
+                  target: obj.sessionId || obj.target || obj.actor || 'unknown',
+                  metadata: {
+                    handle: obj.handle,
+                    bio: obj.bio,
+                    visibility: obj.visibility,
+                    topicId: m.topicId
+                  },
+                  status: 'onchain',
+                  direction: 'inbound',
+                  topicId: m.topicId,
+                  sequenceNumber: m.sequenceNumber
+                };
+                break;
+              
+              default:
+                console.log(`[HCSFeedService] Unknown HCS message type:`, obj.type);
+                break;
+            }
           } else {
-            console.log(`[HCSFeedService] Skipping non-Flex payload:`, obj?.type || 'no-type');
+            console.log(`[HCSFeedService] Skipping message without type field:`, Object.keys(obj));
           }
+          
+          if (event) {
+            live.push(event);
+          }
+          
         } catch (e) {
           // Not JSON - ignore
           console.log(`[HCSFeedService] Skipping non-JSON message from ${m.topicId}`);
