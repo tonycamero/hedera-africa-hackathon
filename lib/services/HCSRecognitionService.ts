@@ -39,6 +39,12 @@ export class HCSRecognitionService {
 
     // Use verified/fallback topic if env is missing, to match original behavior
     const recognitionTopic = TOPIC.recognition || '0.0.6895261';
+    
+    // Validate topic ID before proceeding
+    if (!recognitionTopic || recognitionTopic.trim() === '' || !recognitionTopic.match(/^0\.0\.[0-9]+$/)) {
+      console.error('[HCSRecognitionService] Invalid recognition topic ID:', recognitionTopic);
+      throw new Error(`Invalid recognition topic ID: ${recognitionTopic}`);
+    }
 
     console.log('[HCSRecognitionService] init: backfill + WS on', recognitionTopic);
 
@@ -89,7 +95,14 @@ export class HCSRecognitionService {
 
     } catch (error) {
       console.error('[HCSRecognitionService] Initialization failed:', error);
-      throw error;
+      
+      // Instead of completely failing, mark as initialized with degraded functionality
+      // This allows the UI to continue working even if recognition data isn't available
+      console.warn('[HCSRecognitionService] Running in degraded mode - recognition data may not be available');
+      this.initialized = true; // Mark as initialized to prevent infinite retry loops
+      
+      // Don't throw the error - allow the service to run in degraded mode
+      // throw error;
     }
   }
 
@@ -174,11 +187,39 @@ export class HCSRecognitionService {
       (inst.definitionSlug && this.defsBySlug.get(inst.definitionSlug));
     
     if (!def) {
-      console.log('[HCSRecognitionService] Cannot resolve instance - missing definition for:', 
-        inst.definitionId || inst.definitionSlug, 'available defs:', [...this.defsById.keys()]);
-      return false;
+      // Create a fallback definition if we can't resolve it
+      const fallbackDef: Def = {
+        id: inst.definitionId || inst.definitionSlug || 'unknown',
+        slug: inst.definitionSlug || inst.definitionId,
+        name: inst.definitionSlug || inst.definitionId || 'Unknown Recognition',
+        description: 'Recognition definition not found',
+        icon: '🏆',
+        _hrl: `hcs://fallback/${inst.definitionId || inst.definitionSlug}`,
+        _ts: inst._ts
+      };
+      
+      // Use the fallback definition but log the issue
+      console.warn('[HCSRecognitionService] Cannot resolve instance - missing definition for:', 
+        inst.definitionId || inst.definitionSlug, 'available defs:', [...this.defsById.keys()], 
+        '- using fallback definition');
+      
+      // Store the fallback definition for future use
+      if (fallbackDef.id) {
+        this.defsById.set(fallbackDef.id, fallbackDef);
+        if (fallbackDef.slug) {
+          this.defsBySlug.set(fallbackDef.slug, fallbackDef);
+        }
+      }
+      
+      // Continue with the fallback definition
+      return this.publishInstanceWithDefinition(inst, fallbackDef);
     }
 
+    // Use the resolved definition
+    return this.publishInstanceWithDefinition(inst, def);
+  }
+
+  private publishInstanceWithDefinition(inst: Inst, def: Def): boolean {
     // 🔁 Map to SignalEvent format for the store
     const signalEvent = {
       id: `recognition_${inst._hrl.replace(/[:/]/g, '_')}`,

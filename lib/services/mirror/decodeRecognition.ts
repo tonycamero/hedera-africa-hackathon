@@ -48,6 +48,42 @@ export function decodeRecognition(m: MirrorMsg): RecognitionDecoded | null {
       _topic: m.topic_id,
     };
 
+    // Handle recognition_definition_created messages with nested data
+    if (raw.type === 'recognition_definition_created' && raw.data) {
+      const defData = raw.data;
+      return {
+        _kind: 'definition',
+        ...base,
+        type: 'definition',
+        id: defData.id,
+        slug: defData.slug,
+        name: defData.name,
+        description: defData.description,
+        icon: defData.icon,
+        category: defData.category,
+        rarity: defData.rarity,
+        // Include any other properties from the data object
+        ...defData
+      } as RecognitionDefinitionDecoded;
+    }
+
+    // Handle recognition_instance_created messages with nested payload
+    if (raw.type === 'RECOGNITION_MINT' && raw.payload) {
+      const instData = raw.payload;
+      return {
+        _kind: 'instance',
+        ...base,
+        type: 'instance',
+        definitionId: instData.definitionId,
+        definitionSlug: instData.definitionSlug,
+        owner: instData.to,
+        note: instData.note,
+        issuer: instData.mintedBy || instData.from,
+        // Include any other properties from the payload object
+        ...instData
+      } as RecognitionInstanceDecoded;
+    }
+
     // Prefer explicit 'type' if present; otherwise infer
     const explicit = typeof raw.type === 'string' ? raw.type.toLowerCase() : undefined;
     
@@ -59,7 +95,7 @@ export function decodeRecognition(m: MirrorMsg): RecognitionDecoded | null {
     
     // Infer from structure: definitions have name/slug but no owner, instances have owner
     const structureInferred =
-      ('name' in raw || 'slug' in raw) && !('owner' in raw) ? 'definition' : 'instance';
+      ('name' in raw || 'slug' in raw || (raw.data && ('name' in raw.data || 'slug' in raw.data))) && !('owner' in raw) && !(raw.payload && 'owner' in raw.payload) ? 'definition' : 'instance';
 
     // Priority: explicit > schema > structure
     const kind = (explicit === 'definition' || explicit === 'instance') ? explicit

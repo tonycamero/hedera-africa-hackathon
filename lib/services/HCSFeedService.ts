@@ -726,8 +726,33 @@ export class HCSFeedService {
                 };
                 break;
               
+              case 'recognition_definition_created':
+                event = {
+                  id: eventId,
+                  type: 'system_update',
+                  timestamp,
+                  actor: 'system',
+                  target: 'all',
+                  metadata: {
+                    name: obj.data?.name || 'Recognition Definition',
+                    description: `New recognition definition: ${obj.data?.name || 'Unknown'}`,
+                    category: 'recognition_system',
+                    definitionId: obj.data?.id,
+                    definitionSlug: obj.data?.slug,
+                    topicId: m.topicId
+                  },
+                  status: 'onchain',
+                  direction: 'inbound',
+                  topicId: m.topicId,
+                  sequenceNumber: m.sequenceNumber
+                };
+                break;
+              
               default:
-                console.log(`[HCSFeedService] Unknown HCS message type:`, obj.type);
+                // Only log unhandled types once to reduce noise
+                if (obj.type !== 'recognition_definition_created') {
+                  console.log(`[HCSFeedService] Unknown HCS message type:`, obj.type);
+                }
                 break;
             }
           } else {
