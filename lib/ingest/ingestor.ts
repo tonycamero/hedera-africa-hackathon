@@ -363,7 +363,14 @@ function exposeDebugInterface(): void {
     (window as any).trustmeshIngest = {
       stats: () => ({ ...stats }),
       recognitionCache: () => recognitionCache.debug(),
-      signalsStore: () => signalsStore.getSummary(),
+      signalsStore: () => {
+        try {
+          return signalsStore.getSummary();
+        } catch (error) {
+          console.warn('[Ingest] Failed to get signalsStore summary in debug interface:', error);
+          return { countsByType: {}, countsBySource: { 'hcs': 0, 'hcs-cached': 0 }, total: 0 };
+        }
+      },
       restart: async () => {
         stopIngestion()
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -390,6 +397,20 @@ function exposeDebugInterface(): void {
  * @returns Statistics for all topics
  */
 export function getIngestionStats() {
+  // Safely get signalsStore summary, handling potential SSR/client differences
+  let signalsStoreSummary;
+  try {
+    signalsStoreSummary = signalsStore.getSummary();
+  } catch (error) {
+    console.warn('[Ingest] Failed to get signalsStore summary:', error);
+    signalsStoreSummary = {
+      countsByType: {},
+      countsBySource: { 'hcs': 0, 'hcs-cached': 0 },
+      total: 0,
+      lastTs: undefined
+    };
+  }
+  
   return {
     ...stats,
     totalMessages: Object.values(stats).reduce((sum, s) => sum + s.backfilled + s.streamed, 0),
@@ -397,7 +418,7 @@ export function getIngestionStats() {
     isRunning: ingestionStarted,
     activeConnections: activeConnections.size,
     recognitionCache: recognitionCache.getStats(),
-    signalsStore: signalsStore.getSummary(),
+    signalsStore: signalsStoreSummary,
   }
 }
 
