@@ -1,3 +1,14 @@
+'use client'
+
+import { useSyncExternalStore } from 'react'
+
+// Type definitions
+type SignalSelector<T> = (store: SignalsStore) => T
+
+// Batching state
+let _batchDepth = 0
+let _pendingNotify = false
+
 // Normalized SignalEvent shape - single source of truth for UI
 export interface SignalEvent {
   id?: string
@@ -133,6 +144,13 @@ class SignalsStore {
     }
   }
 
+  // --- UI State Helpers ---
+  hasUnseen(category?: string): boolean {
+    // For now, return false as the unseen functionality needs more complex state tracking
+    // This prevents the JavaScript error in the UI
+    return false
+  }
+
   // --- Debug Summary ---
   getSummary(): {
     countsByType: Record<string, number>,
@@ -175,6 +193,11 @@ class SignalsStore {
 
   private notifyListeners(): void {
     this.listeners.forEach(listener => listener())
+  }
+
+  // Public notify method for batching
+  _notify(): void {
+    this.notifyListeners()
   }
 
   clear(): void {

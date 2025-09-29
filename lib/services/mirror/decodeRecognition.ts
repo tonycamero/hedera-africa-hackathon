@@ -40,7 +40,53 @@ export type RecognitionDecoded = RecognitionDefinitionDecoded | RecognitionInsta
 
 export function decodeRecognition(m: MirrorMsg): RecognitionDecoded | null {
   try {
-    const raw = JSON.parse(Buffer.from(m.message, 'base64').toString('utf8'));
+    // Decode base64 message
+    let decodedString: string;
+    try {
+      decodedString = Buffer.from(m.message, 'base64').toString('utf8');
+    } catch (e) {
+      console.error('[RecognitionDecode] Base64 decode error', e, m);
+      return null;
+    }
+    
+    // Handle potentially truncated JSON messages
+    let raw: any;
+    try {
+      raw = JSON.parse(decodedString);
+    } catch (parseError) {
+      // Try to repair truncated JSON by finding the last complete object
+      if (parseError instanceof SyntaxError && parseError.message.includes('Unterminated string')) {
+        try {
+          // Find the last complete JSON object by looking for closing braces
+          const lastBraceIndex = decodedString.lastIndexOf('}');
+          if (lastBraceIndex > 0) {
+            const truncatedJson = decodedString.substring(0, lastBraceIndex + 1);
+            raw = JSON.parse(truncatedJson);
+            console.warn('[RecognitionDecode] Recovered from truncated JSON', { 
+              originalLength: decodedString.length, 
+              truncatedLength: truncatedJson.length,
+              sequence: m.sequence_number
+            });
+          } else {
+            throw parseError; // Unable to recover
+          }
+        } catch (recoveryError) {
+          console.error('[RecognitionDecode] JSON parse + recovery failed', recoveryError, {
+            decodedString: decodedString.substring(0, 100) + '...', // First 100 chars for debugging
+            messageLength: decodedString.length,
+            sequence: m.sequence_number
+          });
+          return null;
+        }
+      } else {
+        console.error('[RecognitionDecode] JSON parse error', parseError, {
+          decodedString: decodedString.substring(0, 100) + '...', // First 100 chars for debugging
+          sequence: m.sequence_number
+        });
+        return null;
+      }
+    }
+    
     const base: Base = {
       _hrl: `hcs://${m.topic_id}/${m.sequence_number}`,
       _ts: m.consensus_timestamp,

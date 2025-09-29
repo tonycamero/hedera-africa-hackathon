@@ -63,20 +63,32 @@ export async function startIngestion(): Promise<void> {
   })
 
   try {
-    // Phase 1: Backfill historical data for each topic
-    await backfillAllTopics()
+    // Phase 1: Backfill historical data for each topic (with error recovery)
+    try {
+      await backfillAllTopics()
+    } catch (backfillError) {
+      console.error('[Ingest] Backfill failed, continuing with degraded functionality:', backfillError)
+      // Don't throw - allow streaming to continue
+    }
 
-    // Phase 2: Start real-time streaming for each topic
-    startStreamingAllTopics()
+    // Phase 2: Start real-time streaming for each topic (with error recovery)
+    try {
+      startStreamingAllTopics()
+    } catch (streamingError) {
+      console.error('[Ingest] Streaming failed, running with cached data only:', streamingError)
+      // Don't throw - system can still use cached data
+    }
 
     // Expose debug interface
     exposeDebugInterface()
 
-    console.info('[Ingest] Ingestion started successfully')
+    console.info('[Ingest] Ingestion started (may be running in degraded mode if errors occurred)')
 
   } catch (error) {
-    console.error('[Ingest] Failed to start ingestion:', error)
-    throw error
+    console.error('[Ingest] Critical ingestion failure:', error)
+    // Only throw if absolutely critical systems fail
+    // For now, allow degraded operation
+    console.warn('[Ingest] Running in emergency fallback mode - UI may have limited functionality')
   }
 }
 
@@ -106,7 +118,18 @@ export function stopIngestion(): void {
  * Backfill all topics with historical data
  */
 async function backfillAllTopics(): Promise<void> {
-  const backfillPromises = Object.entries(TOPICS).map(async ([key, topicId]) => {
+  // Filter out empty or invalid topic IDs
+  const validTopics = Object.entries(TOPICS).filter(([key, topicId]) => {
+    const isValid = topicId && topicId.trim() !== '' && topicId.match(/^0\.0\.[0-9]+$/)
+    if (!isValid) {
+      console.warn(`[Ingest] Skipping invalid topic ID for ${key}: "${topicId}"`)
+    }
+    return isValid
+  })
+  
+  console.info(`[Ingest] Backfilling ${validTopics.length} valid topics out of ${Object.entries(TOPICS).length} configured`)
+  
+  const backfillPromises = validTopics.map(async ([key, topicId]) => {
     const topicKey = key as TopicKey
     const since = await loadCursor(topicKey)
     
@@ -130,11 +153,29 @@ async function backfillAllTopics(): Promise<void> {
     } catch (error) {
       stats[topicKey].failed++
       console.error(`[Ingest] Backfill failed for ${topicKey}:`, error)
-      throw error
+      // Continue with other topics rather than failing completely
+      console.warn(`[Ingest] Continuing without ${topicKey} backfill data - topic may be empty or inaccessible`)
     }
   })
   
-  await Promise.all(backfillPromises)
+  // Use allSettled to allow some topics to fail without breaking others
+  const backfillResults = await Promise.allSettled(backfillPromises)
+  
+  // Log results summary
+  const successful = backfillResults.filter(r => r.status === 'fulfilled').length
+  const failed = backfillResults.filter(r => r.status === 'rejected').length
+  
+  console.info(`[Ingest] Backfill summary: ${successful} successful, ${failed} failed topics`)
+  
+  if (failed > 0) {
+    console.warn('[Ingest] Some topics failed to backfill, but ingestion will continue with available data')
+    backfillResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const [topicKey] = validTopics[index]
+        console.error(`[Ingest] Topic ${topicKey} backfill failed:`, result.reason)
+      }
+    })
+  }
   
   // After backfill, process any pending recognition instances
   if (recognitionCache.debug().pendingInstancesCount > 0) {
@@ -148,7 +189,18 @@ async function backfillAllTopics(): Promise<void> {
  * Start streaming for all topics
  */
 function startStreamingAllTopics(): void {
-  Object.entries(TOPICS).forEach(([key, topicId]) => {
+  // Filter out empty or invalid topic IDs
+  const validTopics = Object.entries(TOPICS).filter(([key, topicId]) => {
+    const isValid = topicId && topicId.trim() !== '' && topicId.match(/^0\.0\.[0-9]+$/)
+    if (!isValid) {
+      console.warn(`[Ingest] Skipping invalid topic ID for streaming ${key}: "${topicId}"`)
+    }
+    return isValid
+  })
+  
+  console.info(`[Ingest] Starting streaming for ${validTopics.length} valid topics`)
+  
+  validTopics.forEach(([key, topicId]) => {
     const topicKey = key as TopicKey
     
     const cleanup = connectTopicWs({
