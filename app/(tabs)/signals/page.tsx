@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { signalsStore, type SignalEvent, type SignalClass } from "@/lib/stores/signalsStore"
-import { FeedItem } from "@/components/FeedItem"
 import { SignalDetailModal } from "@/components/SignalDetailModal"
 import { hcsFeedService } from "@/lib/services/HCSFeedService"
 import { hcsRecognitionService, type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
@@ -67,127 +66,129 @@ function SignalStatusBadge({ status }: { status: string }) {
   )
 }
 
-function SignalClassBadge({ className }: { className: SignalClass }) {
-  const configs = {
-    contact: { color: "bg-social text-[hsl(var(--background))]" , icon: <Users className="w-3 h-3" /> },
-    trust: { color: "bg-trust text-[hsl(var(--background))]", icon: <Heart className="w-3 h-3" /> },
-    recognition: { color: "bg-academic text-[hsl(var(--background))]", icon: <Award className="w-3 h-3" /> },
-    system: { color: "bg-professional text-[hsl(var(--background))]", icon: <Activity className="w-3 h-3" /> }
+
+// Signal type color mapping
+const getSignalTypeStyles = (signalClass: SignalClass) => {
+  const styles = {
+    contact: { 
+      bg: "bg-blue-50/50 dark:bg-blue-950/20", 
+      border: "border-blue-200 dark:border-blue-800",
+      badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+    },
+    trust: { 
+      bg: "bg-green-50/50 dark:bg-green-950/20", 
+      border: "border-green-200 dark:border-green-800",
+      badge: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+    },
+    recognition: { 
+      bg: "bg-purple-50/50 dark:bg-purple-950/20", 
+      border: "border-purple-200 dark:border-purple-800",
+      badge: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+    },
+    system: { 
+      bg: "bg-gray-50/50 dark:bg-gray-950/20", 
+      border: "border-gray-200 dark:border-gray-800",
+      badge: "bg-gray-100 text-gray-700 dark:bg-gray-900/50 dark:text-gray-300"
+    }
   }
-  
-  const config = configs[className]
-  
-  return (
-    <Badge variant="secondary" className={`text-xs ${config.color}`}>
-      {config.icon}
-      <span className="ml-1 capitalize">{className}</span>
-    </Badge>
-  )
+  return styles[signalClass] || styles.system
 }
 
-function SignalRow({ signal }: { signal: SignalEvent }) {
-  const [showDetails, setShowDetails] = useState(false)
-  
+function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => void }) {
   const getTitle = () => {
-    if (signal.type === "CONTACT_REQUEST") {
+    if (signal.type === "CONTACT_REQUEST" || signal.type === "contact_request") {
       return signal.direction === "outbound" ? "Contact request sent" : "Contact request received"
     }
-    if (signal.type === "CONTACT_ACCEPT") {
+    if (signal.type === "CONTACT_ACCEPT" || signal.type === "contact_accept") {
       return signal.direction === "outbound" ? "Contact accepted" : "Contact bonded"
     }
-    if (signal.type === "TRUST_ALLOCATE") {
-      return `Trust allocated (weight ${signal.payload?.weight || 1})`
+    if (signal.type === "TRUST_ALLOCATE" || signal.type === "trust_allocate") {
+      return `Trust allocated (weight ${signal.payload?.weight || signal.metadata?.weight || 1})`
     }
-    if (signal.type === "TRUST_REVOKE") {
+    if (signal.type === "TRUST_REVOKE" || signal.type === "trust_revoke") {
       return "Trust revoked"
     }
-    return signal.type
+    if (signal.type === "RECOGNITION_MINT" || signal.type === "recognition_mint") {
+      return signal.payload?.name || "Recognition earned"
+    }
+    return signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
   }
 
-  const getActors = () => {
+  const getSubtext = () => {
+    const from = signal.actor || signal.actors?.from || 'unknown'
+    const to = signal.target || signal.actors?.to || 'unknown'
+    
     if (signal.direction === "outbound") {
-      return `${signal.actors.from} → ${signal.actors.to || "peer:unknown"}`
+      return `${from.slice(-8)} → ${to.slice(-8)}`
     } else {
-      return `${signal.actors.from} → ${signal.actors.to || "me"}`
+      return `${from.slice(-8)} → you`
     }
   }
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success(`${label} copied to clipboard`)
+  const formatTime = (timestamp: number) => {
+    if (!timestamp || timestamp === 0) return "—"
+    
+    try {
+      const date = new Date(timestamp)
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return "—"
+      }
+      
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      const diffHours = Math.floor(diffMins / 60)
+      const diffDays = Math.floor(diffHours / 24)
+      
+      if (diffMins < 1) return "now"
+      if (diffMins < 60) return `${diffMins}m ago`
+      if (diffHours < 24) return `${diffHours}h ago`
+      if (diffDays < 7) return `${diffDays}d ago`
+      return date.toLocaleDateString()
+    } catch {
+      return "—"
+    }
   }
 
+  const getStatusBadge = () => {
+    if (signal.status === "onchain") {
+      return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">✓ On-chain</Badge>
+    }
+    if (signal.status === "error") {
+      return <Badge variant="destructive">⚠ Error</Badge>
+    }
+    return <Badge variant="outline" className="text-muted-foreground">⏳ Local</Badge>
+  }
+
+  const getIcon = () => {
+    switch (signal.class) {
+      case 'contact': return <Users className="w-4 h-4" />
+      case 'trust': return <Heart className="w-4 h-4" />
+      case 'recognition': return <Award className="w-4 h-4" />
+      default: return <Activity className="w-4 h-4" />
+    }
+  }
+
+  const styles = getSignalTypeStyles(signal.class)
+  
   return (
-    <Card className="mb-3 bg-card border border-[hsl(var(--border))]/80">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <SignalClassBadge className={signal.class} />
-              <div className="text-sm font-medium">
-                {getTitle()}
-              </div>
-            </div>
-            
-            <div className="text-xs text-[hsl(var(--muted-foreground))] space-y-1">
-              <div>Actors: {getActors()}</div>
-              <div>Time: {new Date(signal.ts).toLocaleString()}</div>
-              <div>Direction: {signal.direction} · Topic: {signal.topicType}</div>
-            </div>
+    <Card className={`${styles.bg} ${styles.border} hover:border-primary/50 cursor-pointer transition-colors`} onClick={onClick}>
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className={`p-2 rounded-lg ${styles.badge}`}>
+          {getIcon()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-foreground truncate">
+            {getTitle()}
           </div>
-          
-          <div className="flex items-start gap-2">
-            <SignalStatusBadge status={signal.status} />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDetails(!showDetails)}
-              className="text-xs px-2 py-1 h-6"
-            >
-              {showDetails ? "Hide" : "Details"}
-            </Button>
+          <div className="text-xs text-muted-foreground">
+            {getSubtext()} • {formatTime(signal.ts)}
           </div>
         </div>
-        
-        {showDetails && (
-          <div className="mt-3 pt-3 border-t space-y-2">
-            <div className="text-xs">
-              <div className="font-medium mb-1">Signal ID:</div>
-              <div className="flex items-center gap-2">
-                <code className="bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] px-2 py-1 rounded text-xs font-mono">
-                  {signal.id}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(signal.id, "Signal ID")}
-                  className="h-5 w-5 p-0"
-                >
-                  <Copy className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-            
-            {signal.payload && Object.keys(signal.payload).length > 0 && (
-              <div className="text-xs">
-                <div className="font-medium mb-1">Payload:</div>
-                <div className="flex items-start gap-2">
-                  <pre className="bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] p-3 rounded-lg text-xs overflow-x-auto flex-1 font-mono border border-[hsl(var(--border))]">
-                    {JSON.stringify(signal.payload, null, 2)}
-                  </pre>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(JSON.stringify(signal.payload, null, 2), "Payload")}
-                    className="h-5 w-5 p-0 flex-shrink-0"
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {getStatusBadge()}
+        </div>
       </CardContent>
     </Card>
   )
@@ -366,18 +367,12 @@ export default function SignalsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filteredSignals.map((signal) => (
-              <FeedItem 
+              <SignalRow 
                 key={signal.id} 
                 signal={signal}
-                onPrimaryClick={handleRecognitionSignalClick}
-                onAccept={(signal) => console.log('Accept:', signal)}
-                onBlock={(signal) => console.log('Block:', signal)}
-                onAdjustTrust={(signal) => console.log('Adjust trust:', signal)}
-                onRevoke={(signal) => console.log('Revoke:', signal)}
-                onShare={(signal) => console.log('Share:', signal)}
-                onRetry={(signal) => console.log('Retry:', signal)}
+                onClick={() => handleRecognitionSignalClick(signal)}
               />
             ))}
           </div>
