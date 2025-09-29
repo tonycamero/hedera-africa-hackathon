@@ -4,6 +4,7 @@
  */
 
 import { WS_RECONNECT_MAX_BACKOFF, WS_RECONNECT_JITTER_MAX, INGEST_DEBUG } from '@/lib/env'
+import { syncState } from '@/lib/sync/syncState'
 
 interface WebSocketOptions {
   topicId: string
@@ -56,6 +57,13 @@ export function connectTopicWs(opts: WebSocketOptions): () => void {
 
       state.ws.onopen = () => {
         state.backoffMs = 1000 // Reset backoff on successful connection
+        
+        // Update sync state on successful connection
+        if (typeof window !== 'undefined') {
+          syncState.setLive(true)
+          // Note: Connection count will be managed by the ingestor
+        }
+        
         if (INGEST_DEBUG) {
           console.info(`[WS] Connected to ${topicId}`)
         }
@@ -102,7 +110,6 @@ export function connectTopicWs(opts: WebSocketOptions): () => void {
         
         // Update sync state on disconnection
         if (typeof window !== 'undefined') {
-          const { syncState } = require('@/lib/sync/syncState')
           syncState.setLive(false)
         }
 

@@ -34,7 +34,7 @@ export function seedDemoSignals(operatorId: string) {
       seen: true,
       type: 'CONTACT_REQUEST'
     }
-    signalsStore.addSignal(outboundRequest)
+    signalsStore.add(outboundRequest)
     
     // Accept responses for first 3 contacts (bonded)
     if (index < 3) {
@@ -55,7 +55,7 @@ export function seedDemoSignals(operatorId: string) {
         seen: true,
         type: 'CONTACT_ACCEPT'
       }
-      signalsStore.addSignal(acceptance)
+      signalsStore.add(acceptance)
     }
   })
   
@@ -75,7 +75,7 @@ export function seedDemoSignals(operatorId: string) {
       seen: true,
       type: 'TRUST_ALLOCATE'
     }
-    signalsStore.addSignal(trustAllocation)
+    signalsStore.add(trustAllocation)
   })
   
   // Seed some inbound trust allocations
@@ -93,7 +93,7 @@ export function seedDemoSignals(operatorId: string) {
       seen: true,
       type: 'TRUST_ALLOCATE'
     }
-    signalsStore.addSignal(inboundTrust)
+    signalsStore.add(inboundTrust)
   })
   
   // Add some recent activity (last 30 minutes)
@@ -112,7 +112,7 @@ export function seedDemoSignals(operatorId: string) {
     seen: false,
     type: 'CONTACT_REQUEST'
   }
-  signalsStore.addSignal(recentContact)
+  signalsStore.add(recentContact)
   
   // Very recent trust allocation (5 minutes ago)
   const veryRecentTs = baseTs - 5 * 60 * 1000
@@ -128,7 +128,7 @@ export function seedDemoSignals(operatorId: string) {
     seen: false,
     type: 'TRUST_ALLOCATE'
   }
-  signalsStore.addSignal(recentTrust)
+  signalsStore.add(recentTrust)
   
   console.log('[SeedData] Seeded signals:', {
     contacts: DEMO_CONTACTS.length * 2 + 1, // requests + accepts + 1 recent

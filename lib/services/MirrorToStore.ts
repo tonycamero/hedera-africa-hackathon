@@ -117,7 +117,7 @@ export function upsertMessages(messages: MirrorMessage[]): void {
   
   // Add to store (the store handles deduplication by ID)
   signalEvents.forEach(event => {
-    signalsStore.addSignal(event);
+    signalsStore.add(event);
   });
   
   console.log(`[MirrorToStore] Added ${signalEvents.length} events to SignalsStore`);

@@ -22,7 +22,7 @@ export default function TabsLayout({
   // Update unseen signals indicator
   useEffect(() => {
     const updateUnseen = () => {
-      const unseen = signalsStore.hasUnseen("signals")
+      const unseen = signalsStore.hasUnseen()
       setHasUnseen(unseen)
     }
 

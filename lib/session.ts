@@ -11,6 +11,16 @@ let _sessionId: string | null = null
 let _sessionProfile: SessionProfile | null = null
 
 export function getSessionId(ephemeralStrict?: boolean): string {
+  // Honor explicit session override in preview/demo
+  const envSession = process.env.NEXT_PUBLIC_SESSION_ID?.trim()
+  if (envSession) {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('tm_session_id', envSession)
+    }
+    _sessionId = envSession
+    return envSession
+  }
+
   // Use runtime flags to determine ephemeral mode
   const isEphemeral = ephemeralStrict ?? getRuntimeEphemeralMode()
   

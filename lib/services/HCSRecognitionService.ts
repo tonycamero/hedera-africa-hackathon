@@ -249,7 +249,7 @@ export class HCSRecognitionService {
     };
 
     // ✅ Add to SignalsStore
-    signalsStore.addSignal(signalEvent);
+    signalsStore.add(signalEvent);
 
     console.log('[HCSRecognitionService] resolved instance →', def.slug || def.id, 'owner=', inst.owner);
     return true;

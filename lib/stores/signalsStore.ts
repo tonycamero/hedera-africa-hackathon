@@ -9,6 +9,40 @@ type SignalSelector<T> = (store: SignalsStore) => T
 let _batchDepth = 0
 let _pendingNotify = false
 
+// Seen state tracking
+const SEEN_KEY = 'tm_seen_ids'
+const seenIds: Set<string> = typeof window !== 'undefined' ? new Set<string>(safeLoadSeen()) : new Set<string>()
+
+function safeLoadSeen(): string[] {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function persistSeen() {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]))
+    }
+  } catch {}
+}
+
+// Robust ID derivation (works with either canonical SignalEvent or raw HCS)
+function deriveId(ev: any): string | null {
+  if (!ev) return null
+  if (typeof ev.id === 'string') return ev.id
+  // Fallback to topic+timestamp/sequence
+  const ts = ev.ts || ev.consensus_timestamp || ev.timestamp
+  const seq = ev.sequenceNumber || ev.sequence_number || ev.sequence
+  const topic = ev.topicId || ev.topic_id
+  if (topic && ts) return `${topic}:${ts}`
+  if (topic && seq) return `${topic}#${seq}`
+  return null
+}
+
 // Normalized SignalEvent shape - single source of truth for UI
 export interface SignalEvent {
   id?: string
@@ -145,10 +179,43 @@ class SignalsStore {
   }
 
   // --- UI State Helpers ---
-  hasUnseen(category?: string): boolean {
-    // For now, return false as the unseen functionality needs more complex state tracking
-    // This prevents the JavaScript error in the UI
+  hasUnseen(filter?: unknown): boolean {
+    const all = this.getAll()
+    const predicate = typeof filter === 'function' ? (filter as (ev: any) => boolean) : undefined
+    for (const ev of all) {
+      const key = deriveId(ev)
+      if (!key) continue
+      if (!seenIds.has(key) && (!predicate || predicate(ev))) {
+        return true
+      }
+    }
     return false
+  }
+
+  unseenCount(filter?: unknown): number {
+    const all = this.getAll()
+    const predicate = typeof filter === 'function' ? (filter as (ev: any) => boolean) : undefined
+    let count = 0
+    for (const ev of all) {
+      const key = deriveId(ev)
+      if (!key) continue
+      if (!seenIds.has(key) && (!predicate || predicate(ev))) count++
+    }
+    return count
+  }
+
+  markSeen(idsOrEvents: string | any | Array<string | any>): void {
+    const items = Array.isArray(idsOrEvents) ? idsOrEvents : [idsOrEvents]
+    let changed = false
+    for (const it of items) {
+      const key = typeof it === 'string' ? it : deriveId(it)
+      if (key && !seenIds.has(key)) {
+        seenIds.add(key)
+        changed = true
+      }
+    }
+    if (changed) persistSeen()
+    console.log('[SignalsStore] Marked seen:', items.length, 'items')
   }
 
   // --- Debug Summary ---
@@ -275,14 +342,47 @@ export function useSignals<T>(
   )
 }
 
+// Add compatibility methods for legacy code
+if (!('addSignal' in signalsStore)) {
+  (signalsStore as any).addSignal = signalsStore.add.bind(signalsStore)
+}
+if (!('getAllSignals' in signalsStore)) {
+  (signalsStore as any).getAllSignals = signalsStore.getAll.bind(signalsStore)
+}
+if (!('clearSignals' in signalsStore)) {
+  (signalsStore as any).clearSignals = signalsStore.clear.bind(signalsStore)
+}
+if (!('updateSignalStatus' in signalsStore)) {
+  (signalsStore as any).updateSignalStatus = () => {} // No-op for legacy compatibility
+}
+
 // Debug helper for development
 if (typeof window !== 'undefined') {
   // @ts-ignore
   window.signalsStore = {
     getSummary: () => signalsStore.getSummary(),
     getAll: () => signalsStore.getAll(),
+    getAllSignals: () => signalsStore.getAll(), // Legacy alias
+    getSignals: (opts: { class?: string } = {}) => {
+      // Legacy support for class-based filtering
+      if (opts.class === 'contact') {
+        return signalsStore.getAll().filter(s => s.type.includes('CONTACT'))
+      } else if (opts.class === 'trust') {
+        return signalsStore.getAll().filter(s => s.type.includes('TRUST'))
+      } else if (opts.class === 'recognition') {
+        return signalsStore.getAll().filter(s => s.type.includes('RECOGNITION'))
+      }
+      return signalsStore.getAll()
+    },
     getScopedMy: (sid: string) => signalsStore.getScoped({ scope: 'my', sessionId: sid }),
     getScopedGlobal: (sid: string) => signalsStore.getScoped({ scope: 'global', sessionId: sid }),
+    getScoped: (opts: { scope: 'my' | 'global'; sessionId: string; types?: string[] }) => signalsStore.getScoped(opts),
+    getByType: (type: string) => signalsStore.getByType(type),
+    getByActor: (sessionId: string) => signalsStore.getByActor(sessionId),
+    getByActorOrTarget: (sessionId: string) => signalsStore.getByActorOrTarget(sessionId),
+    hasUnseen: (filter?: (ev: any) => boolean) => signalsStore.hasUnseen(filter),
+    unseenCount: (filter?: (ev: any) => boolean) => signalsStore.unseenCount(filter),
+    markSeen: (idsOrEvents: string | any | Array<string | any>) => signalsStore.markSeen(idsOrEvents),
     batchSignals,
     useSignals,
   }

@@ -12,6 +12,7 @@ import { backfillTopic } from './restBackfill'
 import { connectTopicWs } from './wsStream'
 import { loadCursor, saveCursor } from './cursor'
 import { compareConsensusNs } from './time'
+import { syncState } from '@/lib/sync/syncState'
 
 interface IngestStats {
   backfilled: number
@@ -110,6 +111,12 @@ export function stopIngestion(): void {
   
   activeConnections.clear()
   ingestionStarted = false
+  
+  // Update sync state
+  if (typeof window !== 'undefined') {
+    syncState.setConnectionCount(0)
+    syncState.setLive(false)
+  }
   
   console.info('[Ingest] Ingestion stopped')
 }
@@ -254,6 +261,11 @@ function startStreamingAllTopics(): void {
     activeConnections.set(topicKey, cleanup)
     console.info(`[Ingest] Started streaming for ${topicKey}`)
   })
+  
+  // Update connection count after all connections are established
+  if (typeof window !== 'undefined') {
+    syncState.setConnectionCount(activeConnections.size)
+  }
 }
 
 /**
