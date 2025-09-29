@@ -141,13 +141,13 @@ const contactRelationships = [
   }
 ];
 
-// Trust relationships (Circle of 9 Trust)
+// Trust relationships (Circle of 9 Trust) - 1:1 binary allocation
 const trustRelationships = [
   {
     from: 'tm-alex-chen',
     to: 'tm-sarah-dev',
     type: 'TRUST_ALLOCATE',
-    amount: 2.5,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'professional',
     note: 'Excellent developer, always delivers quality work',
     allocatedAt: '2024-01-20'
@@ -156,7 +156,7 @@ const trustRelationships = [
     from: 'tm-alex-chen',
     to: 'tm-lisa-crypto',
     type: 'TRUST_ALLOCATE',
-    amount: 3.0,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'expertise',
     note: 'Deep crypto knowledge, reliable research',
     allocatedAt: '2024-01-25'
@@ -165,7 +165,7 @@ const trustRelationships = [
     from: 'tm-alex-chen',
     to: 'tm-mike-design',
     type: 'TRUST_ALLOCATE',
-    amount: 1.5,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'creative',
     note: 'Great design skills, good collaboration',
     allocatedAt: '2024-02-02'
@@ -174,7 +174,7 @@ const trustRelationships = [
     from: 'tm-alex-chen',
     to: 'tm-emily-writer',
     type: 'TRUST_ALLOCATE',
-    amount: 1.0,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'communication',
     note: 'Clear writing, good at explaining complex topics',
     allocatedAt: '2024-02-10'
@@ -183,17 +183,17 @@ const trustRelationships = [
     from: 'tm-alex-chen',
     to: 'tm-james-startup',
     type: 'TRUST_ALLOCATE',
-    amount: 1.0,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'business',
     note: 'Good business instincts, networking skills',
     allocatedAt: '2024-02-15'
   },
-  // Incoming trust (others -> Alex)
+  // Incoming trust (others -> Alex) - also 1:1
   {
     from: 'tm-sarah-dev',
     to: 'tm-alex-chen',
     type: 'TRUST_ALLOCATE',
-    amount: 2.0,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'leadership',
     note: 'Great project leadership and vision',
     allocatedAt: '2024-01-22'
@@ -202,7 +202,7 @@ const trustRelationships = [
     from: 'tm-lisa-crypto',
     to: 'tm-alex-chen',
     type: 'TRUST_ALLOCATE',
-    amount: 1.5,
+    amount: 1,  // Binary: 1 trust slot allocated
     category: 'technical',
     note: 'Solid technical skills and understanding',
     allocatedAt: '2024-01-28'
