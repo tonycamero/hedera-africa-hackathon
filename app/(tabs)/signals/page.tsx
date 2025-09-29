@@ -67,28 +67,24 @@ function SignalStatusBadge({ status }: { status: string }) {
 }
 
 
-// Signal type color mapping
+// Signal type color mapping with better contrast for dark theme
 const getSignalTypeStyles = (signalClass: SignalClass) => {
   const styles = {
     contact: { 
-      bg: "bg-blue-50/50 dark:bg-blue-950/20", 
-      border: "border-blue-200 dark:border-blue-800",
-      badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+      border: "border-l-blue-500",
+      badge: "bg-blue-500/20 text-blue-600 dark:text-blue-400"
     },
     trust: { 
-      bg: "bg-green-50/50 dark:bg-green-950/20", 
-      border: "border-green-200 dark:border-green-800",
-      badge: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+      border: "border-l-green-500",
+      badge: "bg-green-500/20 text-green-600 dark:text-green-400"
     },
     recognition: { 
-      bg: "bg-purple-50/50 dark:bg-purple-950/20", 
-      border: "border-purple-200 dark:border-purple-800",
-      badge: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+      border: "border-l-purple-500",
+      badge: "bg-purple-500/20 text-purple-600 dark:text-purple-400"
     },
     system: { 
-      bg: "bg-gray-50/50 dark:bg-gray-950/20", 
-      border: "border-gray-200 dark:border-gray-800",
-      badge: "bg-gray-100 text-gray-700 dark:bg-gray-900/50 dark:text-gray-300"
+      border: "border-l-gray-500",
+      badge: "bg-gray-500/20 text-gray-600 dark:text-gray-400"
     }
   }
   return styles[signalClass] || styles.system
@@ -153,12 +149,12 @@ function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => v
 
   const getStatusBadge = () => {
     if (signal.status === "onchain") {
-      return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">✓ On-chain</Badge>
+      return <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">✓</Badge>
     }
     if (signal.status === "error") {
-      return <Badge variant="destructive">⚠ Error</Badge>
+      return <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">⚠</Badge>
     }
-    return <Badge variant="outline" className="text-muted-foreground">⏳ Local</Badge>
+    return <Badge className="bg-gray-500/20 text-gray-600 dark:text-gray-400">⏳</Badge>
   }
 
   const getIcon = () => {
@@ -173,8 +169,8 @@ function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => v
   const styles = getSignalTypeStyles(signal.class)
   
   return (
-    <Card className={`${styles.bg} ${styles.border} hover:border-primary/50 cursor-pointer transition-colors`} onClick={onClick}>
-      <CardContent className="p-4 flex items-center gap-3">
+    <Card className={`bg-card border ${styles.border} border-l-4 hover:border-primary/50 cursor-pointer transition-colors`} onClick={onClick}>
+      <CardContent className="p-3 flex items-center gap-3">
         <div className={`p-2 rounded-lg ${styles.badge}`}>
           {getIcon()}
         </div>
@@ -186,7 +182,7 @@ function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => v
             {getSubtext()} • {formatTime(signal.ts)}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {getStatusBadge()}
         </div>
       </CardContent>
@@ -305,19 +301,13 @@ export default function SignalsPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-3xl space-y-6">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-primary">Activity Feed</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            All your TrustMesh network activity - contacts, trust, and recognition signals
+          <h1 className="text-xl font-bold">Activity Feed</h1>
+          <p className="text-xs text-muted-foreground">
+            Network activity • {filteredSignals.length} signals
           </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">
-            {filteredSignals.length} signals
-          </Badge>
         </div>
       </div>
 
