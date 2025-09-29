@@ -62,7 +62,7 @@ export default function SyncStatusBar() {
               {getStatusIcon()}
             </span>
             <span className={`font-medium ${getStatusColor()}`}>
-              {state.live ? 'Live' : 'Paused'}
+              {state.live ? 'Live' : '⏸ Standby / Data cached'}
             </span>
           </div>
 
@@ -135,7 +135,7 @@ export function CompactSyncStatusBar() {
     <div className="flex items-center gap-2 text-xs">
       <span className="text-sm">{health.status === 'healthy' ? '🟢' : health.status === 'degraded' ? '🟡' : '🔴'}</span>
       <span className={health.healthy ? 'text-green-600' : 'text-amber-600'}>
-        {state.live ? 'Live' : 'Paused'}
+        {state.live ? 'Live' : '⏸ Standby / Data cached'}
       </span>
       {state.errors.length > 0 && (
         <span className="text-red-600">

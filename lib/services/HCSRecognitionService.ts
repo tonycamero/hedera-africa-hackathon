@@ -10,6 +10,31 @@ type Def = {
   name?: string;
   description?: string;
   icon?: string;
+  category?: string;        // social, academic, professional
+  rarity?: string;          // Common, Uncommon, etc.
+  number?: number;          // sequence number
+  isActive?: boolean;       // active status
+  extendedDescription?: string; // longer description
+  // Enhanced metadata from v2.0 definitions
+  stats?: {
+    popularity: number;
+    impact: number;
+    authenticity: number;
+    difficulty: number;
+  };
+  traits?: {
+    personality: string[];
+    skills: string[];
+    environment: string[];
+  };
+  relatedLinks?: Array<{
+    name: string;
+    url: string;
+    type: string;
+  }>;
+  backstory?: string;
+  tips?: string[];
+  enhancementVersion?: string;
   _hrl: string;
   _ts: string;
 };
@@ -123,12 +148,37 @@ export class HCSRecognitionService {
         continue; 
       }
 
+      // Support enhanced recognition definitions
+      if (added < 3) {
+        console.log(`[HCSRecognitionService] Enhanced definition loaded:`, {
+          id, 
+          name: d.name,
+          category: (d as any).category,
+          rarity: (d as any).rarity,
+          hasExtended: !!(d as any).extendedDescription,
+          hasStats: !!(d as any).stats,
+          hasTraits: !!(d as any).traits
+        });
+      }
+
       const def: Def = {
         id, 
         slug: d.slug, 
         name: d.name, 
         description: d.description, 
         icon: d.icon,
+        category: (d as any).category,
+        rarity: (d as any).rarity,
+        number: (d as any).number,
+        isActive: (d as any).isActive ?? true, // default to true
+        extendedDescription: (d as any).extendedDescription,
+        // Enhanced metadata from v2.0 definitions
+        stats: (d as any).stats,
+        traits: (d as any).traits,
+        relatedLinks: (d as any).relatedLinks,
+        backstory: (d as any).backstory,
+        tips: (d as any).tips,
+        enhancementVersion: (d as any).enhancementVersion,
         _hrl: d._hrl, 
         _ts: d._ts,
       };
@@ -164,7 +214,7 @@ export class HCSRecognitionService {
     let resolved = 0, queued = 0;
     for (const i of instances) {
       const inst: Inst = {
-        owner: i.owner, 
+        owner: this.normalizeOwnerId(i.owner), // Apply normalization during ingestion!
         definitionId: i.definitionId, 
         definitionSlug: i.definitionSlug,
         note: i.note, 
@@ -219,39 +269,58 @@ export class HCSRecognitionService {
     return this.publishInstanceWithDefinition(inst, def);
   }
 
+  // Normalize owner IDs to handle demo variants
+  private normalizeOwnerId(id?: string): string {
+    if (!id) return '';
+    const normalized = id.trim().toLowerCase();
+    
+    // Map demo variants to canonical session ID
+    if (normalized.includes('alex-chen-demo') || normalized === 'alex' || normalized === 'alex chen') {
+      return 'tm-alex-chen';
+    }
+    
+    // Keep tm-* as is
+    return id;
+  }
+
   private publishInstanceWithDefinition(inst: Inst, def: Def): boolean {
-    // 🔁 Map to SignalEvent format for the store
+    // Normalize owner ID before publishing
+    const normalizedOwner = this.normalizeOwnerId(inst.owner);
+    const normalizedInst = { ...inst, owner: normalizedOwner };
+    
+    // 🔁 Map to SignalEvent format for the store with normalized shape
     const signalEvent = {
-      id: `recognition_${inst._hrl.replace(/[:/]/g, '_')}`,
+      id: `recognition_${normalizedInst._hrl.replace(/[:/]/g, '_')}`,
       class: 'recognition' as const,
+      type: 'RECOGNITION_MINT' as const, // Uppercase for consistency
       topicType: 'SIGNAL' as const,
       direction: 'inbound' as const,
       actors: {
-        from: inst.issuer || 'system',
-        to: inst.owner
+        from: normalizedInst.issuer || 'system',
+        to: normalizedOwner
       },
       payload: {
         definitionId: def.id,
         definitionSlug: def.slug,
         definitionName: def.name,
         definitionIcon: def.icon,
-        note: inst.note,
-        owner: inst.owner,
-        issuer: inst.issuer
+        note: normalizedInst.note,
+        owner: normalizedOwner,
+        issuer: normalizedInst.issuer
       },
-      ts: new Date(inst._ts).getTime(),
+      ts: new Date(normalizedInst._ts).getTime(),
       status: 'onchain' as const,
-      type: 'recognition_mint',
+      source: 'hcs' as const, // Add source for consistency
       meta: {
         tag: 'hcs_recognition',
-        hrl: inst._hrl
+        hrl: normalizedInst._hrl
       }
     };
 
     // ✅ Add to SignalsStore
     signalsStore.add(signalEvent);
 
-    console.log('[HCSRecognitionService] resolved instance →', def.slug || def.id, 'owner=', inst.owner);
+    console.log('[HCSRecognitionService] resolved instance →', def.slug || def.id, 'owner=', normalizedOwner);
     return true;
   }
 
@@ -299,6 +368,24 @@ export class HCSRecognitionService {
 
   // ---------- IO (REST + WS) ----------
 
+  // Safe JSON decoder that handles malformed messages
+  private safeJson(b64: string) {
+    try { 
+      return JSON.parse(Buffer.from(b64, 'base64').toString('utf8')); 
+    } catch {
+      // Second pass: strip NULs and fix common truncated array/object endings
+      try {
+        let s = Buffer.from(b64, 'base64').toString('utf8').replace(/\u0000/g, '');
+        // Optional: lightweight repair for arrays/objects
+        if (s.endsWith(',]')) s = s.slice(0, -2) + ']';
+        if (s.endsWith(',}')) s = s.slice(0, -2) + '}';
+        return JSON.parse(s);
+      } catch {
+        return null; // Swallow; we'll just skip non-JSON payloads
+      }
+    }
+  }
+
   private async backfill(topicId: string, limit = 200, order: 'asc'|'desc' = 'asc') {
     const url = `${MIRROR_REST}/topics/${encodeURIComponent(topicId)}/messages?limit=${limit}&order=${order}`;
     console.log('[HCSRecognitionService] REST backfill', url);
@@ -309,7 +396,11 @@ export class HCSRecognitionService {
     const json = await res.json();
     const msgs = (json?.messages ?? []) as MirrorMsg[];
     
-    const decoded = msgs.map(m => decodeRecognition(m)).filter(Boolean) as RecognitionDecoded[];
+    // Use safe JSON decoder and filter out null results
+    const decoded = msgs.map(m => {
+      const msgData = this.safeJson(m.message);
+      return msgData ? decodeRecognition({...m, message: Buffer.from(JSON.stringify(msgData)).toString('base64')}) : null;
+    }).filter(Boolean) as RecognitionDecoded[];
     console.log('[HCSRecognitionService] Decoded', decoded.length, 'messages from', msgs.length, 'raw messages');
     
     return decoded;
@@ -369,6 +460,11 @@ export class HCSRecognitionService {
     this.pending = [];
     console.log('[HCSRecognitionService] Cache cleared');
   }
+
+  // Legacy method aliases for compatibility with existing pages
+  getAllRecognitionDefinitions = () => this.getAllDefinitions();
+  getDefinitions = () => this.getAllDefinitions();
+  getInstancesByOwner = (owner: string) => this.getUserRecognitionInstances(owner);
 }
 
 export const hcsRecognitionService = new HCSRecognitionService();

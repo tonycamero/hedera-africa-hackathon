@@ -67,50 +67,103 @@ export function ContactProfileSheet({
       setSource("")
       return
     }
+    
+    const loadProfileFromStore = () => {
 
-    // Get the peer's profile HRL from contact handshake
-    const profileHrl = signalsStore.getPeerProfileHrl(peerId)
-    setHrl(profileHrl || null)
+    // Store-only approach - no HRL needed
+    setHrl(null)
     
-    // Get contact info from signals store using current session ID
+    // Get contact info from HCS events directly
     const currentSessionId = getSessionId()
-    const contacts = signalsStore.deriveContacts(currentSessionId)
-    const contact = contacts.find(c => c.peerId === peerId)
     
-    if (!profileHrl) {
-      // No HCS profile HRL found - show basic contact info from HCS signals only
-      const contactInfo = {
-        handle: contact?.handle || peerId,
-        bio: contact?.bonded 
-          ? `Contact established via Hedera Consensus Service` 
-          : "Profile not published to HCS",
-        visibility: "unknown",
-        joinedAt: contact?.bondedAt,
-        reputation: contact?.trustWeightOut || undefined
+    // Helper functions to extract actor/target from events (handles different schemas)
+    const getActor = (e: any) => e?.actor ?? e?.actors?.from ?? e?.from ?? e?.payload?.from ?? e?.metadata?.from
+    const getTarget = (e: any) => e?.target ?? e?.actors?.to ?? e?.to ?? e?.payload?.to ?? e?.metadata?.to
+    
+    // Find contact events for this peer using schema-tolerant field extraction
+    const allEvents = signalsStore.getAll()
+    console.log(`[ContactProfileSheet] Looking for peer ${peerId} in ${allEvents.length} events`)
+    
+    const peerEvents = allEvents.filter(event => {
+      const actor = getActor(event)
+      const target = getTarget(event) 
+      const isMatch = event.type.includes('CONTACT') && 
+                     (actor === peerId || target === peerId)
+      if (isMatch) {
+        console.log(`[ContactProfileSheet] Found event for ${peerId}:`, event)
       }
-      setData(contactInfo)
-      setSource(contact?.bonded ? "hcs_signals_only" : "hcs_contact_only")
-      return
+      return isMatch
+    });
+    
+    console.log(`[ContactProfileSheet] Found ${peerEvents.length} events for peer ${peerId}`)
+    
+    // Extract handle from the contact events if available
+    let handle = peerId;
+    let bondedAt: number | undefined = undefined;
+    let bonded = false;
+    
+    for (const event of peerEvents) {
+      // Check multiple possible locations for handle/name info
+      const eventHandle = event.metadata?.handle || 
+                          event.metadata?.name || 
+                          event.metadata?.displayName ||
+                          event.payload?.handle ||
+                          event.payload?.name ||
+                          event.payload?.displayName
+      
+      if (eventHandle) {
+        handle = eventHandle;
+      }
+      
+      if (event.type === 'CONTACT_ACCEPT' || event.type === 'CONTACT_ACCEPTED') {
+        bonded = true;
+        bondedAt = event.ts;
+      }
+    }
+    
+    // Find trust events for this peer to determine trust level
+    const trustEvents = allEvents.filter(event => {
+      const actor = getActor(event)
+      const target = getTarget(event)
+      return event.type === 'TRUST_ALLOCATE' && 
+             actor === currentSessionId && 
+             target === peerId
+    });
+    
+    let trustWeight: number | undefined = undefined;
+    if (trustEvents.length > 0) {
+      const latest = trustEvents.sort((a, b) => b.ts - a.ts)[0];
+      trustWeight = latest.metadata?.weight;
     }
 
-    // Fetch profile from HCS-11 via HRL
-    setLoading(true)
-    fetch(`/api/hcs/profile?hrl=${encodeURIComponent(profileHrl)}`)
-      .then(r => r.json())
-      .then((response: ProfileResponse) => {
-        setData(response.profile || { handle: peerId })
-        setSource(response.source || "unknown")
-      })
-      .catch(error => {
-        console.error("Failed to fetch profile:", error)
-        setData({
-          handle: peerId,
-          bio: "Failed to load profile",
-          visibility: "public"
-        })
-        setSource("error")
-      })
-      .finally(() => setLoading(false))
+    // Use SignalsStore as single source of truth
+    const contactInfo = {
+      handle: handle || peerId,
+      bio: bonded 
+        ? `Contact established via Hedera Consensus Service` 
+        : "No on-chain profile found yet",
+      visibility: bonded ? "known_contact" : "unknown",
+      joinedAt: bondedAt,
+      reputation: trustWeight || undefined
+    }
+    
+    console.log(`[ContactProfileSheet] Contact info from SignalsStore:`, contactInfo)
+    
+    setData(contactInfo)
+    setSource(bonded ? "hcs-cached" : "hcs")
+    setLoading(false) // No async operation needed
+    }
+    
+    // Initial load from store
+    loadProfileFromStore()
+    
+    // Subscribe to store updates
+    const unsubscribe = signalsStore.subscribe(() => {
+      console.log(`[ContactProfileSheet] Store updated, refreshing profile for ${peerId}`)
+      loadProfileFromStore()
+    })
+    
+    return unsubscribe
   }, [peerId])
 
   const copyToClipboard = (text: string, label: string) => {

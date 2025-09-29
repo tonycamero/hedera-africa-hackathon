@@ -33,6 +33,11 @@ export default function RecognitionPage() {
         const definitions = await hcsRecognitionService.getAllRecognitionDefinitions()
         setRecognitionDefinitions(definitions)
         console.log(`[RecognitionPage] Loaded ${definitions.length} recognition definitions from HCS`)
+        
+        // Debug: Log unique categories
+        const categories = [...new Set(definitions.map(d => d.category))]
+        console.log('[RecognitionPage] Categories found:', categories)
+        console.log('[RecognitionPage] Sample definitions:', definitions.slice(0, 3).map(d => ({ name: d.name, category: d.category })))
       } catch (error) {
         console.error("[RecognitionPage] Failed to load recognition data:", error)
       } finally {
@@ -161,12 +166,17 @@ export default function RecognitionPage() {
         </div>
       )}
 
-      {/* Stats Footer */}
-      <div className="mt-12 text-center text-[hsl(var(--text-subtle))] text-sm">
+      {/* Debug Info & Stats Footer */}
+      <div className="mt-12 text-center text-[hsl(var(--text-subtle))] text-sm space-y-2">
         <p>
           Showing {filteredSignals.length} of {recognitionDefinitions.length} recognition signals
           {!isLoading && recognitionDefinitions.length > 0 && " (loaded from HCS)"}
         </p>
+        <div className="text-xs bg-muted p-2 rounded">
+          <p>Active Category: {activeCategory}</p>
+          <p>Categories: {JSON.stringify([...new Set(recognitionDefinitions.map(d => d.category))])}</p>
+          <p>Counts: Social={counts.social}, Academic={counts.academic}, Professional={counts.professional}</p>
+        </div>
       </div>
 
       {/* Signal Detail Modal */}

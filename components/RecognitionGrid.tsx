@@ -43,9 +43,9 @@ function MiniRecognitionCard({ signal }: { signal: RecognitionDisplay }) {
   )
 }
 
-// Service selection based on environment flag
+// Service selection based on environment flag (defaulting to DirectHCS for better performance)
 const getRecognitionService = () => {
-  const useDirectService = process.env.NEXT_PUBLIC_RECOG_DIRECT === 'true';
+  const useDirectService = process.env.NEXT_PUBLIC_RECOG_DIRECT !== 'false'; // Default to true
   console.log('[RecognitionGrid] Using', useDirectService ? 'DirectHCS' : 'Legacy', 'recognition service');
   return useDirectService ? directHCSRecognitionService : hcsRecognitionService;
 };
@@ -71,8 +71,10 @@ export function RecognitionGrid({ ownerId, maxItems = 6 }: RecognitionGridProps)
           recognitionService.getAllDefinitions() : 
           recognitionService.getDefinitions();
         
-        // Get user's recognition instances  
-        const instances = recognitionService.getUserInstances(ownerId);
+        // Get user's recognition instances (with proper method fallback)
+        const instances = recognitionService.getUserInstances ? 
+          recognitionService.getUserInstances(ownerId) :
+          recognitionService.getUserRecognitionInstances(ownerId);
         console.log(`[RecognitionGrid] Found ${instances.length} instances for owner ${ownerId}:`, instances);
         
         // Store debug info for DevTools access
@@ -98,8 +100,10 @@ export function RecognitionGrid({ ownerId, maxItems = 6 }: RecognitionGridProps)
         for (const instance of instances.slice(0, maxItems)) {
           console.log(`[RecognitionGrid] Processing instance:`, instance)
           
-          // Get definition for this instance
-          const definition = recognitionService.getDefinition(instance.definitionId)
+          // Get definition for this instance (with proper method fallback)
+          const definition = recognitionService.getDefinition ? 
+            recognitionService.getDefinition(instance.definitionId) :
+            recognitionService.getRecognitionDefinition(instance.definitionId)
           
           if (definition) {
             const displaySignal: RecognitionDisplay = {

@@ -226,18 +226,41 @@ export class DirectHCSRecognitionService {
     
     console.log('[DirectHCSRecognition] Processing', messages.length, 'raw messages');
     
+    // Safe JSON decoder that handles malformed messages
+    const safeJson = (b64: string) => {
+      try { 
+        return JSON.parse(Buffer.from(b64, 'base64').toString('utf8')); 
+      } catch {
+        // Second pass: strip NULs and fix common truncated array/object endings
+        try {
+          let s = Buffer.from(b64, 'base64').toString('utf8').replace(/\u0000/g, '');
+          // Optional: lightweight repair for arrays/objects
+          if (s.endsWith(',]')) s = s.slice(0, -2) + ']';
+          if (s.endsWith(',}')) s = s.slice(0, -2) + '}';
+          return JSON.parse(s);
+        } catch {
+          return null; // Swallow; we'll just skip non-JSON payloads
+        }
+      }
+    };
+
     // Process messages
     for (const msg of messages) {
       try {
-        const decoded = Buffer.from(msg.message, 'base64').toString('utf8');
-        const msgData = JSON.parse(decoded);
+        const msgData = safeJson(msg.message);
+        if (!msgData) continue; // Skip malformed messages
         
-        if (msgData.type === 'recognition_definition_created' && msgData.data) {
+        // Make type checking case-insensitive and tolerant
+        const msgType = String(msgData.type || '').toLowerCase();
+        const isDefinition = msgType.includes('definition');
+        const isInstance = msgType.includes('mint') || msgType.includes('instance');
+        
+        if (isDefinition && msgData.data) {
           this.processDefinition(msgData.data, msg.consensus_timestamp);
-        } else if (msgData.type === 'RECOGNITION_MINT') {
+        } else if (isInstance) {
+          // Could be RECOGNITION_MINT, recognition_mint, or any mint/instance type
           this.processInstance(msgData, msg.consensus_timestamp);
-        } else if (msgData.type === 'recognition_mint') {
-          this.processEvent(msgData, msg.consensus_timestamp);
+          this.processEvent(msgData, msg.consensus_timestamp); // Also try as event
         }
         
       } catch (error) {
@@ -271,34 +294,105 @@ export class DirectHCSRecognitionService {
     }
   }
 
+  // Normalize owner IDs to handle demo variants
+  private normalizeOwnerId(id?: string): string {
+    if (!id) return '';
+    const normalized = id.trim().toLowerCase();
+    
+    // Map demo variants to canonical session ID
+    if (normalized.includes('alex-chen-demo') || normalized === 'alex' || normalized === 'alex chen') {
+      return 'tm-alex-chen';
+    }
+    
+    // Keep tm-* as is
+    return id;
+  }
+
+  // Extract owner from various possible field locations
+  private extractOwner(data: any): string | undefined {
+    const CANDIDATE_OWNER_FIELDS = ["owner", "recipient", "to", "target", "subject", "holder"];
+    
+    // Check top-level fields first
+    for (const field of CANDIDATE_OWNER_FIELDS) {
+      if (typeof data?.[field] === "string" && data[field]) {
+        return this.normalizeOwnerId(data[field]);
+      }
+    }
+    
+    // Check payload.* fields (this is where the owner was hiding!)
+    const payload = data?.payload;
+    if (payload) {
+      for (const field of CANDIDATE_OWNER_FIELDS) {
+        if (typeof payload?.[field] === "string" && payload[field]) {
+          return this.normalizeOwnerId(payload[field]);
+        }
+      }
+    }
+    
+    // Check metadata.* as fallback
+    const meta = data?.metadata;
+    if (meta) {
+      for (const field of CANDIDATE_OWNER_FIELDS) {
+        if (typeof meta?.[field] === "string" && meta[field]) {
+          return this.normalizeOwnerId(meta[field]);
+        }
+      }
+    }
+    
+    return undefined;
+  }
+
   private processInstance(data: any, timestamp: string): void {
-    if (!data.owner || !data.definitionId) return;
+    const owner = this.extractOwner(data);
+    
+    // More flexible definitionId extraction too
+    const definitionId = data.definitionId || data.payload?.definitionId || data.payload?.recognition || data.payload?.name;
+    
+    if (!owner || !definitionId) {
+      console.warn('[DirectHCSRecognition] instance without resolvable owner or definitionId', { 
+        keys: Object.keys(data),
+        payloadKeys: data.payload ? Object.keys(data.payload) : [],
+        owner,
+        definitionId
+      });
+      return;
+    }
     
     const instance: RecognitionInstance = {
-      id: data.id || `inst_${data.owner}_${data.definitionId}_${Date.now()}`,
-      owner: data.owner,
-      definitionId: data.definitionId,
-      definitionSlug: data.definitionSlug,
-      issuer: data.issuer || 'system',
-      note: data.note,
-      _hrl: `inst/${data.owner}/${data.definitionId}`,
+      id: data.id || `inst_${owner}_${definitionId}_${Date.now()}`,
+      owner,
+      definitionId,
+      definitionSlug: data.definitionSlug || data.payload?.definitionSlug,
+      issuer: data.issuer || data.from || data.payload?.mintedBy || 'system',
+      note: data.note || data.payload?.note,
+      _hrl: `inst/${owner}/${definitionId}`,
       _ts: timestamp
     };
     
     this.instances.push(instance);
+    
+    // Also publish to SignalsStore for consistency
+    this.publishToSignalsStore(instance, definitionId);
   }
 
   private processEvent(data: any, timestamp: string): void {
-    if (!data.from || !data.to || !data.definitionId) return;
+    const from = data.from || data.payload?.from || data.issuer;
+    const to = this.extractOwner(data); // Use the same flexible extraction
+    const definitionId = data.definitionId || data.payload?.definitionId || data.payload?.recognition || data.payload?.name;
+    
+    if (!from || !to || !definitionId) {
+      // Don't log warning here since processInstance already handles this case
+      return;
+    }
     
     const event: RecognitionSendEvent = {
-      id: data.id || `event_${data.from}_${data.to}_${Date.now()}`,
+      id: data.id || `event_${from}_${to}_${Date.now()}`,
       type: 'RECOGNITION_MINT',
-      from: data.from,
-      to: data.to,
-      definitionId: data.definitionId,
-      definitionName: data.definitionName,
-      note: data.note,
+      from,
+      to,
+      definitionId,
+      definitionName: data.definitionName || data.payload?.name,
+      note: data.note || data.payload?.note,
       timestamp
     };
     
@@ -342,6 +436,7 @@ export class DirectHCSRecognitionService {
   }
 
   getUserInstances(owner: string): RecognitionInstance[] {
+    // Owner normalization is now handled in extractOwner, so direct match is sufficient
     return this.instances.filter(inst => inst.owner === owner);
   }
 
@@ -507,6 +602,53 @@ export class DirectHCSRecognitionService {
       return { source: 'hcs-cached', freshness: `${Math.round(age / 1000)}s-old` };
     } else {
       return { source: 'hcs-stale', freshness: `${Math.round(age / 1000)}s-stale` };
+    }
+  }
+
+  // Publish recognition instance to SignalsStore for consistency
+  private publishToSignalsStore(instance: RecognitionInstance, definitionId: string): void {
+    try {
+      const definition = this.getDefinition(definitionId);
+      
+      const signalEvent = {
+        id: `recognition_${instance.id}`,
+        class: 'recognition' as const,
+        type: 'RECOGNITION_MINT' as const, // Uppercase for consistency
+        topicType: 'SIGNAL' as const,
+        direction: 'inbound' as const,
+        actors: {
+          from: instance.issuer || 'system',
+          to: instance.owner
+        },
+        payload: {
+          definitionId: instance.definitionId,
+          definitionSlug: instance.definitionSlug,
+          definitionName: definition?.name,
+          definitionIcon: definition?.icon,
+          note: instance.note,
+          owner: instance.owner,
+          issuer: instance.issuer
+        },
+        ts: new Date(instance._ts).getTime(),
+        status: 'onchain' as const,
+        source: 'hcs' as const,
+        meta: {
+          tag: 'hcs_recognition',
+          hrl: instance._hrl
+        }
+      };
+      
+      // Import signalsStore dynamically to avoid circular dependencies
+      if (typeof window !== 'undefined') {
+        import('@/lib/stores/signalsStore').then(({ signalsStore }) => {
+          signalsStore.add(signalEvent);
+        }).catch(() => {
+          // Silently fail if store not available
+        });
+      }
+      
+    } catch (error) {
+      console.warn('[DirectHCSRecognition] Failed to publish to SignalsStore:', error.message);
     }
   }
 

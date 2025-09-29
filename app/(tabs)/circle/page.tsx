@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AddContactDialog } from "@/components/AddContactDialog"
 import { signalsStore, type BondedContact, type SignalEvent } from "@/lib/stores/signalsStore"
-import { hcsFeedService } from "@/lib/services/HCSFeedService"
 import { getBondedContactsFromHCS, getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
 // import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 import Link from "next/link"
@@ -223,30 +222,28 @@ export default function CirclePage() {
   
   // Note: Removed signalsStore subscription since we're using direct HCS loading for consistency
   
-  // Direct HCS data loading - use same approach as Contacts page for consistency
+  // Load data from SignalsStore (single source of truth)
   useEffect(() => {
-    const loadDirectFromHCS = async () => {
+    const loadFromSignalsStore = () => {
       try {
-        console.log('🚀 [CirclePage] Loading directly from HCS (consistent approach)...')
-        
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
+        console.log('🚀 [CirclePage] Loading from SignalsStore (single source)...')
         console.log('📋 [CirclePage] Session ID:', currentSessionId)
         
-        // Initialize HCS service and get all events - same as Contacts page
-        await hcsFeedService.initialize()
-        const events = await hcsFeedService.getAllFeedEvents()
+        // Get all events from SignalsStore
+        const allStoreEvents = signalsStore.getAll()
         
-        console.log('📡 [CirclePage] Loaded', events.length, 'events from HCS')
+        console.log('📡 [CirclePage] Loaded', allStoreEvents.length, 'events from SignalsStore')
         
-        if (events.length > 0) {
-          // Process events into UI data using HCS utility functions
-          const bonded = getBondedContactsFromHCS(events, currentSessionId)
-          const recent = getRecentSignalsFromHCS(events, currentSessionId, 5)
-          const allSignals = getRecentSignalsFromHCS(events, currentSessionId, 1000) // Get all events for counting
+        if (allStoreEvents.length > 0) {
+          // Process events using the same HCS utility functions but with store data
+          const bonded = getBondedContactsFromHCS(allStoreEvents, currentSessionId)
+          const recent = getRecentSignalsFromHCS(allStoreEvents, currentSessionId, 5)
+          const allSignals = getRecentSignalsFromHCS(allStoreEvents, currentSessionId, 1000)
           
-          // Calculate connection status for LEDs (not trust allocation amounts)
-          const contactEvents = events.filter(e => 
+          // Calculate connection status for LEDs using store events
+          const contactEvents = allStoreEvents.filter(e => 
             e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT'
           )
           
@@ -279,15 +276,15 @@ export default function CirclePage() {
           setRecentSignals(recent)
           setAllEvents(allSignals)
           
-          console.log('✅ [CirclePage] Data loaded (consistent approach):', {
+          console.log('✅ [CirclePage] Data loaded from SignalsStore:', {
             bonded: bonded.length,
             stats,
             recent: recent.length,
-            total: events.length,
+            total: allStoreEvents.length,
             session: currentSessionId
           })
         } else {
-          console.log('⚠️ [CirclePage] No events found - this is expected on first load')
+          console.log('⚠️ [CirclePage] SignalsStore empty - waiting for ingestion...')
           setBondedContacts([])
           setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
           setRecentSignals([])
@@ -295,8 +292,7 @@ export default function CirclePage() {
         }
         
       } catch (error) {
-        console.error('❌ [CirclePage] Direct HCS load failed:', error)
-        // Set empty state
+        console.error('❌ [CirclePage] SignalsStore load failed:', error)
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         setBondedContacts([])
@@ -305,7 +301,16 @@ export default function CirclePage() {
       }
     }
     
-    loadDirectFromHCS()
+    // Initial load
+    loadFromSignalsStore()
+    
+    // Subscribe to SignalsStore changes
+    const unsubscribe = signalsStore.subscribe(() => {
+      console.log('📡 [CirclePage] SignalsStore updated, refreshing...')
+      loadFromSignalsStore()
+    })
+    
+    return unsubscribe
   }, [])
 
   const availableSlots = Math.max(0, 9 - trustStats.allocatedOut)
@@ -328,42 +333,8 @@ export default function CirclePage() {
       
       toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
       
-      // Refresh data using same approach as main data loading
-      await hcsFeedService.initialize()
-      const events = await hcsFeedService.getAllFeedEvents()
-      const bonded = getBondedContactsFromHCS(events, sessionId)
-      
-      // Recalculate connection status for LEDs (not trust allocation amounts)
-      const contactEvents = events.filter(e => 
-        e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT'
-      )
-      
-      // Count accepted connections (green LEDs)
-      const acceptedConnections = contactEvents.filter(e => 
-        e.type === 'CONTACT_ACCEPT' && 
-        (e.actor === sessionId || e.target === sessionId)
-      ).length / 2 // Divide by 2 since each connection creates 2 events
-      
-      // Count pending outbound requests (yellow LEDs) 
-      const pendingRequests = contactEvents.filter(e => 
-        e.type === 'CONTACT_REQUEST' && 
-        e.actor === sessionId &&
-        // Only count as pending if no corresponding ACCEPT exists
-        !contactEvents.some(acceptEvent => 
-          acceptEvent.type === 'CONTACT_ACCEPT' &&
-          acceptEvent.target === sessionId &&
-          acceptEvent.actor === e.target
-        )
-      ).length
-      
-      const stats = { 
-        allocatedOut: Math.floor(acceptedConnections), // Green LEDs = accepted connections
-        cap: 9, 
-        pendingOut: pendingRequests // Yellow LEDs = pending requests
-      }
-      
-      setBondedContacts(bonded)
-      setTrustStats(stats)
+      // SignalsStore subscription will automatically refresh the UI
+      // No need to manually refresh since we're subscribed to store changes
     } catch (error) {
       console.error('[CirclePage] Failed to allocate trust via HCS:', error)
       toast.error('Failed to allocate trust', { description: error.message || 'Unknown error' })

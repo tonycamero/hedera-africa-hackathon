@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AddContactDialog } from "@/components/AddContactDialog"
 import { ContactProfileSheet } from "@/components/ContactProfileSheet"
 import { signalsStore } from "@/lib/stores/signalsStore"
-import { hcsFeedService } from "@/lib/services/HCSFeedService"
 import { getBondedContactsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
@@ -99,39 +98,46 @@ export default function ContactsPage() {
   const [sessionId, setSessionId] = useState("")
   const [hcsEvents, setHcsEvents] = useState<any[]>([])
 
-  // Direct HCS data loading - bypass broken bootstrap
+  // Load data from SignalsStore (single source of truth)
   useEffect(() => {
-    const loadDirectFromHCS = async () => {
+    const loadFromSignalsStore = () => {
       try {
-        console.log('🚀 [ContactsPage] Loading directly from HCS...')
-        
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
+        console.log('🚀 [ContactsPage] Loading from SignalsStore (single source)...')
         console.log('📋 [ContactsPage] Session ID:', currentSessionId)
         
-        // Initialize HCS service and get all events
-        await hcsFeedService.initialize()
-        const events = await hcsFeedService.getAllFeedEvents()
+        // Get all events from SignalsStore
+        const allStoreEvents = signalsStore.getAll()
         
-        console.log('📡 [ContactsPage] Loaded', events.length, 'events from HCS')
+        console.log('📡 [ContactsPage] Loaded', allStoreEvents.length, 'events from SignalsStore')
         
-        // Set HCS events for contact processing
-        setHcsEvents(events)
+        // Set events for contact processing
+        setHcsEvents(allStoreEvents)
         
-        console.log('✅ [ContactsPage] Data loaded:', {
-          events: events.length,
+        console.log('✅ [ContactsPage] Data loaded from SignalsStore:', {
+          events: allStoreEvents.length,
           session: currentSessionId
         })
         
       } catch (error) {
-        console.error('❌ [ContactsPage] Direct HCS load failed:', error)
+        console.error('❌ [ContactsPage] SignalsStore load failed:', error)
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         setHcsEvents([])
       }
     }
     
-    loadDirectFromHCS()
+    // Initial load
+    loadFromSignalsStore()
+    
+    // Subscribe to SignalsStore changes
+    const unsubscribe = signalsStore.subscribe(() => {
+      console.log('📡 [ContactsPage] SignalsStore updated, refreshing...')
+      loadFromSignalsStore()
+    })
+    
+    return unsubscribe
   }, [])
 
   const { bonded, incoming, outgoing, all } = useMemo(() => {

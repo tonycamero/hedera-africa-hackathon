@@ -38,6 +38,20 @@ export type RecognitionInstanceDecoded = Base & {
 
 export type RecognitionDecoded = RecognitionDefinitionDecoded | RecognitionInstanceDecoded;
 
+// Normalize owner IDs to handle demo variants
+function normalizeOwnerId(id?: string): string {
+  if (!id) return '';
+  const normalized = id.trim().toLowerCase();
+  
+  // Map demo variants to canonical session ID
+  if (normalized.includes('alex-chen-demo') || normalized === 'alex' || normalized === 'alex chen') {
+    return 'tm-alex-chen';
+  }
+  
+  // Keep tm-* as is
+  return id;
+}
+
 export function decodeRecognition(m: MirrorMsg): RecognitionDecoded | null {
   try {
     // Decode base64 message
@@ -113,6 +127,33 @@ export function decodeRecognition(m: MirrorMsg): RecognitionDecoded | null {
       } as RecognitionDefinitionDecoded;
     }
 
+    // Handle RECOGNITION_DEFINITION envelope format (from our enhancement script)
+    if (raw.type === 'RECOGNITION_DEFINITION' && raw.payload) {
+      const defData = raw.payload;
+      return {
+        _kind: 'definition',
+        ...base,
+        type: 'definition',
+        id: defData.id,
+        slug: defData.slug,
+        name: defData.name,
+        description: defData.description,
+        icon: defData.icon,
+        category: defData.category,
+        rarity: defData.rarity,
+        // Enhanced metadata from v2.0 format
+        extendedDescription: defData.extendedDescription,
+        stats: defData.stats,
+        traits: defData.traits,
+        relatedLinks: defData.relatedLinks,
+        backstory: defData.backstory,
+        tips: defData.tips,
+        enhancementVersion: defData.enhancementVersion,
+        // Include any other properties from the payload object
+        ...defData
+      } as RecognitionDefinitionDecoded;
+    }
+
     // Handle recognition_instance_created messages with nested payload
     if (raw.type === 'RECOGNITION_MINT' && raw.payload) {
       const instData = raw.payload;
@@ -122,7 +163,7 @@ export function decodeRecognition(m: MirrorMsg): RecognitionDecoded | null {
         type: 'instance',
         definitionId: instData.definitionId,
         definitionSlug: instData.definitionSlug,
-        owner: instData.to,
+        owner: normalizeOwnerId(instData.to), // Apply normalization here!
         note: instData.note,
         issuer: instData.mintedBy || instData.from,
         // Include any other properties from the payload object

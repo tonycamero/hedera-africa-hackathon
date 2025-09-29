@@ -21,6 +21,9 @@ interface SignalDetailModalProps {
 export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModalProps) {
   if (!signal) return null
 
+  // Get recognition topic from environment or use fallback
+  const RECOGNITION_TOPIC = process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || process.env.RECOGNITION_TOPIC || '0.0.6895261'
+
   const categoryColors = {
     social: 'border-[var(--social)] bg-[hsl(var(--social))]/10',
     academic: 'border-[var(--academic)] bg-[hsl(var(--academic))]/10',
@@ -41,22 +44,23 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
     professional: 'Professional Signal'
   }
 
-  // Check if this is an HCS recognition definition (has topicId and createdAt)
+  // Check if this is an HCS recognition definition or has enhanced metadata
   const isHCSSignal = 'topicId' in signal && 'createdAt' in signal
+  const hasEnhancedMetadata = !!(signal as any).extendedDescription || !!(signal as any).stats || !!(signal as any).enhancementVersion
   
   // Generate metadata for hashinal/token
   const tokenMetadata = {
-    tokenId: `TM-${signal.category.toUpperCase()}-${signal.number.toString().padStart(3, '0')}`,
+    tokenId: `TM-${(signal.category || 'UNKNOWN').toUpperCase()}-${(signal.number || 0).toString().padStart(3, '0')}`,
     collection: "TrustMesh Recognition Signals",
     creator: isHCSSignal ? "TrustMesh HCS" : "TrustMesh Protocol",
     mintDate: isHCSSignal ? new Date(signal.createdAt).toLocaleDateString() : "2024-01-15",
     blockchain: "Hedera",
     rarity: signal.rarity || 'Common',
     attributes: [
-      { trait: "Category", value: categoryLabels[signal.category] },
+      { trait: "Category", value: signal.category ? categoryLabels[signal.category] || signal.category : 'Unknown' },
       { trait: "Series", value: isHCSSignal ? "HCS Genesis" : "Genesis" },
       { trait: "Active Status", value: signal.isActive ? "Active" : "Inactive" },
-      { trait: "Number", value: `#${signal.number}` },
+      { trait: "Number", value: `#${signal.number || 0}` },
       ...(isHCSSignal ? [{ trait: "Source", value: "On-Chain" }] : [])
     ]
   }
@@ -94,30 +98,30 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto bg-card border border-[hsl(var(--border))]">
-        <DialogHeader>
+      <DialogContent className="max-w-lg mx-auto bg-card border border-[hsl(var(--border))] max-h-[90vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-foreground text-center">
             Signal Details
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           {/* Large Signal Display */}
-          <div className={`p-6 rounded-lg border-2 ${categoryColors[signal.category]} text-center`}>
-            <div className="w-20 h-20 mx-auto mb-4 bg-card rounded-xl border border-[hsl(var(--border))] flex items-center justify-center text-4xl">
+          <div className={`p-4 rounded-lg border-2 ${signal.category ? categoryColors[signal.category] || 'border-gray-400 bg-gray-100/10' : 'border-gray-400 bg-gray-100/10'} text-center`}>
+            <div className="w-16 h-16 mx-auto mb-3 bg-card rounded-xl border border-[hsl(var(--border))] flex items-center justify-center text-3xl">
               {signal.icon}
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">{signal.name}</h2>
-            <p className="text-[hsl(var(--text-secondary))] mb-4">
-              {isHCSSignal && signal.extendedDescription ? signal.extendedDescription : signal.description}
+            <h2 className="text-lg font-bold text-foreground mb-2">{signal.name}</h2>
+            <p className="text-sm text-[hsl(var(--text-secondary))] mb-3 leading-relaxed">
+              {(signal as any).extendedDescription || signal.description}
             </p>
             
             <div className="flex justify-center gap-2">
               <Badge variant="outline" className="text-xs">
-                {categoryLabels[signal.category]}
+                {signal.category ? categoryLabels[signal.category] || signal.category : 'Unknown'}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                #{signal.number}
+                #{signal.number || 0}
               </Badge>
               {signal.isActive && (
                 <Badge className="bg-[hsl(var(--neon-cyan))] text-[hsl(var(--background))] text-xs">
@@ -127,8 +131,105 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
             </div>
           </div>
 
+          {/* Enhanced Stats (if available) */}
+          {(signal as any).stats && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Signal Stats</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <StatBar 
+                  icon={<TrendingUp className="w-3 h-3" />} 
+                  label="Popularity" 
+                  value={(signal as any).stats.popularity} 
+                  color="blue" 
+                />
+                <StatBar 
+                  icon={<Zap className="w-3 h-3" />} 
+                  label="Impact" 
+                  value={(signal as any).stats.impact} 
+                  color="green" 
+                />
+                <StatBar 
+                  icon={<Shield className="w-3 h-3" />} 
+                  label="Authenticity" 
+                  value={(signal as any).stats.authenticity} 
+                  color="purple" 
+                />
+                <StatBar 
+                  icon={<Star className="w-3 h-3" />} 
+                  label="Difficulty" 
+                  value={(signal as any).stats.difficulty} 
+                  color="orange" 
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced Traits (if available) */}
+          {(signal as any).traits && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Traits</h3>
+              <div className="space-y-2">
+                {(signal as any).traits.personality && (
+                  <div>
+                    <span className="text-xs text-[hsl(var(--text-muted))]">Personality:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(signal as any).traits.personality.map((trait: string, index: number) => (
+                        <Badge key={index} variant="outline" className="text-xs">{trait}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(signal as any).traits.skills && (
+                  <div>
+                    <span className="text-xs text-[hsl(var(--text-muted))]">Skills:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(signal as any).traits.skills.map((skill: string, index: number) => (
+                        <Badge key={index} variant="outline" className="text-xs">{skill}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(signal as any).traits.environment && (
+                  <div>
+                    <span className="text-xs text-[hsl(var(--text-muted))]">Environment:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(signal as any).traits.environment.map((env: string, index: number) => (
+                        <Badge key={index} variant="outline" className="text-xs">{env}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced Backstory (if available) */}
+          {(signal as any).backstory && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Backstory</h3>
+              <p className="text-xs text-[hsl(var(--text-muted))] leading-relaxed">
+                {(signal as any).backstory}
+              </p>
+            </div>
+          )}
+
+          {/* Enhanced Tips (if available) */}
+          {(signal as any).tips && (signal as any).tips.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Tips</h3>
+              <ul className="space-y-2">
+                {(signal as any).tips.map((tip: string, index: number) => (
+                  <li key={index} className="text-xs text-[hsl(var(--text-muted))] flex items-start gap-2">
+                    <span className="text-[hsl(var(--primary))] mt-1">•</span>
+                    <span className="leading-relaxed">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Token Metadata */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Token Metadata</h3>
             
             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -164,9 +265,11 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2">
-            <Button
+        </div>
+
+        {/* Actions - Sticky at bottom */}
+        <div className="flex gap-2 mt-4 pt-4 border-t border-[hsl(var(--border))] shrink-0">
+          <Button
               variant="outline"
               size="sm"
               onClick={handleCopyId}
@@ -189,20 +292,22 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
               size="sm"
               className="flex-1"
               onClick={() => {
-                const url = isHCSSignal 
-                  ? `https://hashscan.io/testnet/topic/${signal.topicId}`
+                // For HCS recognition definitions, use the recognition topic
+                const url = hasEnhancedMetadata || isHCSSignal 
+                  ? `https://hashscan.io/testnet/topic/${(signal as any).topicId || RECOGNITION_TOPIC}`
                   : '#'
+                
                 if (url !== '#') {
                   window.open(url, '_blank')
+                  toast.success('Opening HCS topic on HashScan')
                 } else {
                   toast.info("This signal is not yet on-chain")
                 }
               }}
             >
               <ExternalLink className="w-3 h-3 mr-2" />
-              {isHCSSignal ? "View on Chain" : "View on Chain"}
+              {hasEnhancedMetadata || isHCSSignal ? "View on HCS" : "View on Chain"}
             </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

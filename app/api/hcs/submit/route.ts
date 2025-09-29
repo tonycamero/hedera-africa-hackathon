@@ -57,6 +57,7 @@ function routeTopic(type: string, t: RegistryTopics) {
     case 'TRUST_REVOKE':   return t.trust
     case 'RECOGNITION_MINT':
     case 'NFT_MINT':       return t.recognitionInstances || t.recognition
+    case 'RECOGNITION_DEFINITION': return t.recognition  // For publishing definitions
     case 'PROFILE_UPDATE': return t.profile
     case 'SYSTEM_UPDATE':  return t.system
     default:               return t.feed
