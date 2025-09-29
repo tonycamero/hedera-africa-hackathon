@@ -17,8 +17,8 @@
 import { recognitionSignals, type RecognitionSignal } from '../lib/data/recognitionSignals';
 
 // HCS Publishing Configuration
-const HCS_RECOGNITION_TOPIC = process.env.RECOGNITION_TOPIC || '0.0.6895261';
-const NETWORK = process.env.HEDERA_NETWORK || 'testnet';
+const HCS_RECOGNITION_TOPIC = '0.0.6895261';
+const NETWORK = 'testnet';
 
 // Using local API endpoint - no direct Hedera credentials needed
 

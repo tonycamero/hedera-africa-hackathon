@@ -34,7 +34,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Generate circular trust visualization
-function TrustCircle({ allocatedOut, pendingOut, maxSlots }: { allocatedOut: number; pendingOut: number; maxSlots: number }) {
+function TrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
   const totalSlots = 9
   const dots = Array.from({ length: totalSlots }, (_, i) => {
     // Arrange dots in a circle
@@ -44,20 +44,16 @@ function TrustCircle({ allocatedOut, pendingOut, maxSlots }: { allocatedOut: num
     const x = Math.cos(radian) * radius + 32 // 32 is center (64/2)
     const y = Math.sin(radian) * radius + 32
 
-    // Determine LED state: green (accepted connection), yellow (pending request), gray (available)
+    // Determine LED state: green (trust allocated), gray (available slot)
     let ledStyle = ""
     let innerStyle = ""
     
     if (i < allocatedOut) {
-      // Green LEDs for accepted connections
+      // Green LEDs for trust allocations
       ledStyle = "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/50 border-2 border-green-300"
       innerStyle = "bg-gradient-to-br from-green-300 to-green-500"
-    } else if (i < allocatedOut + pendingOut) {
-      // Yellow LEDs for pending connection requests
-      ledStyle = "bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-500/40 border-2 border-yellow-300"
-      innerStyle = "bg-gradient-to-br from-yellow-300 to-yellow-500"
     } else {
-      // Gray LEDs for available connection slots
+      // Gray LEDs for available trust slots
       ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200"
       innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
     }
@@ -202,7 +198,7 @@ function MiniFeedItem({ signal }: { signal: SignalEvent }) {
 
 export default function CirclePage() {
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
-  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9, pendingOut: 0 })
+  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9 })
   const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
   const [allEvents, setAllEvents] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
@@ -242,33 +238,17 @@ export default function CirclePage() {
           const recent = getRecentSignalsFromHCS(allStoreEvents, currentSessionId, 5)
           const allSignals = getRecentSignalsFromHCS(allStoreEvents, currentSessionId, 1000)
           
-          // Calculate connection status for LEDs using store events
-          const contactEvents = allStoreEvents.filter(e => 
-            e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT'
+          // Calculate TRUST allocation for LEDs (not contacts!)
+          const trustEvents = allStoreEvents.filter(e => 
+            e.type === 'TRUST_ALLOCATE' && e.actor === currentSessionId
           )
           
-          // Count accepted connections (green LEDs)
-          const acceptedConnections = contactEvents.filter(e => 
-            e.type === 'CONTACT_ACCEPT' && 
-            (e.actor === currentSessionId || e.target === currentSessionId)
-          ).length / 2 // Divide by 2 since each connection creates 2 events
-          
-          // Count pending outbound requests (yellow LEDs) 
-          const pendingRequests = contactEvents.filter(e => 
-            e.type === 'CONTACT_REQUEST' && 
-            e.actor === currentSessionId &&
-            // Only count as pending if no corresponding ACCEPT exists
-            !contactEvents.some(acceptEvent => 
-              acceptEvent.type === 'CONTACT_ACCEPT' &&
-              acceptEvent.target === currentSessionId &&
-              acceptEvent.actor === e.target
-            )
-          ).length
+          // Count trust allocations (green LEDs) - each allocation = 1 LED
+          const trustAllocated = trustEvents.length
           
           const stats = { 
-            allocatedOut: Math.floor(acceptedConnections), // Green LEDs = accepted connections
-            cap: 9, 
-            pendingOut: pendingRequests // Yellow LEDs = pending requests
+            allocatedOut: trustAllocated, // Green LEDs = trust allocations (not contacts!)
+            cap: 9
           }
           
           setBondedContacts(bonded)
@@ -286,7 +266,7 @@ export default function CirclePage() {
         } else {
           console.log('⚠️ [CirclePage] SignalsStore empty - waiting for ingestion...')
           setBondedContacts([])
-          setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
+          setTrustStats({ allocatedOut: 0, cap: 9 })
           setRecentSignals([])
           setAllEvents([])
         }
@@ -296,7 +276,7 @@ export default function CirclePage() {
         const currentSessionId = getSessionId()
         setSessionId(currentSessionId)
         setBondedContacts([])
-        setTrustStats({ allocatedOut: 0, cap: 9, pendingOut: 0 })
+        setTrustStats({ allocatedOut: 0, cap: 9 })
         setRecentSignals([])
       }
     }
@@ -388,7 +368,6 @@ export default function CirclePage() {
             <div className="flex items-center gap-4">
               <TrustCircle 
                 allocatedOut={trustStats.allocatedOut} 
-                pendingOut={trustStats.pendingOut}
                 maxSlots={9} 
               />
               <div>
@@ -499,7 +478,7 @@ export default function CirclePage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleAllocateTrust(contact.peerId, weight)}
-                            disabled={trustStats.allocatedOut + trustStats.pendingOut + weight > 9}
+                            disabled={trustStats.allocatedOut + weight > 9}
                             className="text-xs px-2 py-1 h-6 border-card-border text-card-foreground hover:bg-card-border hover:text-card-foreground"
                           >
                             {weight}
