@@ -223,9 +223,11 @@ export default function CirclePage() {
     const loadFromSignalsStore = () => {
       try {
         const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
+        // Fallback to 'tm-alex-chen' if session ID is null/undefined (common in demo mode)
+        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
+        setSessionId(effectiveSessionId)
         console.log('🚀 [CirclePage] Loading from SignalsStore (single source)...')
-        console.log('📋 [CirclePage] Session ID:', currentSessionId)
+        console.log('📋 [CirclePage] Session ID:', effectiveSessionId, '(raw:', currentSessionId, ')')
         
         // Get all events from SignalsStore
         const allStoreEvents = signalsStore.getAll()
@@ -234,17 +236,25 @@ export default function CirclePage() {
         
         if (allStoreEvents.length > 0) {
           // Process events using the same HCS utility functions but with store data
-          const bonded = getBondedContactsFromHCS(allStoreEvents, currentSessionId)
-          const recent = getRecentSignalsFromHCS(allStoreEvents, currentSessionId, 5)
-          const allSignals = getRecentSignalsFromHCS(allStoreEvents, currentSessionId, 1000)
+          const bonded = getBondedContactsFromHCS(allStoreEvents, effectiveSessionId)
+          const recent = getRecentSignalsFromHCS(allStoreEvents, effectiveSessionId, 5)
+          const allSignals = getRecentSignalsFromHCS(allStoreEvents, effectiveSessionId, 1000)
           
           // Calculate TRUST allocation for LEDs (not contacts!)
           const trustEvents = allStoreEvents.filter(e => 
-            e.type === 'TRUST_ALLOCATE' && e.actor === currentSessionId
+            e.type === 'trust_allocate' && e.actor === effectiveSessionId
           )
           
           // Count trust allocations (green LEDs) - each allocation = 1 LED
           const trustAllocated = trustEvents.length
+          
+          console.log('📊 [CirclePage] Trust calculation:', {
+            totalEvents: allStoreEvents.length,
+            trustEvents: trustEvents.length,
+            trustAllocated,
+            sessionId: effectiveSessionId,
+            sampleTrustEvent: trustEvents[0]
+          })
           
           const stats = { 
             allocatedOut: trustAllocated, // Green LEDs = trust allocations (not contacts!)
@@ -274,7 +284,8 @@ export default function CirclePage() {
       } catch (error) {
         console.error('❌ [CirclePage] SignalsStore load failed:', error)
         const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
+        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
+        setSessionId(effectiveSessionId)
         setBondedContacts([])
         setTrustStats({ allocatedOut: 0, cap: 9 })
         setRecentSignals([])
