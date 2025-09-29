@@ -246,23 +246,25 @@ export default function CirclePage() {
           const allSignals = getRecentSignalsFromHCS(events, currentSessionId, 1000) // Get all events for counting
           
           // Calculate connection status for LEDs (not trust allocation amounts)
-          const contactEvents = events.filter(e => e.class === 'contact')
+          const contactEvents = events.filter(e => 
+            e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT'
+          )
           
           // Count accepted connections (green LEDs)
           const acceptedConnections = contactEvents.filter(e => 
             e.type === 'CONTACT_ACCEPT' && 
-            (e.actors.from === currentSessionId || e.actors.to === currentSessionId)
+            (e.actor === currentSessionId || e.target === currentSessionId)
           ).length / 2 // Divide by 2 since each connection creates 2 events
           
           // Count pending outbound requests (yellow LEDs) 
           const pendingRequests = contactEvents.filter(e => 
             e.type === 'CONTACT_REQUEST' && 
-            e.actors.from === currentSessionId &&
+            e.actor === currentSessionId &&
             // Only count as pending if no corresponding ACCEPT exists
             !contactEvents.some(acceptEvent => 
               acceptEvent.type === 'CONTACT_ACCEPT' &&
-              acceptEvent.actors.to === currentSessionId &&
-              acceptEvent.actors.from === e.actors.to
+              acceptEvent.target === currentSessionId &&
+              acceptEvent.actor === e.target
             )
           ).length
           
@@ -313,15 +315,13 @@ export default function CirclePage() {
       // Create a trust allocation signal and add to store
       const trustSignal: SignalEvent = {
         id: `trust_${sessionId}_${peerId}_${Date.now()}`,
-        class: 'trust',
-        topicType: 'TRUST',
-        direction: 'outbound',
-        actors: { from: sessionId, to: peerId },
-        payload: { weight },
-        ts: Date.now(),
-        status: 'local',
         type: 'TRUST_ALLOCATE',
-        meta: { tag: 'circle_allocation' }
+        actor: sessionId,
+        target: peerId,
+        ts: Date.now(),
+        topicId: TRUST_TOPIC,
+        metadata: { weight, tag: 'circle_allocation' },
+        source: 'hcs-cached'
       }
       
       signalsStore.addSignal(trustSignal)
@@ -334,23 +334,25 @@ export default function CirclePage() {
       const bonded = getBondedContactsFromHCS(events, sessionId)
       
       // Recalculate connection status for LEDs (not trust allocation amounts)
-      const contactEvents = events.filter(e => e.class === 'contact')
+      const contactEvents = events.filter(e => 
+        e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT'
+      )
       
       // Count accepted connections (green LEDs)
       const acceptedConnections = contactEvents.filter(e => 
         e.type === 'CONTACT_ACCEPT' && 
-        (e.actors.from === sessionId || e.actors.to === sessionId)
+        (e.actor === sessionId || e.target === sessionId)
       ).length / 2 // Divide by 2 since each connection creates 2 events
       
       // Count pending outbound requests (yellow LEDs) 
       const pendingRequests = contactEvents.filter(e => 
         e.type === 'CONTACT_REQUEST' && 
-        e.actors.from === sessionId &&
+        e.actor === sessionId &&
         // Only count as pending if no corresponding ACCEPT exists
         !contactEvents.some(acceptEvent => 
           acceptEvent.type === 'CONTACT_ACCEPT' &&
-          acceptEvent.actors.to === sessionId &&
-          acceptEvent.actors.from === e.actors.to
+          acceptEvent.target === sessionId &&
+          acceptEvent.actor === e.target
         )
       ).length
       
@@ -375,7 +377,7 @@ export default function CirclePage() {
     trustCapacity: 9,
     recognitionOwned: allEvents.filter(s => 
       (s.type === 'NFT_MINT' || s.type === 'RECOGNITION_MINT') && 
-      (s.actors?.to === sessionId || s.target === sessionId)
+      s.target === sessionId
     ).length // Recognition minted to Alex
   }
 

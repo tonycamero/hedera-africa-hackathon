@@ -24,22 +24,39 @@ export function getBondedContactsFromHCS(events: SignalEvent[], sessionId: strin
   const bondedMap = new Map<string, BondedContact>()
   
   // Process contact events to find bonded relationships
+  // Note: Current SignalEvent interface doesn't have 'class' field, so filter by type
   const contactEvents = events
-    .filter(e => e.class === 'contact')
+    .filter(e => e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT')
     .sort((a, b) => a.ts - b.ts) // Process in chronological order
   
+  console.log('[getBondedContactsFromHCS] Found', contactEvents.length, 'contact events')
+  console.log('[getBondedContactsFromHCS] Contact event types:', contactEvents.map(e => e.type))
+  
   for (const event of contactEvents) {
-    const { actors } = event
-    const otherParty = actors.from === sessionId ? actors.to : actors.from
+    // Current SignalEvent uses actor/target instead of actors.from/actors.to
+    const from = event.actor
+    const to = event.target
+    const otherParty = from === sessionId ? to : from
     
-    if (!otherParty) continue
+    console.log('[getBondedContactsFromHCS] Processing event:', {
+      type: event.type,
+      from,
+      to,
+      otherParty,
+      sessionId
+    })
+    
+    if (!otherParty) {
+      console.log('[getBondedContactsFromHCS] Skipping event with no otherParty')
+      continue
+    }
     
     if (event.type === 'CONTACT_REQUEST') {
       // Track contact request (but not bonded yet)
       if (!bondedMap.has(otherParty)) {
         bondedMap.set(otherParty, {
           peerId: otherParty,
-          handle: event.payload?.handle || `User ${otherParty.slice(-6)}`,
+          handle: event.metadata?.handle || `User ${otherParty.slice(-6)}`,
           bondedAt: event.ts,
           trustLevel: undefined // Not bonded yet
         })
@@ -49,7 +66,7 @@ export function getBondedContactsFromHCS(events: SignalEvent[], sessionId: strin
       const existing = bondedMap.get(otherParty)
       bondedMap.set(otherParty, {
         peerId: otherParty,
-        handle: existing?.handle || event.payload?.handle || `User ${otherParty.slice(-6)}`,
+        handle: existing?.handle || event.metadata?.handle || `User ${otherParty.slice(-6)}`,
         bondedAt: event.ts,
         trustLevel: existing?.trustLevel // Preserve any trust level
       })
@@ -58,22 +75,23 @@ export function getBondedContactsFromHCS(events: SignalEvent[], sessionId: strin
   
   // Add consolidated trust levels to bonded contacts (sum all allocations per contact)
   const trustEvents = events
-    .filter(e => e.class === 'trust' && e.actors.from === sessionId)
+    .filter(e => e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE')
+    .filter(e => e.actor === sessionId) // Only outbound trust from this user
     .sort((a, b) => a.ts - b.ts) // Process in chronological order
   
   // Track trust per peer (sum all allocations, subtract revocations)
   const trustByPeer = new Map<string, number>()
   
   for (const trustEvent of trustEvents) {
-    const targetId = trustEvent.actors.to
+    const targetId = trustEvent.target
     if (targetId && bondedMap.has(targetId)) {
       const currentTrust = trustByPeer.get(targetId) || 0
       
       if (trustEvent.type === 'TRUST_ALLOCATE') {
-        const weight = trustEvent.payload?.weight || 1
+        const weight = trustEvent.metadata?.weight || 1
         trustByPeer.set(targetId, currentTrust + weight)
       } else if (trustEvent.type === 'TRUST_REVOKE') {
-        const weight = trustEvent.payload?.weight || 1
+        const weight = trustEvent.metadata?.weight || 1
         trustByPeer.set(targetId, Math.max(0, currentTrust - weight))
       }
     }
@@ -85,13 +103,28 @@ export function getBondedContactsFromHCS(events: SignalEvent[], sessionId: strin
     contact.trustLevel = totalTrust > 0 ? totalTrust : undefined
   })
   
-  // Return only actually bonded contacts (those with CONTACT_ACCEPT)
-  const bondedContacts = Array.from(bondedMap.values()).filter(contact => 
-    contactEvents.some(e => 
+  // Return only actually bonded contacts (those with CONTACT_ACCEPT) 
+  // Exclude self-connections where the user appears as their own contact
+  const bondedContacts = Array.from(bondedMap.values()).filter(contact => {
+    // Filter out self-connections
+    if (contact.peerId === sessionId) {
+      console.log('[getBondedContactsFromHCS] Filtering out self-connection:', contact.peerId)
+      return false
+    }
+    
+    // Only include contacts that have been accepted (bonded)
+    const hasAccept = contactEvents.some(e => 
       e.type === 'CONTACT_ACCEPT' && 
-      (e.actors.from === contact.peerId || e.actors.to === contact.peerId)
+      ((e.actor === sessionId && e.target === contact.peerId) ||
+       (e.target === sessionId && e.actor === contact.peerId))
     )
-  )
+    
+    if (!hasAccept) {
+      console.log('[getBondedContactsFromHCS] Filtering out non-accepted contact:', contact.peerId)
+    }
+    
+    return hasAccept
+  })
   
   console.log('[getBondedContactsFromHCS] Final bonded contacts:', bondedContacts.length)
   console.log('[getBondedContactsFromHCS] Bonded contacts details:', bondedContacts)
@@ -101,7 +134,10 @@ export function getBondedContactsFromHCS(events: SignalEvent[], sessionId: strin
 
 // Derive trust statistics from HCS trust events
 export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): HCSTrustStats & { pendingOut: number } {
-  const trustEvents = events.filter(e => e.class === 'trust').sort((a, b) => a.ts - b.ts)
+  const trustEvents = events.filter(e => 
+    e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE' || 
+    e.type === 'TRUST_ACCEPT' || e.type === 'TRUST_DECLINE'
+  ).sort((a, b) => a.ts - b.ts)
   
   let allocatedOut = 0
   let pendingOut = 0
@@ -111,12 +147,12 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
   const outboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
   
   // Process outbound trust events in chronological order
-  const outboundTrust = trustEvents.filter(e => e.actors.from === sessionId)
+  const outboundTrust = trustEvents.filter(e => e.actor === sessionId)
   for (const event of outboundTrust) {
-    const peerId = event.actors.to
+    const peerId = event.target
     if (!peerId) continue
     
-    const weight = event.payload?.weight || 1
+    const weight = event.metadata?.weight || 1
     
     if (event.type === 'TRUST_ALLOCATE') {
       outboundTrustByPeer.set(peerId, { weight, status: 'pending' })
@@ -129,9 +165,9 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
   }
   
   // Process inbound acceptance/decline signals to update outbound trust status
-  const inboundTrust = trustEvents.filter(e => e.actors.to === sessionId)
+  const inboundTrust = trustEvents.filter(e => e.target === sessionId)
   for (const event of inboundTrust) {
-    const peerId = event.actors.from
+    const peerId = event.actor
     if (!peerId) continue
     
     if (event.type === 'TRUST_ACCEPT') {
@@ -140,7 +176,7 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
         existing.status = 'bonded'
       }
       // Also count as received trust
-      receivedIn += event.payload?.weight || 1
+      receivedIn += event.metadata?.weight || 1
     } else if (event.type === 'TRUST_DECLINE') {
       const existing = outboundTrustByPeer.get(peerId)
       if (existing && existing.status === 'pending') {
@@ -148,10 +184,10 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
       }
     } else if (event.type === 'TRUST_ALLOCATE') {
       // Direct inbound allocation (legacy - should be followed by accept/decline)
-      receivedIn += event.payload?.weight || 1
+      receivedIn += event.metadata?.weight || 1
     } else if (event.type === 'TRUST_REVOKE') {
       // Inbound trust revoked
-      receivedIn -= event.payload?.weight || 1
+      receivedIn -= event.metadata?.weight || 1
     }
   }
   
@@ -183,16 +219,15 @@ export function getPendingTrustFromHCS(events: SignalEvent[], sessionId: string)
   
   // Find trust allocations to contacts who aren't in the bonded list
   const trustEvents = events.filter(e => 
-    e.class === 'trust' && 
     e.type === 'TRUST_ALLOCATE' && 
-    e.actors.from === sessionId
+    e.actor === sessionId
   )
   
   let pending = 0
   for (const trustEvent of trustEvents) {
-    const targetId = trustEvent.actors.to
+    const targetId = trustEvent.target
     if (targetId && !bondedIds.has(targetId)) {
-      pending += trustEvent.payload?.weight || 1
+      pending += trustEvent.metadata?.weight || 1
     }
   }
   
@@ -219,8 +254,11 @@ export function getPersonalMetricsFromHCS(
 // Get recent contact and trust events for mini feed
 export function getRecentSignalsFromHCS(events: SignalEvent[], sessionId: string, limit: number = 3): SignalEvent[] {
   return events
-    .filter(e => e.class === 'contact' || e.class === 'trust')
-    .filter(e => e.actors.from === sessionId || e.actors.to === sessionId)
+    .filter(e => 
+      e.type === 'CONTACT_REQUEST' || e.type === 'CONTACT_ACCEPT' || 
+      e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE'
+    )
+    .filter(e => e.actor === sessionId || e.target === sessionId)
     .sort((a, b) => b.ts - a.ts)
     .slice(0, limit)
 }
