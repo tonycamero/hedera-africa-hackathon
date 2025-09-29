@@ -1,4 +1,5 @@
 # TrustMesh
+<!-- Demo branch for Alex Chen hackathon presentation -->
 
 HCS-native social trust signals on Hedera (testnet).
 
