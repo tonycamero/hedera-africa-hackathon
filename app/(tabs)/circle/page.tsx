@@ -338,9 +338,9 @@ export default function CirclePage() {
     trustAllocated: trustStats.allocatedOut, // Green LEDs = accepted connections
     trustCapacity: 9,
     recognitionOwned: allEvents.filter(s => 
-      (s.type === 'NFT_MINT' || s.type === 'RECOGNITION_MINT') && 
-      s.target === sessionId
-    ).length // Recognition minted to Alex
+      (s.type === 'NFT_MINT' || s.type === 'RECOGNITION_MINT' || s.type === 'recognition_mint') && 
+      (s.target === effectiveSessionId || s.target === sessionId)
+    ).length // Recognition minted to current user
   }
 
   return (

@@ -113,6 +113,7 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
       if (a && b && a !== b) {
         const key = k(a, b)
         pairs.set(key, ev)
+        console.log('🔍 [HCSDataUtils] Found bonded pair:', a, '<->', b, 'from event type:', ev?.type)
       }
     }
   }
