@@ -127,10 +127,10 @@ class ProfileService {
 
   private async createFreshProfile(): Promise<ProfileSnapshot> {
     const defaultProfile: ProfileData = {
-      handle: "alice_dev",
-      bio: "TrustMesh demo user",
+      handle: "user_dev",
+      bio: "TrustMesh user",
       visibility: "public",
-      location: "Demo City"
+      location: "Local"
     }
 
     console.log('[ProfileService] Creating fresh local profile (no server-side publishing without sessionId)')

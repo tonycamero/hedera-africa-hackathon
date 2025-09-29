@@ -40,14 +40,7 @@ export class HCSFeedService {
   private initPromise: Promise<void> | null = null
   private useVerifiedTopics: boolean = true // Flag to use verified topics first
   private registryPollHandle: any = null
-  private demoUsers: string[] = [
-    'tm-alice47',
-    'tm-bob23k', 
-    'tm-carol91',
-    'tm-dave15x',
-    'tm-eve88y',
-    'tm-frank12'
-  ]
+  // Demo users array removed in Step 5: Demo removal
 
   async initialize(): Promise<void> {
     // Load cached events from browser storage on initialization
@@ -161,10 +154,7 @@ export class HCSFeedService {
         console.error("[HCSFeedService] Recognition service init failed:", err)
       )
       
-      // Start seeding process (fire-and-forget)  
-      this.seedInitialData().catch(err => 
-        console.error("[HCSFeedService] Seeding failed:", err)
-      )
+      // Seeding process removed in Step 5: Demo removal
       
       // Set up Mirror reader with available topics
       this.setupMirrorReader()
@@ -245,13 +235,7 @@ export class HCSFeedService {
     }
   }
 
-  private async seedInitialData(): Promise<void> {
-    // Client-side seeding is disabled for security - would require HCS writes
-    console.log("[HCSFeedService] Client-side seeding disabled for security. Demo data should be seeded server-side.")
-    console.log("[HCSFeedService] The app will display live recognition data from HCS topics and cached local data.")
-    
-    this.isSeeded = true // Mark as seeded to avoid further attempts
-  }
+  // seedInitialData method removed in Step 5: Demo removal
 
   async logContactRequest(from: string, to: string, fromName?: string, toName?: string): Promise<HCSFeedEvent> {
     const eventId = `contact_req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -872,142 +856,7 @@ export class HCSFeedService {
     return getSessionId()
   }
 
-  private async seedComprehensiveDemoData(sessionId: string): Promise<void> {
-    console.log("[HCSFeedService] Seeding rich demo network with realistic profiles (FIRE-AND-FORGET mode)...")
-    
-    // Import demo profiles
-    const { demoProfiles, demoRecognitionDistribution } = await import('../data/demoProfiles')
-    
-    // Get the main user profile (Alex Chen - the CS student who's well connected)
-    const mainProfile = demoProfiles.find(p => p.id === 'tm-alex-chen')!
-    
-    // Replace sessionId with Alex's ID for consistency
-    const alexId = mainProfile.id
-    
-    // === ESTABLISHED BONDS ===
-    // Create all established connections for Alex
-    // FIRE-AND-FORGET: Reduced delays, no waiting for confirmation
-    for (const contactId of mainProfile.connections.established) {
-      const contact = demoProfiles.find(p => p.id === contactId)!
-      
-      // Historical contact flow: request → accept (simulate past interaction)
-      await this.logContactRequest(contactId, alexId, contact.displayName, mainProfile.displayName)
-      await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-      await this.logContactAccept(alexId, contactId, mainProfile.displayName, contact.displayName)
-      await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-      
-      // Add trust allocation if Alex has allocated trust to them
-      if (mainProfile.trustAllocated[contactId]) {
-        const weight = mainProfile.trustAllocated[contactId]
-        const reasons = {
-          'tm-maya-patel': 'Excellent mentorship and research guidance',
-          'tm-jordan-kim': 'Outstanding design collaboration and UX insights', 
-          'tm-sam-rivera': 'Great pair programming and code reviews'
-        }
-        await this.logTrustAllocation(alexId, contactId, weight, reasons[contactId] || 'Valuable collaboration')
-        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-      }
-    }
-    
-    // === CREATE CROSS-NETWORK BONDS ===
-    // Seed some established relationships between other profiles
-    const crossConnections = [
-      { from: 'tm-maya-patel', to: 'tm-riley-santos', trust: 3, reason: 'Outstanding research collaboration' },
-      { from: 'tm-maya-patel', to: 'tm-casey-wright', trust: 2, reason: 'Strategic startup mentoring' },
-      { from: 'tm-sam-rivera', to: 'tm-jordan-kim', trust: 1, reason: 'Successful project collaboration' },
-      { from: 'tm-riley-santos', to: 'tm-maya-patel', trust: 3, reason: 'Invaluable academic guidance' },
-      { from: 'tm-jordan-kim', to: 'tm-alex-chen', trust: 1, reason: 'Reliable and helpful' },
-      { from: 'tm-jordan-kim', to: 'tm-sam-rivera', trust: 2, reason: 'Great technical partnership' }
-    ]
-    
-    // FIRE-AND-FORGET: Batch process with minimal delays
-    for (const conn of crossConnections) {
-      const fromProfile = demoProfiles.find(p => p.id === conn.from)!
-      const toProfile = demoProfiles.find(p => p.id === conn.to)!
-      
-      // Only create if they're marked as established in the profile
-      if (fromProfile.connections.established.includes(conn.to)) {
-        await this.logContactRequest(conn.from, conn.to, fromProfile.displayName, toProfile.displayName)
-        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-        await this.logContactAccept(conn.to, conn.from, toProfile.displayName, fromProfile.displayName)
-        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-        await this.logTrustAllocation(conn.from, conn.to, conn.trust, conn.reason)
-        await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-      }
-    }
-    
-    // === PENDING CONTACT REQUESTS ===
-    // Create pending requests that users can interact with
-    
-    // Maya → Jordan (outgoing from Maya, pending at Jordan)
-    const mayaProfile = demoProfiles.find(p => p.id === 'tm-maya-patel')!
-    const jordanProfile = demoProfiles.find(p => p.id === 'tm-jordan-kim')!
-    await this.logContactRequest('tm-maya-patel', 'tm-jordan-kim', mayaProfile.displayName, jordanProfile.displayName)
-    await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-    
-    // Sam → Casey (outgoing from Sam, pending at Casey)
-    const samProfile = demoProfiles.find(p => p.id === 'tm-sam-rivera')!
-    const caseyProfile = demoProfiles.find(p => p.id === 'tm-casey-wright')!
-    await this.logContactRequest('tm-sam-rivera', 'tm-casey-wright', samProfile.displayName, caseyProfile.displayName)
-    await new Promise(resolve => setTimeout(resolve, 10)) // Reduced delay
-    
-    // === RECOGNITION DISTRIBUTION ===
-    // Mint recognition signals for each profile based on their characteristics
-    for (const dist of demoRecognitionDistribution) {
-      const profile = demoProfiles.find(p => p.id === dist.profileId)!
-      
-      for (const recognitionId of dist.recognitionIds) {
-        const recognitionNames = {
-          'prof-fav': 'Prof Fav',
-          'code-monkey': 'Code Monkey', 
-          'note-taker': 'Note Taker',
-          'powerpoint-pro': 'PowerPoint Pro',
-          'chad': 'Chad',
-          'rizz': 'Rizz',
-          'skibidi': 'Skibidi',
-          'bookworm': 'Bookworm'
-        }
-        
-        const recognitionDescriptions = {
-          'prof-fav': 'Teacher\'s pet, always caring',
-          'code-monkey': 'Nonstop coding machine',
-          'note-taker': 'Clean notes, everyone copies', 
-          'powerpoint-pro': 'Biggest slides in the room',
-          'chad': 'Alpha vibes - natural leadership',
-          'rizz': 'Smooth operator extraordinaire',
-          'skibidi': 'Chaotic energy master',
-          'bookworm': 'Lives in the library'
-        }
-        
-        const categories = {
-          'prof-fav': 'academic',
-          'code-monkey': 'professional',
-          'note-taker': 'academic',
-          'powerpoint-pro': 'professional', 
-          'chad': 'social',
-          'rizz': 'social',
-          'skibidi': 'social',
-          'bookworm': 'academic'
-        }
-        
-        await this.logRecognitionMint(
-          'demo-issuer',
-          dist.profileId,
-          recognitionNames[recognitionId],
-          recognitionDescriptions[recognitionId], 
-          categories[recognitionId],
-          recognitionId
-        )
-        await new Promise(resolve => setTimeout(resolve, 5)) // Minimal delay for fire-and-forget
-      }
-    }
-    
-    // === SYSTEM ANNOUNCEMENTS ===
-    await this.logSystemAnnouncement("network_launch", "TrustMesh university pilot program is now live! 🎓", "v1.0.0")
-    await new Promise(resolve => setTimeout(resolve, 10)) // Minimal delay
-    
-    console.log("[HCSFeedService] 🔥 FIRE-AND-FORGET: Seeded rich demo network with 8 profiles, established bonds, pending requests, and recognition distribution")
-  }
+  // seedComprehensiveDemoData method removed in Step 5: Demo removal
 
   async logSystemAnnouncement(type: string, message: string, version?: string): Promise<HCSFeedEvent> {
     const eventId = `system_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -1065,16 +914,7 @@ export class HCSFeedService {
     console.log("[HCSFeedService] Cache cleared - HCS topic data remains immutably on chain")
   }
 
-  async enableSeedMode(): Promise<void> {
-    console.log("[HCSFeedService] Enabling seed mode - will seed HCS data...")
-    this.isSeeded = false
-    await this.initialize() // This will trigger seeding
-  }
-
-  async disableSeedMode(): Promise<void> {
-    console.log("[HCSFeedService] Disabling seed mode - clearing HCS data...")
-    await this.clearAllHCSData()
-  }
+  // enableSeedMode and disableSeedMode methods removed in Step 5: Demo removal
 
   // Load cached events from browser storage
   private loadCachedEvents(): void {
@@ -1103,43 +943,7 @@ export class HCSFeedService {
     }
   }
   
-  // Clear all demo data and reset to fresh state
-  async resetDemo(): Promise<void> {
-    console.log("[HCSFeedService] 🔄 FULL DEMO RESET - Clearing all data...")
-    
-    // Clear all cached data
-    this.cachedEvents = []
-    this.isSeeded = false
-    
-    // Clear browser storage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.CACHE_KEY)
-      console.log("[HCSFeedService] Cleared browser storage cache")
-    }
-    
-    // Clear signals store
-    const { signalsStore } = await import('@/lib/stores/signalsStore')
-    signalsStore.clearAllSignals()
-    
-    console.log("[HCSFeedService] ✅ Demo reset complete - fresh slate ready!")
-  }
-  
-  // Re-seed demo data (called after reset or on first load)
-  async seedFreshDemo(): Promise<void> {
-    console.log("[HCSFeedService] 🌱 Seeding fresh demo data...")
-    
-    // Clear any existing data first
-    await this.resetDemo()
-    
-    // Wait a moment for cleanup
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    // Re-seed the demo network
-    const sessionId = await this.getCurrentSessionId()
-    await this.seedComprehensiveDemoData(sessionId)
-    
-    console.log("[HCSFeedService] ✅ Fresh demo data seeded successfully!")
-  }
+  // resetDemo and seedFreshDemo methods removed in Step 5: Demo removal
 }
 
 export const hcsFeedService = new HCSFeedService()

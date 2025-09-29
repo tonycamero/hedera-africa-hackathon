@@ -4,6 +4,7 @@ import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import BootHCSClient from "@/app/providers/BootHCSClient"
 import { BootRegistryClient } from "@/lib/registry/BootRegistryClient"
+import SyncStatusBar from "@/components/SyncStatusBar"
 import "./globals.css"
 
 const playfair = Playfair_Display({
@@ -38,6 +39,7 @@ export default function RootLayout({
         <BootHCSClient />
         {children}
         <Toaster />
+        <SyncStatusBar />
       </body>
     </html>
   )

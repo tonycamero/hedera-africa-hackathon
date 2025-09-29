@@ -18,17 +18,7 @@ export function getSessionId(ephemeralStrict?: boolean): string {
     return _sessionId
   }
 
-  // --- DEMO PATH ONLY WHEN ALLOW_DEMO === true -----------------------------
-  if (ALLOW_DEMO && isInDemoMode()) {
-    const alexId = 'tm-alex-chen'
-    if (!isEphemeral && typeof window !== 'undefined') {
-      window.sessionStorage.setItem('tm_session_id', alexId)
-    } else {
-      _sessionId = alexId
-    }
-    return alexId
-  }
-  // ------------------------------------------------------------------------
+  // Demo path removed in Step 5: Demo removal
 
   // Live/random session id path (prod default)
   const key = 'tm_session_id'
@@ -58,11 +48,7 @@ export async function getSessionProfile(): Promise<SessionProfile> {
   let handle = sessionId
   let bio = `TrustMesh user (${sessionId})`
 
-  // Demo decoration ONLY when demo allowed + alex demo id
-  if (ALLOW_DEMO && sessionId === 'tm-alex-chen') {
-    handle = '@alex.chen'
-    bio = 'CS Senior • React & Blockchain • Coffee enthusiast ☕'
-  }
+  // Demo decoration removed in Step 5: Demo removal
 
   // Try to get/create profile HRL
   let profileHrl = `hcs://11/${process.env.NEXT_PUBLIC_TOPIC_PROFILE}/local-${sessionId}`

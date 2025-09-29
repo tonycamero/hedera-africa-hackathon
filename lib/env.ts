@@ -16,6 +16,17 @@ export const TOPIC = {
   system: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL), // Using signal topic as system
 };
 
+// Ingestion-compatible topic mapping (normalized names)
+export const TOPICS = {
+  contacts: TOPIC.contacts,
+  trust: TOPIC.trust,
+  profile: TOPIC.profile,
+  signal: TOPIC.feed,
+  recognition: TOPIC.recognition,
+} as const;
+
+export type TopicKey = keyof typeof TOPICS;
+
 // Clean other environment variables - ensure Mirror REST URL has /api/v1
 export const MIRROR_REST = (() => {
   const rawUrl = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_URL) || "https://testnet.mirrornode.hedera.com/api/v1";
@@ -44,3 +55,10 @@ export const HEDERA_OPERATOR_KEY = clean(process.env.HEDERA_OPERATOR_KEY);
 
 // Registry configuration
 export const REGISTRY_ID = clean(process.env.NEXT_PUBLIC_TRUSTMESH_REGISTRY_ID);
+
+// Ingestion configuration
+export const INGEST_DEBUG = NODE_ENV === 'development';
+export const BACKFILL_PAGE_SIZE = parseInt(process.env.HCS_BACKFILL_PAGE_SIZE || '100');
+export const WS_RECONNECT_MAX_BACKOFF = parseInt(process.env.HCS_WS_MAX_BACKOFF || '15000');
+export const CURSOR_STORAGE_PREFIX = 'hcs-cursor';
+export const WS_RECONNECT_JITTER_MAX = 250;

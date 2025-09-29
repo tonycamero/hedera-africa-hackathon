@@ -13,7 +13,6 @@ import { hederaClient } from "@/packages/hedera/HederaClient"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionProfile } from "@/lib/session"
 import { hashContactRequest } from "@/lib/crypto/hash"
-import { shouldPublishToHCS } from "@/lib/demo/seed"
 
 // ---- ENV & flags ----
 const HCS_ENABLED = (process.env.NEXT_PUBLIC_HCS_ENABLED ?? "false") === "true"
@@ -22,10 +21,7 @@ const CONTACT_TOPIC = process.env.NEXT_PUBLIC_TOPIC_CONTACT || ""
 // Background submit helper with HCS protection for seed data
 async function submitContactToHCS(envelope: any, signalEvent: SignalEvent, signalId?: string) {
   if (!HCS_ENABLED || !CONTACT_TOPIC) return
-  if (!shouldPublishToHCS(signalEvent)) {
-    console.log('[Contact] Skipping HCS submit for seeded data')
-    return
-  }
+  // Demo filtering removed in Step 5: Demo removal
   
   try {
     await hederaClient.submitMessage(CONTACT_TOPIC, JSON.stringify(envelope))
