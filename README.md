@@ -1,265 +1,113 @@
-# TrustMesh Hackathon MVP
+# TrustMesh
 
-**A focused demo of HCS-based trust allocation with live activity feed. Everything else is stubbed for hackathon scope.**
+HCS-native social trust signals on Hedera (testnet).
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 20+ (with Corepack enabled)
-- Hedera testnet account with HBAR
-- Magic.link account (free tier available)
-
-### Setup (5 minutes)
-
-1. **Clone and Install**
-   ```bash
-   git clone <your-repo-url>
-   cd TrustMesh_hackathon
-   npm install
-   ```
-
-2. **Environment Configuration**
-   ```bash
-   cp .env.local.template .env.local
-   ```
-   
-   Fill in your credentials:
-   - `HEDERA_OPERATOR_ID` - Your testnet account ID
-   - `HEDERA_OPERATOR_KEY` - Your testnet private key
-   - `MAGIC_PUBLISHABLE_KEY` - Magic.link publishable key
-   - `MAGIC_SECRET_KEY` - Magic.link secret key
-
-3. **Create HCS Topics**
-   ```bash
-   npx ts-node scripts/setup.ts
-   ```
-
-4. **Seed Demo Data**
-   ```bash
-   npx ts-node scripts/seedData.ts
-   ```
-
-5. **Start Development**
-   ```bash
-   npm run dev
-   ```
-
-## 📖 Implementation Guide
-
-**📋 [Developer Workbook](./TRUSTMESH_DEVELOPER_WORKBOOK_IMPLEMENTATION.md)** - Complete 15-20 hour implementation guide
-
-### Architecture Overview
-
-- **Authentication:** Magic.link email-based with Hedera account provisioning
-- **Storage:** HCS-native (no Solidity required)
-- **State:** Derived from message replay via Mirror Node
-- **Real-time:** WebSocket feeds for live updates
-
-### Core Features
-
-1. **🔐 Magic.link Authentication**
-   - Email-based login
-   - Automatic Hedera account creation
-   - Self-custody wallet management
-
-2. **👥 Contact Management**
-   - QR code connections
-   - Bidirectional request/accept flow
-   - HCS-11 profile references
-
-3. **🎯 Trust System (Circle of 9)**
-   - Maximum 9 outbound trust allocations
-   - Weighted trust (1-3 scale)
-   - Trust revocation mechanism
-
-4. **🏆 Recognition Signals**
-   - Transferable achievement tokens
-   - Ownership tracking via message replay
-   - Issuer reputation system
-
-## 📁 Project Structure
-
-```
-TrustMesh_hackathon/
-├── 📖 TRUSTMESH_DEVELOPER_WORKBOOK_IMPLEMENTATION.md  # Complete implementation guide
-├── 🔧 scripts/
-│   ├── setup.ts           # HCS topic creation
-│   └── seedData.ts        # Demo data seeding
-├── 🏗️ app/                # Next.js App Router
-├── 🧩 components/         # React components + shadcn/ui
-├── 📚 lib/
-│   ├── hedera/           # Hedera SDK utilities
-│   ├── hooks/            # React hooks
-│   └── types/            # TypeScript definitions
-├── 🔗 services/          # API integrations
-│   ├── MagicService.ts   # Magic.link integration
-│   ├── ContactService.ts # Contact management
-│   ├── TrustService.ts   # Trust system
-│   └── SignalService.ts  # Signal recognition
-└── 📋 docs/              # Documentation
-```
-
-## 🛠️ Development Workflow
-
-### Phase 1: Authentication (3-4 hours)
-- Implement Magic.link integration
-- Create authentication hooks
-- Build login/logout UI
-- Test Hedera account creation
-
-### Phase 2: Profiles (2-3 hours)
-- HCS-11 profile standard
-- Profile editor component
-- Message publishing
-- Real-time feed updates
-
-### Phase 3: Contacts (3-4 hours)
-- Contact request/accept flow
-- QR code sharing
-- Mutual connection tracking
-
-### Phase 4: Trust System (3-4 hours)
-- Circle of 9 implementation
-- Trust allocation interface
-- Weight selection (1-3)
-- Trust revocation
-
-### Phase 5: Signals (3-4 hours)
-- Signal minting system
-- Transfer mechanism
-- Gallery with ownership
-- Categories and metadata
-
-## 🧪 Testing
+## Quick start
 
 ```bash
-# Unit tests
-npm test
+# 1) Install
+pnpm i
 
-# Integration tests
-npm run test:integration
+# 2) Configure local env
+cp .env.example .env.local
+# Edit NEXT_PUBLIC_TOPIC_* and MIRROR_* to your testnet values
 
-# E2E tests
-npm run test:e2e
-
-# Debug HCS messages
-open http://localhost:3000/debug
+# 3) Run
+pnpm dev
+# http://localhost:3000
 ```
 
-## 📊 Demo Script
+### Health & Debug
 
-1. **Login** with Magic.link email → show Hedera account
-2. **Create Profile** → verify in activity feed
-3. **Connect with QR** → demonstrate bidirectional connection
-4. **Allocate Trust** → show Circle of 9 visualization
-5. **Issue Signal** → transfer and track ownership
-6. **Export Proof** → show HCS message envelope
+* Ingestion health: `/api/health/ingestion`
+* HCS health: `/api/health/hcs`
+* Registry topics: `/api/registry/topics`
 
-## 🔗 Key Technologies
+### Production guarantees
 
-- **[Hedera Hashgraph](https://hedera.com)** - Consensus and storage layer
-- **[Magic.link](https://magic.link)** - Authentication and wallet management
-- **[Next.js 15](https://nextjs.org)** - React framework
-- **[shadcn/ui](https://ui.shadcn.com)** - UI components
-- **[TypeScript](https://typescriptlang.org)** - Type safety
-- **[Zod](https://zod.dev)** - Schema validation
+* **No demo data in prod** (gated by `ALLOW_DEMO`).
+* **HCS-only ingestion** (REST backfill + WebSocket, with caching).
+* **Single source of truth** via Registry → Env.
 
-## 🚀 Production Deployment
+See `docs/ARCHITECTURE.md` and `docs/INGESTION.md` for details.
 
-See the [Developer Workbook](./TRUSTMESH_DEVELOPER_WORKBOOK_IMPLEMENTATION.md#6-production-deployment) for:
-- Mainnet configuration
-- Environment setup
-- Monitoring and health checks
-- Performance optimization
+## Documentation
 
-## 📞 Support
+- [Architecture](docs/ARCHITECTURE.md) - System overview and layers
+- [Ingestion Pipeline](docs/INGESTION.md) - Data flow and components
+- [Environment Configuration](docs/ENV.md) - Setup and variables
+- [Registry System](docs/REGISTRY.md) - Topic resolution and hot-swap
+- [Operations Runbook](docs/RUNBOOK.md) - Deployment and troubleshooting
+- [System Diagrams](docs/DIAGRAMS.md) - ASCII architecture diagrams
 
-- **Implementation Issues:** Check troubleshooting section in workbook
-- **Hedera Questions:** [Hedera Discord](https://discord.com/invite/hedera)
-- **Magic.link Help:** [Magic.link Docs](https://magic.link/docs)
+## Features
 
-## 📝 License
+### 🤝 Contact Management
+- Generate QR codes for connection requests
+- Scan QR codes to add new contacts  
+- HCS-backed contact state with Mirror Node sync
+
+### 🎯 Trust Allocation
+- Allocate trust weights to connections
+- Real-time trust network updates
+- Scope filtering (My/Global views)
+
+### 🏆 Recognition System
+- Two-phase ingestion (definitions → instances)
+- Recognition browser with virtualized lists
+- Mint and view recognition achievements
+
+### 🔗 Circle View
+- Interactive trust network visualization
+- Live data from HCS ingestion pipeline
+- Performance-optimized rendering
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
+- **Blockchain**: Hedera Consensus Service (HCS) on testnet
+- **Data Flow**: Mirror Node REST/WebSocket → Ingestion → Store
+- **State**: SignalsStore with React integration
+- **Performance**: Virtualization, batching, selectors
+
+## Development
+
+```bash
+# Development
+pnpm dev
+
+# Testing  
+pnpm test
+
+# Production build
+pnpm run build
+
+# Type checking
+pnpm run type-check
+```
+
+## Environment Setup
+
+Required environment variables:
+
+```env
+# Mirror Node endpoints
+NEXT_PUBLIC_MIRROR_NODE_URL=https://testnet.mirrornode.hedera.com/api/v1
+NEXT_PUBLIC_MIRROR_NODE_WS=wss://testnet.mirrornode.hedera.com:5600
+
+# HCS Topics (testnet examples)
+NEXT_PUBLIC_TOPIC_CONTACT=0.0.6896005
+NEXT_PUBLIC_TOPIC_TRUST=0.0.6896005  
+NEXT_PUBLIC_TOPIC_RECOGNITION=0.0.6895261
+NEXT_PUBLIC_TOPIC_PROFILE=0.0.6896008
+
+# Feature flags
+NEXT_PUBLIC_HCS_ENABLED=true
+NEXT_PUBLIC_ALLOW_DEMO=off  # Production default
+```
+
+See [Environment Configuration](docs/ENV.md) for complete setup guide.
+
+## License
 
 MIT License - see LICENSE file for details
-
----
-
-**Built for hackathons, designed for production.**
-
-# 🔗 TrustMesh
-
-> **Trust is the new currency. Start earning yours.**
-
-**Chainproof credibility for the culture.** Built on Hedera. Powered by TRST.
-
-## 🎯 What This Is
-
-TrustMesh is **programmable trust infrastructure**—not another social app. We're building a world where your reputation travels with you, verified on-chain, impossible to fake.
-
-**No resume. Just receipts.**
-
-### The Flex Protocol
-
-- **Messaging Loop** → XMTP conversations that matter
-- **Payments Loop** → TRST tokens, no gatekeepers  
-- **Engagement Loop** → Chainproof badges that hit different
-
-**QR to trust loop.** Scan. Stake. Share.
-
-## 🚀 Quick Start
-
-\`\`\`bash
-# Clone the trust layer
-git clone [repo-url]
-cd trustmesh
-
-# Install dependencies
-npm install
-
-# Start earning your circle
-npm run dev
-\`\`\`
-
-## 🧬 Core Concepts
-
-### Circle of Trust
-**9 tokens. 1 circle. No cap.** Maximum 9 outbound circle tokens per user. Mutual acceptance required. Scarcity creates value.
-
-### Chainproof Badges
-**Badges hit different when they're on-chain.** Non-transferable NFTs on Hedera. Revocable but immutable history.
-
-### TRST Economy
-**Earned trust. On-chain.** Native token for trust transactions. Invisible wallets via MatterFi.
-
-## 🎨 Brand Voice
-
-- **Confident** → We're not asking for trust, we're defining it
-- **Cultural** → We speak TikTok and Hedera fluently  
-- **Cryptographic** → We reference on-chain logic and verifiability
-- **Human** → We joke, meme, and speak like real users
-
-## 📚 Documentation
-
-- [Context Engineering Rulebook](./docs/CONTEXT_ENGINEERING.md)
-- [Badge & Token Library](./docs/BADGE_TOKEN_LIBRARY.md)
-- [Brand Voice Guide](./docs/BRAND_VOICE_GUIDE.md)
-
-## 🔧 Tech Stack
-
-- **Frontend**: Next.js, Tailwind, shadcn/ui
-- **Blockchain**: Hedera HCS10, HTS tokens
-- **Messaging**: XMTP Protocol
-- **Payments**: TRST via MatterFi/Brale
-- **Identity**: Magic.link, MatterFi wallets
-
-## 🌟 The Vision
-
-**Reputation is programmable.** Trust doesn't need a gatekeeper. Your credibility should be portable, verifiable, and yours.
-
-**Inscribed like it matters.**
-
----
-
-> **Your trust. Your chain.**
-> 
-> Built on Hedera. For the culture.
