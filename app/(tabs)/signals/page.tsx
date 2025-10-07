@@ -143,10 +143,10 @@ export default function SignalsPageV1() {
   const totalXP = mockAchievements.reduce((sum, achievement) => sum + achievement.xp, 0)
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       {/* Professional Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-medium text-white mb-2 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-medium text-white mb-2 tracking-tight">
           Signals & Achievements
         </h1>
       </div>
@@ -158,7 +158,7 @@ export default function SignalsPageV1() {
             variant="ghost"
             size="sm"
             onClick={() => setSelectedTab("signals")}
-            className={`px-8 py-3 rounded-lg transition-all duration-300 ${
+            className={`px-4 sm:px-8 py-3 rounded-lg transition-all duration-300 text-sm ${
               selectedTab === "signals" 
                 ? "bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30" 
                 : "text-white/60 hover:text-white/90"
@@ -170,7 +170,7 @@ export default function SignalsPageV1() {
             variant="ghost"
             size="sm"
             onClick={() => setSelectedTab("achievements")}
-            className={`px-8 py-3 rounded-lg transition-all duration-300 ${
+            className={`px-4 sm:px-8 py-3 rounded-lg transition-all duration-300 text-sm ${
               selectedTab === "achievements" 
                 ? "bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30" 
                 : "text-white/60 hover:text-white/90"
@@ -183,12 +183,12 @@ export default function SignalsPageV1() {
 
       {/* Signals Tab - Vertical Feed */}
       {selectedTab === "signals" && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {signals.length === 0 ? (
-            <div className="text-center py-12">
-              <Activity className="w-12 h-12 mx-auto mb-4 text-white/30" />
-              <p className="text-white/60">No signals yet</p>
-              <p className="text-white/40 text-sm">Activity will appear here when you connect with others</p>
+            <div className="text-center py-8 sm:py-12">
+              <Activity className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-white/30" />
+              <p className="text-white/60 text-sm sm:text-base">No signals yet</p>
+              <p className="text-white/40 text-xs sm:text-sm">Activity will appear here when you connect with others</p>
             </div>
           ) : (
             signals.slice(0, 10).map((signal) => {
@@ -205,13 +205,13 @@ export default function SignalsPageV1() {
               }
               
               return (
-                <div key={signal.id} className="flex items-start gap-4 py-4 px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 transition-all duration-300">
-                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${getSignalColor()} border-current bg-current/20`}>
+                <div key={signal.id} className="flex items-start gap-3 sm:gap-4 py-3 sm:py-4 px-4 sm:px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 transition-all duration-300">
+                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${getSignalColor()} border-current bg-current/20 flex-shrink-0`}>
                     {getSignalIcon()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-white font-medium">
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-white font-medium text-sm sm:text-base pr-2">
                         {signal.type === 'CONTACT_REQUEST' && 'Contact request sent'}
                         {signal.type === 'CONTACT_ACCEPT' && 'Contact bonded'}
                         {signal.type === 'TRUST_ALLOCATE' && 'Trust allocated'}
@@ -219,11 +219,11 @@ export default function SignalsPageV1() {
                           signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
                         }
                       </p>
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-white/50 flex-shrink-0">
                         {new Date(signal.ts).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-white/60">
+                    <p className="text-xs sm:text-sm text-white/60">
                       {signal.class === 'contact' && 'Academic Signal'}
                       {signal.class === 'trust' && 'Social Signal'}
                       {signal.class === 'recognition' && 'Professional Signal'}
@@ -239,7 +239,7 @@ export default function SignalsPageV1() {
 
       {/* Achievements Tab - Collections */}
       {selectedTab === "achievements" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {mockAchievements.map((achievement) => {
             const getCategoryColor = () => {
               if (achievement.category === 'community') return 'border-green-400/30 bg-green-400/10'
@@ -251,15 +251,15 @@ export default function SignalsPageV1() {
             return (
               <div
                 key={achievement.id}
-                className={`backdrop-blur-sm border rounded-xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer ${getCategoryColor()}`}
+                className={`backdrop-blur-sm border rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 hover:scale-105 transition-all duration-300 cursor-pointer ${getCategoryColor()}`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-3">{achievement.emoji}</div>
-                  <h3 className="font-medium text-white mb-2">{achievement.name}</h3>
-                  <p className="text-sm text-white/60 mb-4">{achievement.description}</p>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl mb-2 sm:mb-3">{achievement.emoji}</div>
+                  <h3 className="font-medium text-white mb-1 sm:mb-2 text-xs sm:text-sm lg:text-base">{achievement.name}</h3>
+                  <p className="text-xs sm:text-sm text-white/60 mb-2 sm:mb-3 lg:mb-4 line-clamp-2">{achievement.description}</p>
                   
-                  <div className="flex items-center justify-between text-xs">
-                    <span className={`px-2 py-1 rounded-full border ${
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-2 text-xs">
+                    <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border text-xs ${
                       achievement.category === 'community' ? 'border-green-400/50 text-green-400' :
                       achievement.category === 'social' ? 'border-blue-400/50 text-blue-400' :
                       achievement.category === 'special' ? 'border-purple-400/50 text-purple-400' :
@@ -267,7 +267,7 @@ export default function SignalsPageV1() {
                     } capitalize`}>
                       {achievement.category}
                     </span>
-                    <span className="text-white/50">
+                    <span className="text-white/50 text-xs">
                       {new Date(achievement.earnedAt).toLocaleDateString()}
                     </span>
                   </div>

@@ -33,46 +33,79 @@ if (typeof window !== 'undefined') {
   (window as any).__signalsStore = signalsStore;
 }
 
-// Professional Trust Circle - Ultra Minimal
+// Professional Trust Circle - Ultra Minimal (Mobile Responsive)
 function ProfessionalTrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
   const totalSlots = 9
+  
+  // Use different radius for mobile vs desktop
+  const mobileRadius = 45
+  const desktopRadius = 60
+  const mobileCenter = 60
+  const desktopCenter = 80
+  
   const dots = Array.from({ length: totalSlots }, (_, i) => {
     const angle = (i * 360) / totalSlots - 90
     const radian = (angle * Math.PI) / 180
-    const radius = 60 // Larger radius for professional look
-    const x = Math.cos(radian) * radius + 80 // Centered in larger container
-    const y = Math.sin(radian) * radius + 80
+    
+    // Calculate positions for both mobile and desktop
+    const mobileX = Math.cos(radian) * mobileRadius + mobileCenter
+    const mobileY = Math.sin(radian) * mobileRadius + mobileCenter
+    const desktopX = Math.cos(radian) * desktopRadius + desktopCenter
+    const desktopY = Math.sin(radian) * desktopRadius + desktopCenter
 
     const isActive = i < allocatedOut
     const isInvite = !isActive
     
     return (
-      <div
-        key={i}
-        className={`absolute w-6 h-6 rounded-full border transition-all duration-500 cursor-pointer ${
-          isActive 
-            ? 'border-[#00F6FF] bg-[#00F6FF]/20 shadow-[0_0_8px_rgba(0,246,255,0.4)]' 
-            : 'border-white/30 bg-transparent hover:border-[#00F6FF]/50'
-        }`}
-        style={{ left: x - 12, top: y - 12 }}
-      >
-        {isActive && (
-          <div className="absolute inset-2 rounded-full bg-[#00F6FF] animate-pulse" />
-        )}
-        {isInvite && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-white/40 font-light">
-            +
-          </div>
-        )}
-      </div>
+      <>
+        {/* Mobile version */}
+        <div
+          key={`mobile-${i}`}
+          className={`absolute w-5 h-5 rounded-full border transition-all duration-500 cursor-pointer sm:hidden ${
+            isActive 
+              ? 'border-[#00F6FF] bg-[#00F6FF]/20 shadow-[0_0_8px_rgba(0,246,255,0.4)]' 
+              : 'border-white/30 bg-transparent hover:border-[#00F6FF]/50'
+          }`}
+          style={{ left: mobileX - 10, top: mobileY - 10 }}
+        >
+          {isActive && (
+            <div className="absolute inset-1.5 rounded-full bg-[#00F6FF] animate-pulse" />
+          )}
+          {isInvite && (
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-white/40 font-light">
+              +
+            </div>
+          )}
+        </div>
+        
+        {/* Desktop version */}
+        <div
+          key={`desktop-${i}`}
+          className={`absolute w-6 h-6 rounded-full border transition-all duration-500 cursor-pointer hidden sm:block ${
+            isActive 
+              ? 'border-[#00F6FF] bg-[#00F6FF]/20 shadow-[0_0_8px_rgba(0,246,255,0.4)]' 
+              : 'border-white/30 bg-transparent hover:border-[#00F6FF]/50'
+          }`}
+          style={{ left: desktopX - 12, top: desktopY - 12 }}
+        >
+          {isActive && (
+            <div className="absolute inset-2 rounded-full bg-[#00F6FF] animate-pulse" />
+          )}
+          {isInvite && (
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-white/40 font-light">
+              +
+            </div>
+          )}
+        </div>
+      </>
     )
   })
 
   return (
-    <div className="relative w-40 h-40 flex-shrink-0">
+    <div className="relative w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0">
       {dots}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-        <div className="text-2xl font-light text-[#00F6FF]">{allocatedOut}</div>
+        <div className="text-xl sm:text-2xl font-light text-[#00F6FF]">{allocatedOut}</div>
         <div className="text-xs text-white/50">/9</div>
       </div>
     </div>
@@ -340,17 +373,17 @@ export default function CirclePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       {/* Professional Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-medium text-white mb-2 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-medium text-white mb-2 tracking-tight">
           Your Circle of Trust ({trustStats.allocatedOut}/9)
         </h1>
       </div>
 
       {/* Professional Trust Circle */}
       <div className="flex justify-center">
-        <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-12">
+        <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-6 sm:p-8 lg:p-12">
           <ProfessionalTrustCircle 
             allocatedOut={trustStats.allocatedOut} 
             maxSlots={9} 
@@ -359,8 +392,8 @@ export default function CirclePage() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-center gap-4">
-        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 px-8">
+      <div className="flex justify-center gap-3 sm:gap-4">
+        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 px-4 sm:px-6 lg:px-8 text-sm sm:text-base">
           Send a Signal
         </Button>
       </div>
@@ -369,7 +402,7 @@ export default function CirclePage() {
       <div className="text-center">
         <Button 
           variant="ghost" 
-          className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300"
+          className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 text-sm sm:text-base px-4 sm:px-6"
           onClick={() => window.location.href = '/contacts'}
         >
           Manage Slots
