@@ -95,52 +95,49 @@ export default function ContactsPage() {
   )
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Professional Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-medium text-white mb-2 tracking-tight">
-            Build Your Network
-          </h1>
-          <p className="text-sm sm:text-base text-white/70 font-light">
-            Trust begins with contact.
-          </p>
-        </div>
-        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 text-sm sm:text-base px-3 sm:px-4">
-          <UserPlus className="w-4 h-4 mr-1 sm:mr-2" />
-          <span className="hidden sm:inline">Add Contact</span>
-          <span className="sm:hidden">Add</span>
+    <div className="max-w-lg mx-auto px-3 py-4 space-y-4 min-h-screen">
+      {/* Mobile-First Professional Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-xl font-medium text-white tracking-tight">
+          Build Your Network
+        </h1>
+        <p className="text-sm text-white/70 font-light">
+          Trust begins with contact.
+        </p>
+        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 text-sm px-4 py-2 w-full max-w-40 mx-auto">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Add Contact
         </Button>
       </div>
 
-      {/* Graph Preview Placeholder */}
-      <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-4 sm:p-8">
-        <div className="flex items-center justify-center h-24 sm:h-32">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-[#00F6FF] rounded-full animate-pulse"></div>
-            <div className="w-px h-6 sm:h-8 bg-[#00F6FF]/30"></div>
-            <Network className="w-6 h-6 sm:w-8 sm:h-8 text-[#00F6FF]/60" />
-            <div className="w-px h-6 sm:h-8 bg-[#00F6FF]/30"></div>
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-[#00F6FF] rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
+      {/* Compact Graph Preview */}
+      <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4">
+        <div className="flex items-center justify-center h-16">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-[#00F6FF] rounded-full animate-pulse"></div>
+            <div className="w-px h-4 bg-[#00F6FF]/30"></div>
+            <Network className="w-5 h-5 text-[#00F6FF]/60" />
+            <div className="w-px h-4 bg-[#00F6FF]/30"></div>
+            <div className="w-2 h-2 bg-[#00F6FF] rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
           </div>
         </div>
-        <p className="text-center text-white/50 text-xs sm:text-sm mt-3 sm:mt-4">Interactive network visualization</p>
+        <p className="text-center text-white/50 text-xs mt-2">Network visualization</p>
       </div>
 
-      {/* Search Bar */}
+      {/* Mobile Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 sm:left-4 top-3 sm:top-4 h-4 w-4 sm:h-5 sm:w-5 text-white/40" />
+        <Search className="absolute left-3 top-3 h-4 w-4 text-white/40" />
         <Input
-          placeholder="Search your network..."
-          className="pl-10 sm:pl-12 py-3 sm:py-4 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#00F6FF] focus:ring-1 focus:ring-[#00F6FF]/20 rounded-xl transition-all duration-300 text-sm sm:text-base"
+          placeholder="Search network..."
+          className="pl-10 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#00F6FF] focus:ring-1 focus:ring-[#00F6FF]/20 rounded-lg transition-all duration-300 text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       {/* Your Contacts */}
-      <div className="space-y-4 sm:space-y-6">
-        <h2 className="text-lg sm:text-xl font-medium text-white tracking-tight">Your Contacts</h2>
+      <div className="space-y-3">
+        <h2 className="text-lg font-medium text-white tracking-tight">Your Contacts</h2>
         
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
@@ -160,37 +157,37 @@ export default function ContactsPage() {
             return (
               <div 
                 key={contact.id || contact.peerId} 
-                className="flex items-center justify-between py-3 sm:py-4 px-4 sm:px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 hover:bg-[#00F6FF]/5 transition-all duration-300 cursor-pointer group"
+                className="flex items-center justify-between py-3 px-3 backdrop-blur-sm bg-white/5 border border-white/10 rounded-lg hover:border-[#00F6FF]/30 hover:bg-[#00F6FF]/5 transition-all duration-300 cursor-pointer group"
                 onClick={() => setSelectedContactId(contact.id || contact.peerId)}
               >
-                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 flex-shrink-0 ${
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 flex-shrink-0 ${
                     isBonded 
                       ? 'border-[#00F6FF] bg-[#00F6FF]/10 text-[#00F6FF]' 
                       : 'border-white/30 bg-white/5 text-white/60'
                   }`}>
-                    {isBonded ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <User className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    {isBonded ? <CheckCircle className="w-4 h-4" /> : <User className="w-4 h-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-white text-sm sm:text-base truncate group-hover:text-[#00F6FF] transition-colors">{displayName}</div>
-                    <div className="text-xs sm:text-sm text-white/60 truncate">{role} • {company}</div>
+                    <div className="font-medium text-white text-sm truncate group-hover:text-[#00F6FF] transition-colors">{displayName}</div>
+                    <div className="text-xs text-white/60 truncate">{role} • {company}</div>
                     {'trustScore' in contact && (
-                      <div className="text-xs text-[#00F6FF]/80 mt-1">
-                        Trust Score: {contact.trustScore.toFixed(1)} • {contact.mutualConnections} mutual
+                      <div className="text-xs text-[#00F6FF]/80 mt-0.5">
+                        Trust: {contact.trustScore.toFixed(1)} • {contact.mutualConnections} mutual
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {isBonded ? (
                     <>
-                      <span className="text-xs px-1.5 sm:px-2 py-1 bg-[#00F6FF]/20 text-[#00F6FF] rounded-full border border-[#00F6FF]/30">
-                        ● Bonded
+                      <span className="text-xs px-1.5 py-0.5 bg-[#00F6FF]/20 text-[#00F6FF] rounded-full border border-[#00F6FF]/30">
+                        ●
                       </span>
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 p-2"
+                        className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 p-1.5"
                         onClick={(e) => {
                           e.stopPropagation()
                           // Handle message action
@@ -201,22 +198,17 @@ export default function ContactsPage() {
                     </>
                   ) : (
                     <>
-                      <span className="text-xs px-1.5 sm:px-2 py-1 bg-white/10 text-white/60 rounded-full">
-                        ○ Available
-                      </span>
-                      <div className="flex gap-1 sm:gap-2">
-                        <Button 
-                          size="sm" 
-                          className="bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/50 hover:bg-[#00F6FF]/30 text-xs px-2 sm:px-3"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleAddContact(contact)
-                          }}
-                          disabled={addingContact === contact.id}
-                        >
-                          {addingContact === contact.id ? 'Adding...' : 'Connect'}
-                        </Button>
-                      </div>
+                      <Button 
+                        size="sm" 
+                        className="bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/50 hover:bg-[#00F6FF]/30 text-xs px-2 py-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAddContact(contact)
+                        }}
+                        disabled={addingContact === contact.id}
+                      >
+                        {addingContact === contact.id ? '+' : '+'}
+                      </Button>
                     </>
                   )}
                 </div>
@@ -228,14 +220,14 @@ export default function ContactsPage() {
         
         {/* Contact Stats */}
         {!isLoading && (
-          <div className="text-center py-2 text-white/60 text-sm">
-            Showing {filteredSuggestions.length + filteredContacts.length} contacts • {enhancedContacts.length} from HCS
+          <div className="text-center py-2 text-white/60 text-xs">
+            {filteredSuggestions.length + filteredContacts.length} contacts • {enhancedContacts.length} from HCS
           </div>
         )}
         
         {/* Recommend Action */}
-        <div className="text-center py-6 sm:py-8">
-          <Button className="bg-transparent border border-white/20 text-white/70 hover:border-[#00F6FF]/50 hover:text-[#00F6FF] transition-all duration-300 text-sm sm:text-base px-4 sm:px-6">
+        <div className="text-center py-4">
+          <Button className="bg-transparent border border-white/20 text-white/70 hover:border-[#00F6FF]/50 hover:text-[#00F6FF] transition-all duration-300 text-sm px-4 py-2">
             Recommend a Peer
           </Button>
         </div>

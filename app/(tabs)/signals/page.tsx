@@ -224,62 +224,58 @@ export default function SignalsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-white tracking-tight">
+    <div className="max-w-lg mx-auto px-3 py-4 space-y-4 min-h-screen">
+      {/* Mobile Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-xl font-medium text-white tracking-tight">
           Network Signals
         </h1>
-        <p className="text-white/60">Stay connected with your professional network</p>
+        <p className="text-white/60 text-sm">Stay connected with your network</p>
       </div>
 
-      {/* Search */}
-      <div className="max-w-md mx-auto">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Search signals..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-[#00F6FF]/50"
-          />
-        </div>
+      {/* Mobile Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
+        <Input
+          placeholder="Search signals..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 py-3 bg-white/5 border-white/10 text-white placeholder-white/40 focus:border-[#00F6FF]/50 rounded-lg text-sm"
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="flex justify-center">
-        <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedTab('signals')}
-            className={`px-6 py-3 rounded-lg transition-all duration-300 ${
-              selectedTab === 'signals'
-                ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
-                : 'text-white/60 hover:text-white/90'
-            }`}
-          >
-            <Activity className="w-4 h-4 mr-2" />
-            Signals
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedTab('recognition')}
-            className={`px-6 py-3 rounded-lg transition-all duration-300 ${
-              selectedTab === 'recognition'
-                ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
-                : 'text-white/60 hover:text-white/90'
-            }`}
-          >
-            <Trophy className="w-4 h-4 mr-2" />
-            Recognition
-          </Button>
-        </div>
+      {/* Mobile Tabs */}
+      <div className="grid grid-cols-2 bg-white/5 border border-white/10 rounded-lg p-1 gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedTab('signals')}
+          className={`py-3 rounded-md transition-all duration-300 text-sm ${
+            selectedTab === 'signals'
+              ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
+              : 'text-white/60 hover:text-white/90'
+          }`}
+        >
+          <Activity className="w-4 h-4 mr-1" />
+          Signals
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedTab('recognition')}
+          className={`py-3 rounded-md transition-all duration-300 text-sm ${
+            selectedTab === 'recognition'
+              ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
+              : 'text-white/60 hover:text-white/90'
+          }`}
+        >
+          <Trophy className="w-4 h-4 mr-1" />
+          Recognition
+        </Button>
       </div>
 
-      {/* Signals Feed */}
-      <div className="space-y-4">
+      {/* Mobile Signals Feed */}
+      <div className="space-y-3">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="text-center space-y-4">
@@ -295,80 +291,78 @@ export default function SignalsPage() {
           </div>
         ) : (
           filteredSignals.map((signal) => (
-            <Card key={signal.id} className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  {/* Left: User Info & Signal */}
-                  <div className="flex items-center gap-4 flex-1">
+            <Card key={signal.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300">
+              <CardContent className="p-3">
+                {/* Mobile-First Layout */}
+                <div className="space-y-3">
+                  {/* Top: User Info & Signal */}
+                  <div className="flex items-center gap-3">
                     {/* Avatar with status */}
                     <div className="relative">
-                      <Avatar className="w-12 h-12 ring-2 ring-white/20">
-                        <AvatarFallback className={`bg-gradient-to-br ${getSignalColor(signal.type)} text-white font-bold`}>
+                      <Avatar className="w-10 h-10 ring-2 ring-white/20">
+                        <AvatarFallback className={`bg-gradient-to-br ${getSignalColor(signal.type)} text-white font-medium text-sm`}>
                           {signal.firstName.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
                     </div>
 
                     {/* Signal Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-semibold text-white text-lg">{signal.firstName}</h3>
-                        <div className={`p-1.5 rounded-full bg-gradient-to-br ${getSignalColor(signal.type)}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-white text-sm truncate">{signal.firstName}</h3>
+                        <div className={`p-1 rounded-full bg-gradient-to-br ${getSignalColor(signal.type)}`}>
                           {getSignalIcon(signal.type)}
                         </div>
-                        <span className="text-white/50 text-sm">
-                          {new Date(signal.ts).toLocaleDateString()}
-                        </span>
                       </div>
-                      <p className="text-white/80 mb-2">{signal.eventDescription}</p>
-                      
-                      {/* Engagement Stats */}
-                      <div className="flex items-center gap-4 text-sm text-white/50">
-                        <div className="flex items-center gap-1">
-                          <Heart className="w-4 h-4" />
-                          <span>{signal.likes}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="w-4 h-4" />
-                          <span>{signal.comments}</span>
-                        </div>
+                      <p className="text-white/80 text-sm line-clamp-2">{signal.eventDescription}</p>
+                    </div>
+                    
+                    <span className="text-white/50 text-xs flex-shrink-0">
+                      {new Date(signal.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  
+                  {/* Bottom: Engagement & Actions */}
+                  <div className="flex items-center justify-between">
+                    {/* Engagement Stats */}
+                    <div className="flex items-center gap-3 text-xs text-white/50">
+                      <div className="flex items-center gap-1">
+                        <Heart className="w-3 h-3" />
+                        <span>{signal.likes}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageCircle className="w-3 h-3" />
+                        <span>{signal.comments}</span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Right: Action Buttons */}
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      size="sm"
-                      onClick={() => handleSendSignal(signal.firstName)}
-                      className="bg-blue-500/20 text-blue-400 border-blue-400/30 hover:bg-blue-500/30 hover:scale-105 transition-all duration-200"
-                    >
-                      <Zap className="w-4 h-4 mr-1" />
-                      Signal
-                    </Button>
                     
-                    <Button
-                      size="sm"
-                      onClick={() => handleSendTrust(signal.firstName)}
-                      className="bg-green-500/20 text-green-400 border-green-400/30 hover:bg-green-500/30 hover:scale-105 transition-all duration-200"
-                    >
-                      <DollarSign className="w-4 h-4 mr-1" />
-                      $TRST
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      onClick={() => handleSendMessage(signal.firstName)}
-                      className="bg-purple-500/20 text-purple-400 border-purple-400/30 hover:bg-purple-500/30 hover:scale-105 transition-all duration-200"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Message
-                    </Button>
-                    
-                    <Button variant="ghost" size="sm" className="text-white/40 hover:text-white/80">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
+                    {/* Compact Action Buttons */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendSignal(signal.firstName)}
+                        className="bg-blue-500/20 text-blue-400 border-blue-400/30 hover:bg-blue-500/30 text-xs px-2 py-1 h-7"
+                      >
+                        <Zap className="w-3 h-3" />
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendTrust(signal.firstName)}
+                        className="bg-green-500/20 text-green-400 border-green-400/30 hover:bg-green-500/30 text-xs px-2 py-1 h-7"
+                      >
+                        <DollarSign className="w-3 h-3" />
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendMessage(signal.firstName)}
+                        className="bg-purple-500/20 text-purple-400 border-purple-400/30 hover:bg-purple-500/30 text-xs px-2 py-1 h-7"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
