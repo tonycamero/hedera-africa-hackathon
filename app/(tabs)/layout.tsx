@@ -74,15 +74,14 @@ export default function TabsLayout({
     <div className="min-h-screen theme-professional" style={{background: 'linear-gradient(135deg, #0B1622 0%, #111827 100%)'}}>
       {/* Header - Minimal Professional */}
       <header className="backdrop-blur-md bg-black/20 border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-lg mx-auto px-3 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
               {/* TrustMesh Logo - Minimal */}
-              <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center opacity-90">
+              <div className="w-7 h-7 flex items-center justify-center opacity-90">
                 <svg 
                   width="20" 
-                  height="20" 
-                  className="sm:w-6 sm:h-6"
+                  height="20"
                   viewBox="0 0 24 24" 
                   fill="none"
                 >
@@ -94,13 +93,13 @@ export default function TabsLayout({
                 </svg>
               </div>
               <div>
-                <h1 className="font-medium text-lg sm:text-xl text-white tracking-tight">TrustMesh</h1>
+                <h1 className="font-medium text-lg text-white tracking-tight">TrustMesh</h1>
                 <p className="text-xs text-white/50 font-light">
-                  Professional Network
+                  Professional Network • Mobile
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1">
               <HeaderModeChips />
             </div>
           </div>
@@ -108,13 +107,13 @@ export default function TabsLayout({
       </header>
 
       {/* Main content - Add bottom padding for fixed navigation */}
-      <main className="min-h-[calc(100vh-8rem)] sm:min-h-[calc(100vh-9rem)] px-1 sm:px-2 pb-20 sm:pb-24">
+      <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">
         {children}
       </main>
 
       {/* Bottom navigation - Glass morphism */}
       <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-black/30 border-t border-white/10 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="max-w-lg mx-auto px-3">
           <div className="flex">
             {tabs.map((tab) => {
               const Icon = tab.icon
@@ -124,7 +123,7 @@ export default function TabsLayout({
                 <Link
                   key={tab.id}
                   href={tab.path}
-                  className={`flex-1 flex flex-col items-center justify-center py-3 sm:py-4 px-2 sm:px-3 text-xs font-medium transition-all duration-300 ${
+                  className={`flex-1 flex flex-col items-center justify-center py-3 px-2 text-xs font-medium transition-all duration-300 ${
                     isActive 
                       ? "text-white" 
                       : "text-white/60 hover:text-white/90"

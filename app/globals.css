@@ -419,6 +419,24 @@ html.theme-mesh-dark .badge-professional {
   }
 }
 
+/* Force mobile-first width constraints - override any interfering CSS */
+body, #__next, main {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Professional Network mobile constraints */
+.max-w-lg {
+  max-width: 32rem !important;
+}
+
+/* Remove any accidental container styling */
+.container {
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 /* Updated custom styles for earthy green theme */
 .trust-glow {
   box-shadow: 0 0 20px rgba(21, 128, 61, 0.3);

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Users, UserPlus, Settings } from "lucide-react"
+import { Users, UserPlus, Settings, Circle } from "lucide-react"
 
 // Circle of Trust LED Visualization Component
 function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: { 
@@ -66,6 +66,7 @@ function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: {
 }
 
 export default function CirclePage() {
+  // Mobile responsive update - force reload
   const router = useRouter()
   const [selectedMember, setSelectedMember] = useState<string | null>(null)
 
@@ -85,138 +86,96 @@ export default function CirclePage() {
   const availableSlots = trustStats.maxSlots - trustStats.allocatedOut
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Circle of Trust Header with Visualization */}
-      <div className="text-center">
-        <h1 className="text-2xl sm:text-3xl font-medium text-white mb-6 tracking-tight">
-          Your Circle of Trust
-        </h1>
-        
-        {/* Trust Circle Visualization Card */}
-        <Card className="backdrop-blur-md bg-white/5 border border-white/10 mx-auto max-w-md">
-          <CardContent className="p-6 sm:p-8">
-            <div className="flex items-center justify-center gap-6">
-              <TrustCircleVisualization 
-                allocatedOut={trustStats.allocatedOut}
-                maxSlots={trustStats.maxSlots}
-                bondedContacts={trustStats.bondedContacts}
-              />
-              
-              <div className="text-left">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-2xl sm:text-3xl font-bold text-white">
-                    {trustStats.allocatedOut}
-                  </span>
-                  <span className="text-lg text-white/60">/ {trustStats.maxSlots}</span>
-                </div>
-                <p className="text-[#00F6FF] font-medium mb-3">Connections</p>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
-                    <span className="text-sm text-white/80">{trustStats.bondedContacts} bonded contacts</span>
-                  </div>
-                  {availableSlots > 0 && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-400 opacity-60"></div>
-                      <span className="text-sm text-white/60">{availableSlots} open slots</span>
-                    </div>
-                  )}
-                </div>
+    <div className="max-w-lg mx-auto px-3 py-4 space-y-6">
+      {/* Circle of Trust Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-xl font-medium text-white tracking-tight flex items-center gap-2">
+            <Circle className="w-5 h-5 text-[#00F6FF]" />
+            Your Circle of Trust
+          </h1>
+          <p className="text-sm text-white/60 mt-1">{trustStats.allocatedOut}/{trustStats.maxSlots} filled · Build your professional network</p>
+        </div>
+      </div>
+      
+      {/* Main Trust Circle Card */}
+      <Card className="backdrop-blur-md bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/10">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <TrustCircleVisualization 
+              allocatedOut={trustStats.allocatedOut}
+              maxSlots={trustStats.maxSlots}
+              bondedContacts={trustStats.bondedContacts}
+            />
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl font-bold text-white">{trustStats.allocatedOut}</span>
+                <span className="text-white/60">members</span>
+                <span className="text-white/40">•</span>
+                <span className="text-[#00F6FF]">{availableSlots} slots left</span>
               </div>
+              <p className="text-sm text-white/60">Fill {Math.min(2, availableSlots)} more slots for network boost!</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer" onClick={() => {
+          console.log('👥 Professional Circle clicked')
+          toast.success('Opening professional circle builder')
+        }}>
+          <CardContent className="p-4 text-center">
+            <Users className="w-8 h-8 text-[#00F6FF] mx-auto mb-2" />
+            <h3 className="font-medium text-white mb-1">Professional Circle</h3>
+            <p className="text-xs text-white/60 mb-3">Invite colleagues to connect</p>
+            <Button size="sm" className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 text-xs">
+              <UserPlus className="w-3 h-3 mr-1" />
+              Send Invite
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer" onClick={() => {
+          console.log('💼 Allocate Trust clicked')
+          toast.success('Trust allocation started')
+        }}>
+          <CardContent className="p-4 text-center">
+            <Circle className="w-8 h-8 text-[#00F6FF] mx-auto mb-2" />
+            <h3 className="font-medium text-white mb-1">Allocate TRST</h3>
+            <p className="text-xs text-white/60 mb-3">{trustStats.allocatedOut * 25}/150 Balance</p>
+            <Button size="sm" className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 text-xs">
+              <Settings className="w-3 h-3 mr-1" />
+              Allocate 25
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Professional Action Buttons */}
-      <div className="flex justify-center gap-3 sm:gap-4">
-        <Button 
-          className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 px-4 sm:px-6"
-          onClick={() => {
-            console.log('📡 Allocate Trust clicked')
-            toast.success('Trust allocation started', { description: 'Select contacts to allocate trust' })
-          }}
-        >
-          <Users className="w-4 h-4 mr-2" />
-          Allocate Trust
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 px-4 sm:px-6"
-          onClick={() => {
-            console.log('🔄 Navigate to contacts')
-            router.push('/contacts')
-          }}
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Contact
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 px-3 sm:px-4"
-          onClick={() => {
-            console.log('⚙️ Settings clicked')
-            toast.info('Circle settings', { description: 'Configure trust allocation rules' })
-          }}
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Professional Network Members */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-medium text-white text-center mb-4">Network Members</h2>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
-          {[
-            { name: 'Sarah Johnson', role: 'Senior Partner', company: 'Tech Ventures', trust: 85, status: 'active' },
-            { name: 'Michael Chen', role: 'CTO', company: 'DataFlow Inc', trust: 92, status: 'active' },
-            { name: 'Emma Rodriguez', role: 'Director', company: 'Innovation Lab', trust: 78, status: 'pending' }
-          ].map((member, index) => (
-            <Card key={index} className="backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
-                  onClick={() => handleMemberClick(`tm-${member.name.toLowerCase().replace(' ', '-')}`)}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full border-2 border-[#00F6FF] bg-[#00F6FF]/20 flex items-center justify-center text-white font-medium">
-                    {member.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="font-medium text-white">{member.name}</h3>
-                    <p className="text-sm text-white/60">{member.role} at {member.company}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="text-xs text-[#00F6FF] font-medium">Trust: {member.trust}%</div>
-                      <Badge className={`text-xs ${
-                        member.status === 'active' 
-                          ? 'bg-green-500/20 text-green-400 border-green-500/30' 
-                          : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                      }`}>
-                        {member.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        <div className="text-center">
-          <Button 
-            variant="ghost" 
-            className="text-white/40 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 text-sm"
-            onClick={() => {
-              console.log('🔍 View all members')
-              router.push('/contacts')
-            }}
-          >
-            View All Network Members →
-          </Button>
-        </div>
-      </div>
+      {/* Progress Section */}
+      <Card className="backdrop-blur-md bg-white/5 border border-white/10">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-white/80">Progress</span>
+            <span className="text-sm text-[#00F6FF]">Level up your network</span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60">Fill {Math.min(2, availableSlots)} more for boost</span>
+              <span className="text-white/60">{Math.round((trustStats.allocatedOut / trustStats.maxSlots) * 100)}%</span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-[#00F6FF] to-cyan-400 h-2 rounded-full transition-all" 
+                style={{ width: `${(trustStats.allocatedOut / trustStats.maxSlots) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs text-white/50 mt-2">Next: Unlock professional circles & premium features</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

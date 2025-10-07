@@ -8,13 +8,7 @@ module.exports = {
   ],
   prefix: "",
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
+    /* Removed container config that was causing width issues */
     extend: {
       colors: {
         border: "hsl(var(--border))",
