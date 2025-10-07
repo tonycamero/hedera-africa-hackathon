@@ -1,46 +1,59 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { AddContactDialog } from "@/components/AddContactDialog"
-import { signalsStore, type BondedContact } from "@/lib/stores/signalsStore"
-import { getBondedContactsFromHCS } from "@/lib/services/HCSDataUtils"
-import { getSessionId } from "@/lib/session"
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { signalsStore, type BondedContact } from '@/lib/stores/signalsStore'
+import { getBondedContactsFromHCS } from '@/lib/services/HCSDataUtils'
+import { enhancedHCSDataService, type EnhancedContact } from '@/lib/services/EnhancedHCSDataService'
+import { getSessionId } from '@/lib/session'
+import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { 
   Search,
   MessageCircle,
   UserPlus,
   CheckCircle,
-  Clock,
   Network,
   User
-} from "lucide-react"
-import { toast } from "sonner"
+} from 'lucide-react'
+import { toast } from 'sonner'
 
-// Mock professional suggestions
-const mockSuggestions = [
-  { id: "sarah-kim", name: "Sarah Kim", status: "bonded", role: "Engineering Lead", company: "TechCorp", mutuals: 3 },
-  { id: "mike-rivera", name: "Mike Rivera", status: "pending", role: "Product Manager", company: "Startup.io", mutuals: 2 },
-  { id: "emily-patel", name: "Emily Patel", status: "bonded", role: "Strategy Director", company: "Consultancy", mutuals: 1 }
-]
+// Enhanced HCS contacts will be loaded from the data service
+// All contact data now comes from real Hedera testnet
 
 export default function ContactsPage() {
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
+  const [enhancedContacts, setEnhancedContacts] = useState<EnhancedContact[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [sessionId, setSessionId] = useState("")
   const [addingContact, setAddingContact] = useState<string | null>(null)
   const [showAllSuggestions, setShowAllSuggestions] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadContacts = () => {
-      const currentSessionId = getSessionId()
-      const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-      setSessionId(effectiveSessionId)
-      
-      const allEvents = signalsStore.getAll()
-      const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
-      setBondedContacts(contacts)
+    const loadContacts = async () => {
+      try {
+        setIsLoading(true)
+        const currentSessionId = getSessionId()
+        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
+        setSessionId(effectiveSessionId)
+        
+        // Load bonded contacts from HCS
+        const allEvents = signalsStore.getAll()
+        const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
+        setBondedContacts(contacts)
+        
+        // Load enhanced contacts from enhanced service
+        const enhanced = await enhancedHCSDataService.getEnhancedContacts()
+        setEnhancedContacts(enhanced)
+        
+        console.log(`[ContactsPage] Loaded ${contacts.length} bonded contacts and ${enhanced.length} enhanced contacts`)
+      } catch (error) {
+        console.error('[ContactsPage] Failed to load contacts:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     loadContacts()
@@ -50,7 +63,7 @@ export default function ContactsPage() {
     return unsubscribe
   }, [])
 
-  const handleAddContact = async (suggestion: any) => {
+  const handleAddContact = async (suggestion: EnhancedContact) => {
     setAddingContact(suggestion.id)
     
     // Simulate adding contact with sparkle animation
@@ -74,8 +87,11 @@ export default function ContactsPage() {
       .includes(searchTerm.toLowerCase())
   )
 
-  const filteredSuggestions = mockSuggestions.filter(suggestion =>
-    suggestion.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSuggestions = enhancedContacts.filter(contact =>
+    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.handle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.company.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -125,15 +141,28 @@ export default function ContactsPage() {
       {/* Your Contacts */}
       <div className="space-y-4 sm:space-y-6">
         <h2 className="text-lg sm:text-xl font-medium text-white tracking-tight">Your Contacts</h2>
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00F6FF] mx-auto mb-4"></div>
+              <p className="text-white/60 text-sm">Loading contacts from Hedera testnet...</p>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-1">
-          {[...filteredSuggestions, ...filteredContacts.slice(0, 2)].map((contact, index) => {
+          {[...filteredSuggestions.slice(0, 6), ...filteredContacts.slice(0, 2)].map((contact, index) => {
             const isBonded = 'peerId' in contact || contact.status === 'bonded'
             const displayName = 'name' in contact ? contact.name : (contact.handle || `User ${contact.peerId.slice(-6)}`)
             const role = 'role' in contact ? contact.role : 'Trusted Contact'
             const company = 'company' in contact ? contact.company : 'Network Member'
             
             return (
-              <div key={contact.id || contact.peerId} className="flex items-center justify-between py-3 sm:py-4 px-4 sm:px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 transition-all duration-300">
+              <div 
+                key={contact.id || contact.peerId} 
+                className="flex items-center justify-between py-3 sm:py-4 px-4 sm:px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 hover:bg-[#00F6FF]/5 transition-all duration-300 cursor-pointer group"
+                onClick={() => setSelectedContactId(contact.id || contact.peerId)}
+              >
                 <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                   <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 flex-shrink-0 ${
                     isBonded 
@@ -143,8 +172,13 @@ export default function ContactsPage() {
                     {isBonded ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <User className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-white text-sm sm:text-base truncate">{displayName}</div>
+                    <div className="font-medium text-white text-sm sm:text-base truncate group-hover:text-[#00F6FF] transition-colors">{displayName}</div>
                     <div className="text-xs sm:text-sm text-white/60 truncate">{role} • {company}</div>
+                    {'trustScore' in contact && (
+                      <div className="text-xs text-[#00F6FF]/80 mt-1">
+                        Trust Score: {contact.trustScore.toFixed(1)} • {contact.mutualConnections} mutual
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -153,21 +187,34 @@ export default function ContactsPage() {
                       <span className="text-xs px-1.5 sm:px-2 py-1 bg-[#00F6FF]/20 text-[#00F6FF] rounded-full border border-[#00F6FF]/30">
                         ● Bonded
                       </span>
-                      <Button size="sm" variant="ghost" className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 p-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 p-2"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Handle message action
+                        }}
+                      >
                         <MessageCircle className="w-4 h-4" />
                       </Button>
                     </>
                   ) : (
                     <>
                       <span className="text-xs px-1.5 sm:px-2 py-1 bg-white/10 text-white/60 rounded-full">
-                        ○ Pending
+                        ○ Available
                       </span>
                       <div className="flex gap-1 sm:gap-2">
-                        <Button size="sm" className="bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/50 hover:bg-[#00F6FF]/30 text-xs px-2 sm:px-3">
-                          Bond
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-white/40 hover:text-white/60 text-xs px-2 sm:px-3">
-                          Decline
+                        <Button 
+                          size="sm" 
+                          className="bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/50 hover:bg-[#00F6FF]/30 text-xs px-2 sm:px-3"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAddContact(contact)
+                          }}
+                          disabled={addingContact === contact.id}
+                        >
+                          {addingContact === contact.id ? 'Adding...' : 'Connect'}
                         </Button>
                       </div>
                     </>
@@ -177,6 +224,14 @@ export default function ContactsPage() {
             )
           })}
         </div>
+        )}
+        
+        {/* Contact Stats */}
+        {!isLoading && (
+          <div className="text-center py-2 text-white/60 text-sm">
+            Showing {filteredSuggestions.length + filteredContacts.length} contacts • {enhancedContacts.length} from HCS
+          </div>
+        )}
         
         {/* Recommend Action */}
         <div className="text-center py-6 sm:py-8">
@@ -185,6 +240,12 @@ export default function ContactsPage() {
           </Button>
         </div>
       </div>
+      
+      {/* Contact Profile Sheet */}
+      <ContactProfileSheet 
+        peerId={selectedContactId} 
+        onClose={() => setSelectedContactId(null)} 
+      />
     </div>
   )
 }

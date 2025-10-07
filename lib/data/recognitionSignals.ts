@@ -135,63 +135,314 @@ export const recognitionSignals: RecognitionSignal[] = [
       'Balance savagery with kindness in your daily life'
     ]
   },
-  { id: 'delulu', name: 'Delulu', description: 'delicious confidence', category: 'social', number: 4, icon: '🤡', isActive: true },
-  { id: 'rizz', name: 'Rizz', description: 'smooth operator', category: 'social', number: 5, icon: '🧠', isActive: true },
-  { id: 'brain-rot', name: 'Brain Rot', description: 'too much prime time', category: 'social', number: 6, icon: '🧠', isActive: true },
-  { id: 'gyatt', name: 'Gyatt', description: 'respectfully looking', category: 'social', number: 7, icon: '❤️', isActive: true },
-  { id: 'aura', name: 'Aura', description: 'positive energy', category: 'social', number: 8, icon: '😊', isActive: true },
-  { id: 'npc', name: 'NPC', description: 'background character energy', category: 'social', number: 9, icon: '🤓', isActive: true },
-  { id: 'tryhard', name: 'Tryhard', description: 'overly serious', category: 'social', number: 10, icon: '🎯', isActive: true },
-  { id: 'goat', name: 'GOAT', description: 'greatest of all time', category: 'social', number: 11, icon: '😊', isActive: true },
-  { id: 'melt', name: 'Melt', description: 'awkward but funny', category: 'social', number: 12, icon: '👻', isActive: true },
-  { id: 'ghost', name: 'Ghost', description: 'disappears often', category: 'social', number: 13, icon: '👻', isActive: true },
-  { id: 'lowkey', name: 'Lowkey', description: 'subtle quiet flex', category: 'social', number: 14, icon: '🚀', isActive: true },
-  { id: 'wagmi', name: 'WAGMI', description: 'crypto hype', category: 'social', number: 15, icon: '🤓', isActive: true },
-  { id: 'ice', name: 'Ice', description: 'too cool', category: 'social', number: 16, icon: '🦢', isActive: true },
+  { 
+    id: 'delulu', 
+    name: 'Delulu', 
+    description: 'delicious confidence', 
+    category: 'social', 
+    number: 4, 
+    icon: '🤡', 
+    isActive: true,
+    extendedDescription: 'The eternal optimist who manifests their dreams into reality through sheer belief. Like a Lagos entrepreneur who starts with nothing but ends up running the biggest tech hub in West Africa.',
+    rarity: 'Rare',
+    stats: {
+      popularity: 88,
+      impact: 85,
+      authenticity: 90,
+      difficulty: 60
+    },
+    traits: {
+      personality: ['Optimistic', 'Persistent', 'Visionary', 'Confident'],
+      skills: ['Manifestation', 'Positive Thinking', 'Risk Taking', 'Motivation'],
+      environment: ['Startup Hubs', 'Social Media', 'Entrepreneurship Events', 'Community Gatherings']
+    },
+    relatedLinks: [
+      { name: 'African Success Stories', url: '#', type: 'article' },
+      { name: 'Ubuntu Philosophy Guide', url: '#', type: 'reference' },
+      { name: 'Delulu is the Solulu Memes', url: '#', type: 'meme' }
+    ],
+    backstory: 'Born from African Ubuntu philosophy - "I am because we are" - this archetype believes that positive energy and community support can overcome any obstacle.',
+    tips: [
+      'Your dreams are valid - keep believing in them',
+      'Find your community that supports your vision',
+      'Balance optimism with practical planning',
+      'Use your confidence to inspire others'
+    ]
+  },
+  { 
+    id: 'rizz', 
+    name: 'Rizz', 
+    description: 'smooth operator', 
+    category: 'social', 
+    number: 5, 
+    icon: '🧠', 
+    isActive: true,
+    extendedDescription: 'The master of effortless charm who can talk to literally anyone. They slide into conversations like butter and make everyone feel like they\'re the most interesting person in the room.',
+    rarity: 'Epic',
+    stats: {
+      popularity: 92,
+      impact: 88,
+      authenticity: 85,
+      difficulty: 85
+    },
+    traits: {
+      personality: ['Charismatic', 'Smooth', 'Confident', 'Socially Aware'],
+      skills: ['Conversation Mastery', 'Body Language Reading', 'Emotional Intelligence', 'Storytelling'],
+      environment: ['Parties', 'Dating Apps', 'Networking Events', 'Coffee Shops']
+    },
+    relatedLinks: [
+      { name: 'The Art of Rizz', url: '#', type: 'guide' },
+      { name: 'Smooth Operator Compilation', url: '#', type: 'meme' },
+      { name: 'Rizz or Miss TikToks', url: '#', type: 'reference' }
+    ],
+    backstory: 'Evolved from the need to connect authentically in the digital age. True rizz isn\'t about pick-up lines - it\'s about genuine interest in others.',
+    tips: [
+      'Listen more than you talk',
+      'Be genuinely interested in others',
+      'Confidence is attractive, desperation is not',
+      'Practice makes perfect - start with low-stakes conversations'
+    ]
+  },
+  { 
+    id: 'brain-rot', 
+    name: 'Brain Rot', 
+    description: 'too much prime time', 
+    category: 'social', 
+    number: 6, 
+    icon: '🧠', 
+    isActive: true,
+    extendedDescription: 'The person who\'s so terminally online they speak in TikTok references and can\'t function without constant digital stimulation. Somehow still endearing.',
+    rarity: 'Common',
+    stats: { popularity: 75, impact: 60, authenticity: 95, difficulty: 30 },
+    traits: {
+      personality: ['Extremely Online', 'Meme-Fluent', 'Attention-Seeking', 'Entertaining'],
+      skills: ['Meme Knowledge', 'Content Creation', 'Trend Spotting', 'Digital Native'],
+      environment: ['TikTok', 'Twitter', 'Discord', 'Streaming Platforms']
+    },
+    relatedLinks: [{ name: 'Brain Rot Compilation', url: '#', type: 'meme' }],
+    backstory: 'Born from the intersection of digital nativity and dopamine addiction.',
+    tips: ['Touch grass occasionally', 'Remember real-world conversations exist']
+  },
+  { 
+    id: 'gyatt', 
+    name: 'Gyatt', 
+    description: 'respectfully looking', 
+    category: 'social', 
+    number: 7, 
+    icon: '❤️', 
+    isActive: true,
+    extendedDescription: 'The appreciator of beauty who always notices when someone\'s glowed up. Respectful but enthusiastic about complimenting others.',
+    rarity: 'Common',
+    stats: { popularity: 80, impact: 70, authenticity: 85, difficulty: 40 },
+    traits: {
+      personality: ['Appreciative', 'Respectful', 'Observant', 'Positive'],
+      skills: ['Compliment Giving', 'Aesthetic Appreciation', 'Social Awareness', 'Hype Person'],
+      environment: ['Instagram', 'Fashion Events', 'Gym', 'Social Gatherings']
+    },
+    relatedLinks: [{ name: 'Respectful Appreciation Guide', url: '#', type: 'guide' }],
+    backstory: 'Evolved from the need to appreciate beauty while maintaining respect and boundaries.',
+    tips: ['Compliments should lift people up', 'Respect boundaries always']
+  },
+  { 
+    id: 'aura', 
+    name: 'Aura', 
+    description: 'positive energy', 
+    category: 'social', 
+    number: 8, 
+    icon: '😊', 
+    isActive: true,
+    extendedDescription: 'The person who radiates good vibes wherever they go. Their presence alone makes situations better and people happier.',
+    rarity: 'Rare',
+    stats: { popularity: 90, impact: 95, authenticity: 90, difficulty: 70 },
+    traits: {
+      personality: ['Positive', 'Magnetic', 'Uplifting', 'Authentic'],
+      skills: ['Energy Management', 'Mood Lifting', 'Presence', 'Emotional Contagion'],
+      environment: ['Everywhere', 'Group Settings', 'Difficult Situations', 'Celebrations']
+    },
+    relatedLinks: [{ name: 'Building Your Aura', url: '#', type: 'guide' }],
+    backstory: 'Some people are just built different - they carry light with them.',
+    tips: ['Your energy affects others', 'Authenticity is key to true aura']
+  },
+  { 
+    id: 'npc', 
+    name: 'NPC', 
+    description: 'background character energy', 
+    category: 'social', 
+    number: 9, 
+    icon: '🤓', 
+    isActive: true,
+    extendedDescription: 'The person who blends into the background but keeps everything running smoothly. Often underestimated but secretly essential.',
+    rarity: 'Common',
+    stats: { popularity: 50, impact: 75, authenticity: 80, difficulty: 20 },
+    traits: {
+      personality: ['Reliable', 'Quiet', 'Supportive', 'Consistent'],
+      skills: ['Background Support', 'Consistency', 'Reliability', 'Observation'],
+      environment: ['Behind the Scenes', 'Support Roles', 'Quiet Spaces', 'Teams']
+    },
+    relatedLinks: [{ name: 'Introvert Appreciation', url: '#', type: 'article' }],
+    backstory: 'Not everyone needs to be the main character - supporting roles are vital too.',
+    tips: ['Your contributions matter even if unseen', 'Quiet strength is still strength']
+  },
+  // Continue with remaining social tokens...
+  { id: 'ubuntu-spirit', name: 'Ubuntu Spirit', description: 'I am because we are', category: 'social', number: 17, icon: '🌍', isActive: true,
+    extendedDescription: 'Embodies the African philosophy of Ubuntu - understanding that individual well-being is connected to the well-being of the community.',
+    rarity: 'Legendary', stats: { popularity: 85, impact: 95, authenticity: 100, difficulty: 90 },
+    traits: { personality: ['Community-Minded', 'Empathetic', 'Wise', 'Connected'], skills: ['Community Building', 'Conflict Resolution', 'Cultural Bridge Building', 'Collective Leadership'], environment: ['Community Centers', 'Cultural Events', 'Family Gatherings', 'Traditional Ceremonies'] },
+    relatedLinks: [{ name: 'Ubuntu Philosophy Explained', url: '#', type: 'reference' }],
+    backstory: 'Rooted in ancient African wisdom that recognizes the interconnectedness of all humanity.',
+    tips: ['Lift others as you climb', 'Your success is tied to your community\'s success'] },
+  { id: 'griot-keeper', name: 'Griot Keeper', description: 'storyteller of the people', category: 'social', number: 18, icon: '📿', isActive: true,
+    extendedDescription: 'The keeper of stories, histories, and cultural wisdom. Like the West African griots, they preserve and share the community\'s collective memory.',
+    rarity: 'Epic', stats: { popularity: 80, impact: 90, authenticity: 95, difficulty: 80 },
+    traits: { personality: ['Wise', 'Eloquent', 'Culturally Connected', 'Respected'], skills: ['Storytelling', 'History Keeping', 'Oral Tradition', 'Cultural Preservation'], environment: ['Cultural Centers', 'Elder Councils', 'Educational Institutions', 'Community Gatherings'] },
+    relatedLinks: [{ name: 'West African Griot Tradition', url: '#', type: 'article' }],
+    backstory: 'Carries forward the ancient tradition of griots who were the living libraries of their communities.',
+    tips: ['Every elder has wisdom to share', 'Stories connect us across generations'] },
 
   // 🎓 ACADEMIC SIGNALS (Purple borders)
-  { id: 'prof-fav', name: 'Prof Fav', description: "teacher's pet, always cared on", category: 'academic', number: 1, icon: '🏆', isActive: true },
-  { id: 'note-taker', name: 'Note Taker', description: 'clean notes, everyone copies', category: 'academic', number: 2, icon: '✏️', isActive: true },
-  { id: 'bookworm', name: 'Bookworm', description: 'lives in the library', category: 'academic', number: 3, icon: '📖', isActive: true },
-  { id: 'lab-rat', name: 'Lab Rat', description: 'always in the science lab', category: 'academic', number: 4, icon: '🧪', isActive: true },
-  { id: 'deadline-dancer', name: 'Deadline Dancer', description: 'submits last minute', category: 'academic', number: 5, icon: '⏰', isActive: true },
-  { id: 'grad-grind', name: 'Grad Grind', description: 'obsessed with GPA', category: 'academic', number: 6, icon: '🎯', isActive: true },
-  { id: 'flashcard-flox', name: 'Flashcard Flox', description: 'carries study decks everywhere', category: 'academic', number: 7, icon: '📄', isActive: true },
-  { id: 'lecture-sleeper', name: 'Lecture Sleeper', description: 'always nodding off', category: 'academic', number: 8, icon: '🛌', isActive: true },
-  { id: 'question-king', name: 'Question King', description: 'asks too many', category: 'academic', number: 9, icon: '🔨', isActive: true },
-  { id: 'group-glue', name: 'Group Glue', description: 'keeps projects together', category: 'academic', number: 10, icon: '💛', isActive: true },
-  { id: 'exam-sniper', name: 'Exam Sniper', description: 'crushes tests, silent otherwise', category: 'academic', number: 11, icon: '🎯', isActive: true },
-  { id: 'slow-burner', name: 'Slow Burner', description: 'starts slow, finishes strong', category: 'academic', number: 12, icon: '🌱', isActive: true },
-  { id: 'early-bird', name: 'Early Bird', description: 'first to class every time', category: 'academic', number: 13, icon: '🚨', isActive: true },
-  { id: 'stats-nerd', name: 'Stats Nerd', description: 'makes everything a graph', category: 'academic', number: 14, icon: '📊', isActive: true },
-  { id: 'problem-solver', name: 'Problem Solver', description: 'finds hacks for tricky work', category: 'academic', number: 15, icon: '❌', isActive: true },
-  { id: 'idea-machine', name: 'Idea Machine', description: 'brainstorming genius', category: 'academic', number: 16, icon: '💡', isActive: true },
-  { id: 'project-picasso', name: 'Project Picasso', description: 'makes slides beautiful', category: 'academic', number: 17, icon: '🎨', isActive: true },
-  { id: 'background-dj', name: 'Background DJ', description: 'creates best study sessions', category: 'academic', number: 18, icon: '🎵', isActive: true },
-  { id: 'wellness-guru-2', name: 'Wellness Guru', description: 'morning yoga always', category: 'academic', number: 19, icon: '🧘', isActive: true },
-  { id: 'training-junkie-2', name: 'Training Junkie', description: 'loves learning new skills', category: 'academic', number: 20, icon: '📚', isActive: true },
+  { 
+    id: 'prof-fav', 
+    name: 'Prof Fav', 
+    description: "teacher's pet, always cared on", 
+    category: 'academic', 
+    number: 1, 
+    icon: '🏆', 
+    isActive: true,
+    extendedDescription: 'The student who somehow became the professor\'s unofficial TA without getting paid. They sit in the front row and actually read the assigned readings.',
+    rarity: 'Common',
+    stats: { popularity: 60, impact: 80, authenticity: 75, difficulty: 50 },
+    traits: {
+      personality: ['Eager', 'Responsible', 'Organized', 'Dedicated'],
+      skills: ['Academic Excellence', 'Teacher Relations', 'Study Organization', 'Participation'],
+      environment: ['Front Row', 'Office Hours', 'Study Groups', 'Academic Events']
+    },
+    relatedLinks: [{ name: 'How to Build Prof Relationships', url: '#', type: 'guide' }],
+    backstory: 'Started participating actively in class and never looked back.',
+    tips: ['Genuine interest beats brown-nosing', 'Help other students too']
+  },
+  { 
+    id: 'makerere-scholar', 
+    name: 'Makerere Scholar', 
+    description: 'academic excellence with Ubuntu wisdom', 
+    category: 'academic', 
+    number: 21, 
+    icon: '🎓', 
+    isActive: true,
+    extendedDescription: 'Combines rigorous academic pursuit with deep cultural wisdom, like the scholars at Uganda\'s Makerere University who shaped African intellectual thought.',
+    rarity: 'Epic',
+    stats: { popularity: 85, impact: 95, authenticity: 90, difficulty: 85 },
+    traits: {
+      personality: ['Intellectually Curious', 'Culturally Grounded', 'Thoughtful', 'Inspiring'],
+      skills: ['Critical Thinking', 'Cultural Integration', 'Research Excellence', 'Mentorship'],
+      environment: ['Universities', 'Research Centers', 'Cultural Institutes', 'Libraries']
+    },
+    relatedLinks: [{ name: 'African Universities Legacy', url: '#', type: 'article' }],
+    backstory: 'Represents the proud tradition of African scholarship and intellectual leadership.',
+    tips: ['Knowledge serves the community', 'Blend traditional wisdom with modern learning']
+  },
+  { 
+    id: 'timbuktu-librarian', 
+    name: 'Timbuktu Librarian', 
+    description: 'keeper of ancient knowledge', 
+    category: 'academic', 
+    number: 22, 
+    icon: '📜', 
+    isActive: true,
+    extendedDescription: 'Protects and preserves knowledge like the manuscript keepers of ancient Timbuktu, understanding that information is power and heritage.',
+    rarity: 'Legendary',
+    stats: { popularity: 75, impact: 100, authenticity: 100, difficulty: 95 },
+    traits: {
+      personality: ['Protective', 'Wise', 'Patient', 'Dedicated'],
+      skills: ['Knowledge Preservation', 'Research', 'Cultural Conservation', 'Teaching'],
+      environment: ['Libraries', 'Archives', 'Museums', 'Universities']
+    },
+    relatedLinks: [{ name: 'Timbuktu Manuscripts', url: '#', type: 'reference' }],
+    backstory: 'Carries the legacy of Timbuktu\'s golden age when it was the Harvard of Africa.',
+    tips: ['Preserve knowledge for future generations', 'Every book saved is a culture preserved']
+  },
 
   // 💼 PROFESSIONAL SIGNALS (Blue borders)
-  { id: 'powerpoint-pro', name: 'PowerPoint Pro', description: 'biggest slides in the room', category: 'professional', number: 1, icon: '📊', isActive: true },
-  { id: 'suit-up', name: 'Suit Up', description: 'overdressed for everything', category: 'professional', number: 2, icon: '💼', isActive: true },
-  { id: 'meeting-hog', name: 'Meeting Hog', description: 'talks too much in meetings', category: 'professional', number: 3, icon: '👽', isActive: true },
-  { id: 'silent-operator', name: 'Silent Operator', description: 'works hard, unnoticed', category: 'professional', number: 4, icon: '👀', isActive: true },
-  { id: 'inbox-zero', name: 'Inbox Zero', description: 'replies instantly, always', category: 'professional', number: 5, icon: '📧', isActive: true },
-  { id: 'deadline-dodger', name: 'Deadline Dodger', description: 'always almost done', category: 'professional', number: 6, icon: '⏰', isActive: true },
-  { id: 'code-monkey', name: 'Code Monkey', description: 'nonstop coder', category: 'professional', number: 7, icon: '👨‍💻', isActive: true },
-  { id: 'data-whisperer', name: 'Data Whisperer', description: 'always has chart ready', category: 'professional', number: 8, icon: '📊', isActive: true },
-  { id: 'office-macgyver', name: 'Office MacGyver', description: 'fixes everything with random tools', category: 'professional', number: 9, icon: '🔧', isActive: true },
-  { id: 'linkedin-star', name: 'LinkedIn Star', description: 'posts daily, corporate jargon', category: 'professional', number: 10, icon: '🌐', isActive: true },
-  { id: 'coffee-iv', name: 'Coffee IV', description: 'lives on caffeine', category: 'professional', number: 11, icon: '☕', isActive: true },
-  { id: 'slack-phantom', name: 'Slack Phantom', description: 'online but never responds', category: 'professional', number: 12, icon: '👻', isActive: true },
-  { id: 'wellness-guru', name: 'Wellness Guru', description: 'morning yoga always hydrated', category: 'professional', number: 13, icon: '🧘', isActive: true },
-  { id: 'task-crusher', name: 'Task Crusher', description: 'knocks out to-do list daily', category: 'professional', number: 14, icon: '🎯', isActive: true },
-  { id: 'night-owl', name: 'Night Owl', description: 'always working 2 AM', category: 'professional', number: 15, icon: '🦉', isActive: true },
-  { id: 'startup-energy', name: 'Startup Energy', description: 'hustles nonstop constantly', category: 'professional', number: 16, icon: '🚀', isActive: true },
-  { id: 'budget-boss', name: 'Budget Boss', description: 'knows where every cent goes', category: 'professional', number: 17, icon: '💰', isActive: true },
-  { id: 'training-junkie', name: 'Training Junkie', description: 'loves learning new skills', category: 'professional', number: 18, icon: '📚', isActive: true },
-  { id: 'innovation-engine', name: 'Innovation Engine', description: 'always has new ideas', category: 'professional', number: 19, icon: '💡', isActive: true },
-  { id: 'network-ninja', name: 'Network Ninja', description: 'knows everyone everywhere', category: 'professional', number: 20, icon: '🕸️', isActive: true }
+  { 
+    id: 'powerpoint-pro', 
+    name: 'PowerPoint Pro', 
+    description: 'biggest slides in the room', 
+    category: 'professional', 
+    number: 1, 
+    icon: '📊', 
+    isActive: true,
+    extendedDescription: 'The presentation wizard who turns boring data into visual masterpieces. Their slides are so good, people actually pay attention during meetings.',
+    rarity: 'Rare',
+    stats: { popularity: 85, impact: 90, authenticity: 70, difficulty: 75 },
+    traits: {
+      personality: ['Detail-Oriented', 'Creative', 'Professional', 'Communicative'],
+      skills: ['Design', 'Data Visualization', 'Storytelling', 'Software Mastery'],
+      environment: ['Meeting Rooms', 'Conferences', 'Client Presentations', 'Corporate Settings']
+    },
+    relatedLinks: [{ name: 'PowerPoint Design Guide', url: '#', type: 'guide' }],
+    backstory: 'Turned necessity into artform when forced to make presentations engaging.',
+    tips: ['Less text, more visuals', 'Tell a story with your data']
+  },
+  // Africa-themed Professional Tokens
+  { 
+    id: 'balogun-trader', 
+    name: 'Balogun Trader', 
+    description: 'Lagos market negotiation master', 
+    category: 'professional', 
+    number: 21, 
+    icon: '🏦', 
+    isActive: true,
+    extendedDescription: 'Masters the art of negotiation and relationship building like the legendary traders of Lagos\'s Balogun Market. Can close any deal with charm and wisdom.',
+    rarity: 'Epic',
+    stats: { popularity: 90, impact: 95, authenticity: 95, difficulty: 80 },
+    traits: {
+      personality: ['Persuasive', 'Relationship-Focused', 'Strategic', 'Culturally Aware'],
+      skills: ['Negotiation', 'Market Analysis', 'Cultural Intelligence', 'Network Building'],
+      environment: ['Markets', 'Trade Centers', 'Business Districts', 'Networking Events']
+    },
+    relatedLinks: [{ name: 'West African Trading Culture', url: '#', type: 'article' }],
+    backstory: 'Learned business from the masters at Africa\'s most vibrant commercial centers.',
+    tips: ['Relationships before transactions', 'Every negotiation is a cultural exchange']
+  },
+  { 
+    id: 'kigali-innovator', 
+    name: 'Kigali Innovator', 
+    description: 'Silicon Savannah tech pioneer', 
+    category: 'professional', 
+    number: 22, 
+    icon: '📱', 
+    isActive: true,
+    extendedDescription: 'Embodies the innovation spirit of Rwanda\'s tech transformation, building solutions that serve African communities while competing globally.',
+    rarity: 'Epic',
+    stats: { popularity: 85, impact: 90, authenticity: 90, difficulty: 85 },
+    traits: {
+      personality: ['Innovative', 'Solution-Oriented', 'Resilient', 'Forward-Thinking'],
+      skills: ['Technology Development', 'Product Innovation', 'Market Adaptation', 'Social Impact'],
+      environment: ['Tech Hubs', 'Innovation Labs', 'Startup Incubators', 'Digital Conferences']
+    },
+    relatedLinks: [{ name: 'African Tech Renaissance', url: '#', type: 'article' }],
+    backstory: 'Part of the generation transforming Africa through technology and innovation.',
+    tips: ['Build for local needs first', 'Technology should serve humanity']
+  },
+  { 
+    id: 'cooperative-leader', 
+    name: 'Cooperative Leader', 
+    description: 'Ubuntu business philosophy', 
+    category: 'professional', 
+    number: 23, 
+    icon: '🤝', 
+    isActive: true,
+    extendedDescription: 'Applies Ubuntu principles to business leadership, understanding that collective success creates individual prosperity. Builds cooperative enterprises.',
+    rarity: 'Legendary',
+    stats: { popularity: 80, impact: 100, authenticity: 95, difficulty: 90 },
+    traits: {
+      personality: ['Collaborative', 'Ethical', 'Community-Focused', 'Visionary'],
+      skills: ['Cooperative Management', 'Consensus Building', 'Ethical Leadership', 'Community Development'],
+      environment: ['Cooperatives', 'Community Centers', 'Social Enterprises', 'Development Organizations']
+    },
+    relatedLinks: [{ name: 'Cooperative Business Models', url: '#', type: 'guide' }],
+    backstory: 'Believes that business should uplift entire communities, not just individuals.',
+    tips: ['Success is collective', 'Lead by serving others']
+  },
 ]
 
 export const getSignalsByCategory = (category: SignalCategory) => 

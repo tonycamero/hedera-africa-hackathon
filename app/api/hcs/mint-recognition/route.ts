@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { hederaClient } from "@/packages/hedera/HederaClient"
+import { submitToTopic } from "@/lib/hedera/serverClient"
 
 const SIGNAL_TOPIC = process.env.NEXT_PUBLIC_TOPIC_SIGNAL || ""
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     // Submit to HCS SIGNAL topic
     if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true" && SIGNAL_TOPIC) {
-      await hederaClient.submitMessage(SIGNAL_TOPIC, JSON.stringify(envelope))
+      const result = await submitToTopic(SIGNAL_TOPIC, JSON.stringify(envelope))
       
       console.log(`[HCS Mint] Successfully minted hashinal: ${tokenId}`)
       

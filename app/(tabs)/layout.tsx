@@ -107,8 +107,8 @@ export default function TabsLayout({
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="min-h-[calc(100vh-8rem)] sm:min-h-[calc(100vh-9rem)] px-1 sm:px-2">
+      {/* Main content - Add bottom padding for fixed navigation */}
+      <main className="min-h-[calc(100vh-8rem)] sm:min-h-[calc(100vh-9rem)] px-1 sm:px-2 pb-20 sm:pb-24">
         {children}
       </main>
 

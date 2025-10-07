@@ -20,7 +20,7 @@ export function RegistryStatusBadge({
   topicCount, 
   freshness, 
   lastConsensusISO 
-}: FlexStatusBadgeProps) {
+}: RegistryStatusBadgeProps) {
   
   // Freshness indicator
   const getFreshnessColor = () => {
@@ -91,7 +91,7 @@ export function RegistryStatusBadge({
             </div>
             <div className="pt-1 border-t text-muted-foreground">
               {freshness.isStale ? (
-                <span className="text-amber-600">⚠️ Stale data (>15s old)</span>
+                <span className="text-amber-600">⚠️ Stale data (&gt;15s old)</span>
               ) : freshness.cacheAge < 5000 ? (
                 <span className="text-green-600">✅ Fresh data</span>
               ) : (

@@ -449,18 +449,9 @@ export function ContactProfileSheet({
       {/* Modal Container */}
       <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none">
         <div className="pointer-events-auto animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
-          <div className="
-            max-w-md w-full max-h-[85vh] overflow-y-auto 
-            bg-gradient-to-br from-slate-900/85 to-slate-800/80 
-            backdrop-blur-xl 
-            border-2 border-[#00F6FF]/40 
-            shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] 
-            rounded-[10px] p-6
-            relative
-            before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
-            before:bg-gradient-to-r before:from-[#00F6FF]/50 before:via-transparent before:to-[#00F6FF]/50
-            before:-z-10 before:animate-pulse
-          ">
+        <div className="max-w-md w-full max-h-[85vh] bg-gradient-to-br from-slate-900/95 to-slate-800/90 backdrop-blur-xl border-2 border-[#00F6FF]/40 shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] rounded-[10px] relative overflow-hidden before:absolute before:inset-0 before:rounded-[10px] before:p-[2px] before:bg-gradient-to-r before:from-[#00F6FF]/50 before:via-transparent before:to-[#00F6FF]/50 before:-z-10 before:animate-pulse">
+            {/* Scrollable content container */}
+            <div className="max-h-[85vh] overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             {/* Close Button */}
             <button
               onClick={onClose}
@@ -849,6 +840,8 @@ export function ContactProfileSheet({
             <p>No profile data available</p>
           </div>
         )}
+            </div>
+            </div>
           </div>
         </div>
       </div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { RecognitionSignalCard } from "@/components/RecognitionSignalCard"
 import { SignalDetailModal } from "@/components/SignalDetailModal"
 import { hcsRecognitionService, type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"

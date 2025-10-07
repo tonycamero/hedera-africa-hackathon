@@ -36,7 +36,7 @@ export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): Sig
       type,
       actor,
       target,
-      timestamp,
+      ts: timestamp,
       topicId,
       metadata: payload,
       source,
@@ -199,7 +199,7 @@ export function isValidSignalEvent(event: any): event is SignalEvent {
     typeof event.id === 'string' &&
     typeof event.type === 'string' &&
     typeof event.actor === 'string' &&
-    typeof event.timestamp === 'number' &&
+    typeof event.ts === 'number' &&
     typeof event.topicId === 'string' &&
     typeof event.source === 'string' &&
     (event.source === 'hcs' || event.source === 'hcs-cached') &&

@@ -342,7 +342,7 @@ export function useSignals<T>(
   )
 }
 
-// Add compatibility methods for legacy code
+// Add compatibility methods for legacy code (both client and server)
 if (!('addSignal' in signalsStore)) {
   (signalsStore as any).addSignal = signalsStore.add.bind(signalsStore)
 }

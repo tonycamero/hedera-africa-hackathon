@@ -198,6 +198,73 @@ html.theme-mesh-dark .card-subtle {
   border: 1px solid var(--border) !important; /* Uses default subtle border */
 }
 
+/*
+=============================================================================
+  STUNNING SIGNALS FEED - TikTok-style Scrolling
+=============================================================================
+*/
+
+/* Hide scrollbars for smooth TikTok-style experience */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Smooth scroll behavior for the entire app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Snap scrolling for vertical feed */
+.snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+.snap-always {
+  scroll-snap-stop: always;
+}
+
+/* Custom gradient animations for signal cards */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Pulse animation for heart likes */
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.animate-heart-pulse {
+  animation: heartPulse 0.3s ease-in-out;
+}
+
+/* Floating animation for scroll hint */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 2s ease-in-out infinite;
+}
+
 /* All text elements */
 html.theme-mesh-dark h1,
 html.theme-mesh-dark h2,

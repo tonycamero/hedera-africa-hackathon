@@ -1,21 +1,18 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
-import { getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { 
   Activity, 
   Users, 
   Heart, 
-  UserPlus, 
   AlertCircle,
   Check,
   Clock,
-  Coins,
   Zap,
   Trophy,
   Award,
@@ -82,9 +79,8 @@ const mockChallenges = [
     timeLeft: "No limit"
   }
 ]
-} from "lucide-react"
-import { toast } from "sonner"
-import { getSessionId } from "@/lib/session"
+
+import { type SignalClass } from "@/lib/stores/signalsStore"
 import { getRuntimeFlags } from "@/lib/runtimeFlags"
 import { loadSignals as loadSignalsCache, saveSignals as saveSignalsCache, loadDerivedState, saveDerivedState } from "@/lib/cache/sessionCache"
 import { computeDerivedFromSignals } from "@/lib/ux/derive"

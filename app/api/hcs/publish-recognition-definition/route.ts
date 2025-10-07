@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { hederaClient } from "@/packages/hedera/HederaClient"
+import { submitToTopic } from "@/lib/hedera/serverClient"
 
 const RECOGNITION_TOPIC = process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || process.env.RECOGNITION_TOPIC || "0.0.6895261"
 
@@ -77,10 +77,11 @@ export async function POST(req: NextRequest) {
 
     // Submit to HCS Recognition topic
     if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true" && RECOGNITION_TOPIC) {
-      const messageId = await hederaClient.submitMessage(
+      const result = await submitToTopic(
         RECOGNITION_TOPIC, 
         JSON.stringify(enhancedDefinition)
       )
+      const messageId = result.transactionId
       
       console.log(`[HCS Definition] Successfully published: ${data.id} (Message ID: ${messageId})`)
       

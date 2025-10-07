@@ -4,279 +4,378 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Input } from "@/components/ui/input"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
-import { getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { 
   Activity, 
   Users, 
-  Heart, 
-  UserPlus, 
-  AlertCircle,
-  Check,
-  Clock,
-  Coins,
-  Zap,
+  Shield, 
   Trophy,
-  Award,
-  Star,
+  UserPlus,
+  MessageCircle,
+  Send,
+  DollarSign,
+  Zap,
+  Heart,
+  Share,
+  MoreHorizontal,
+  Search,
+  Filter,
   Sparkles,
-  Target,
-  TrendingUp,
-  Calendar,
-  Gift
+  Award,
+  TrendingUp
 } from "lucide-react"
 import { toast } from "sonner"
 
-// Mock achievement data - in real app would come from recognition system
-const mockAchievements = [
-  { 
-    id: "eco-helper", 
-    name: "Eco Helper", 
-    emoji: "🌱", 
-    rarity: "rare", 
-    xp: 20, 
-    description: "Helped organize community cleanup",
-    earnedAt: Date.now() - 86400000,
-    category: "community"
-  },
-  { 
-    id: "trust-builder", 
-    name: "Trust Builder", 
-    emoji: "🤝", 
-    rarity: "common", 
-    xp: 10, 
-    description: "Connected 5+ people in your network",
-    earnedAt: Date.now() - 172800000,
-    category: "social"
-  },
-  { 
-    id: "early-adopter", 
-    name: "Early Adopter", 
-    emoji: "🚀", 
-    rarity: "epic", 
-    xp: 50, 
-    description: "One of the first 100 TrustMesh users",
-    earnedAt: Date.now() - 259200000,
-    category: "special"
-  }
-]
-
-const mockChallenges = [
-  {
-    id: "weekly-connect",
-    name: "Weekly Connector",
-    emoji: "🔗",
-    progress: 3,
-    target: 5,
-    reward: 15,
-    description: "Connect with 5 new people this week",
-    timeLeft: "4 days"
-  },
-  {
-    id: "trust-circle",
-    name: "Circle Master",
-    emoji: "🔄",
-    progress: 6,
-    target: 9,
-    reward: 25,
-    description: "Fill your complete Circle of Trust",
-    timeLeft: "No limit"
-  }
-]
-
-const getRarityStyles = (rarity: string) => {
-  const styles = {
-    common: { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-700" },
-    rare: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-700" },
-    epic: { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-700" },
-    legendary: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-700" }
-  }
-  return styles[rarity as keyof typeof styles] || styles.common
+interface EnhancedSignal extends SignalEvent {
+  firstName: string
+  onlineStatus: 'online' | 'offline' | 'idle'
+  eventDescription: string
+  likes: number
+  comments: number
 }
 
-export default function SignalsPageV1() {
-  const [signals, setSignals] = useState<SignalEvent[]>([])
-  const [sessionId, setSessionId] = useState("")
-  const [selectedTab, setSelectedTab] = useState<"signals" | "achievements">("signals")
+export default function SignalsPage() {
+  const [signals, setSignals] = useState<EnhancedSignal[]>([])
+  const [selectedTab, setSelectedTab] = useState<'signals' | 'recognition'>('signals')
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+
+  const getFirstName = (actorId: string): string => {
+    // Smart name extraction
+    if (actorId.startsWith('tm-') && actorId.length > 3) {
+      const namepart = actorId.slice(3).replace(/-/g, ' ')
+      const words = namepart.split(' ')
+      return words[0].charAt(0).toUpperCase() + words[0].slice(1)
+    }
+    return actorId.length > 10 ? actorId.slice(0, 6) : actorId
+  }
+
+  const getOnlineStatus = (): 'online' | 'offline' | 'idle' => {
+    const statuses: ('online' | 'offline' | 'idle')[] = ['online', 'offline', 'idle']
+    return statuses[Math.floor(Math.random() * statuses.length)]
+  }
+
+  const getEventDescription = (signal: SignalEvent): string => {
+    const firstName = getFirstName(signal.actor)
+    
+    const funDescriptions = {
+      'CONTACT_REQUEST': [
+        `👀 ${firstName} is sliding into your network!`,
+        `✨ ${firstName} thinks you have main character energy`,
+        `🎯 ${firstName} wants to be in your inner circle`,
+        `🔥 ${firstName} is trying to level up their connections`
+      ],
+      'CONTACT_ACCEPT': [
+        `🎉 ${firstName} just accepted your rizz!`,
+        `⚡ ${firstName} said YES to your vibe!`,
+        `🤝 ${firstName} officially locked in with you`,
+        `💯 ${firstName} is now in your professional crew!`
+      ],
+      'TRUST_ALLOCATE': [
+        `💎 ${firstName} just gave you their trust - that's rare!`,
+        `🌟 ${firstName} sees your potential and backed it up`,
+        `🚀 ${firstName} believes you're going places`,
+        `⭐ ${firstName} put some respect on your name!`
+      ],
+      'RECOGNITION_MINT': [
+        `🏆 ${firstName} just flex on everyone with a new achievement!`,
+        `🎯 ${firstName} unlocked something legendary!`,
+        `🔥 ${firstName} is absolutely crushing it right now`,
+        `💫 ${firstName} just dropped their latest W`
+      ],
+      'PROFILE_UPDATE': [
+        `✨ ${firstName} just had a glow up and it shows!`,
+        `🎨 ${firstName} refreshed their whole aesthetic`,
+        `🔄 ${firstName} is reinventing themselves`,
+        `📈 ${firstName} upgraded their entire brand game`
+      ]
+    }
+    
+    const descriptions = funDescriptions[signal.type as keyof typeof funDescriptions] || [
+      `🌟 ${firstName} made moves in the network!`,
+      `⚡ ${firstName} is actively building connections`,
+      `🚀 ${firstName} is making things happen`
+    ]
+    
+    return descriptions[Math.floor(Math.random() * descriptions.length)]
+  }
 
   useEffect(() => {
     const loadSignals = () => {
       try {
-        const currentSessionId = getSessionId()
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
-        
         const allEvents = signalsStore.getAll()
-        const recentSignals = getRecentSignalsFromHCS(allEvents, effectiveSessionId, 50)
         
-        setSignals(recentSignals)
+        const enhancedSignals: EnhancedSignal[] = allEvents.slice(0, 15).map(signal => ({
+          ...signal,
+          firstName: getFirstName(signal.actor),
+          onlineStatus: getOnlineStatus(),
+          eventDescription: getEventDescription(signal),
+          likes: Math.floor(Math.random() * 25) + 2,
+          comments: Math.floor(Math.random() * 8) + 1
+        }))
+        
+        setSignals(enhancedSignals)
         setLoading(false)
         
-        console.log('✅ [SignalsPage] Loaded signals:', recentSignals.length)
+        console.log(`[SignalsPage] Loaded ${enhancedSignals.length} enhanced signals`)
       } catch (error) {
-        console.error('❌ [SignalsPage] Failed to load signals:', error)
+        console.error('[SignalsPage] Failed to load signals:', error)
         setLoading(false)
       }
     }
 
     loadSignals()
-    
-    // Subscribe to updates
-    const unsubscribe = signalsStore.subscribe(() => {
-      console.log('📡 [SignalsPage] SignalsStore updated, refreshing...')
-      loadSignals()
-    })
-    
+    const unsubscribe = signalsStore.subscribe(loadSignals)
     return unsubscribe
   }, [])
 
-  const handleClaimReward = (challengeId: string) => {
-    toast.success("🎉 Challenge completed!", {
-      description: "Reward added to your profile",
-      duration: 3000,
+  const getStatusColor = (status: 'online' | 'offline' | 'idle') => {
+    switch (status) {
+      case 'online': return 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+      case 'idle': return 'bg-yellow-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+      case 'offline': return 'bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+    }
+  }
+
+  const getSignalIcon = (type: string) => {
+    switch (type) {
+      case 'CONTACT_REQUEST':
+      case 'CONTACT_ACCEPT':
+        return <Users className="w-4 h-4" />
+      case 'TRUST_ALLOCATE':
+        return <Shield className="w-4 h-4" />
+      case 'RECOGNITION_MINT':
+        return <Trophy className="w-4 h-4" />
+      default:
+        return <Activity className="w-4 h-4" />
+    }
+  }
+
+  const getSignalColor = (type: string) => {
+    switch (type) {
+      case 'CONTACT_REQUEST':
+      case 'CONTACT_ACCEPT':
+        return 'from-blue-500 to-cyan-500'
+      case 'TRUST_ALLOCATE':
+        return 'from-purple-500 to-pink-500'
+      case 'RECOGNITION_MINT':
+        return 'from-yellow-500 to-orange-500'
+      default:
+        return 'from-slate-500 to-gray-500'
+    }
+  }
+
+  const filteredSignals = signals.filter(signal => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      return signal.firstName.toLowerCase().includes(query) || 
+             signal.eventDescription.toLowerCase().includes(query)
+    }
+    
+    if (selectedTab === 'recognition') {
+      return signal.type.includes('RECOGNITION') || signal.type.includes('TRUST')
+    }
+    
+    return true
+  })
+
+  const handleSendSignal = (targetUser: string) => {
+    const reactions = [
+      { emoji: '⚡', text: 'Zapped', desc: `You sent lightning vibes to ${targetUser}!` },
+      { emoji: '🔥', text: 'Fired up', desc: `${targetUser} just got your fire signal!` },
+      { emoji: '💫', text: 'Sparked', desc: `You lit up ${targetUser}'s network!` },
+      { emoji: '🚀', text: 'Boosted', desc: `${targetUser} got your rocket boost!` }
+    ]
+    const reaction = reactions[Math.floor(Math.random() * reactions.length)]
+    toast.success(`${reaction.emoji} ${reaction.text}!`, {
+      description: reaction.desc,
     })
   }
 
-  const totalXP = mockAchievements.reduce((sum, achievement) => sum + achievement.xp, 0)
+  const handleSendTrust = (targetUser: string) => {
+    const amounts = [5, 10, 15, 25, 50]
+    const amount = amounts[Math.floor(Math.random() * amounts.length)]
+    toast.success(`💰 ${amount} $TRST sent to ${targetUser}!`, {
+      description: `Trust tokens locked and loaded! 🔒✨`,
+    })
+  }
+
+  const handleSendMessage = (targetUser: string) => {
+    const messageTypes = [
+      { emoji: '💬', text: 'Slid into their DMs', desc: 'Message delivered with style!' },
+      { emoji: '📩', text: 'Sent encrypted message', desc: 'Secure comms established!' },
+      { emoji: '✉️', text: 'Dropped a line', desc: 'Your message is on its way!' }
+    ]
+    const msgType = messageTypes[Math.floor(Math.random() * messageTypes.length)]
+    toast.success(`${msgType.emoji} ${msgType.text}!`, {
+      description: msgType.desc,
+    })
+  }
+
+  const handleReact = (signalId: string, targetUser: string) => {
+    const reactions = ['❤️', '🔥', '💯', '⚡', '🚀', '👏', '💪', '🎯']
+    const reaction = reactions[Math.floor(Math.random() * reactions.length)]
+    toast.success(`${reaction} Reacted to ${targetUser}'s signal!`, {
+      description: "Your reaction has been sent to the network",
+    })
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Professional Header */}
-      <div className="text-center">
-        <h1 className="text-2xl sm:text-3xl font-medium text-white mb-2 tracking-tight">
-          Signals & Achievements
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <h1 className="text-3xl font-bold text-white tracking-tight">
+          Network Signals
         </h1>
+        <p className="text-white/60">Stay connected with your professional network</p>
       </div>
 
-      {/* Professional Tab Navigation */}
+      {/* Search */}
+      <div className="max-w-md mx-auto">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Input
+            placeholder="Search signals..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-[#00F6FF]/50"
+          />
+        </div>
+      </div>
+
+      {/* Tabs */}
       <div className="flex justify-center">
         <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedTab("signals")}
-            className={`px-4 sm:px-8 py-3 rounded-lg transition-all duration-300 text-sm ${
-              selectedTab === "signals" 
-                ? "bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30" 
-                : "text-white/60 hover:text-white/90"
+            onClick={() => setSelectedTab('signals')}
+            className={`px-6 py-3 rounded-lg transition-all duration-300 ${
+              selectedTab === 'signals'
+                ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
+                : 'text-white/60 hover:text-white/90'
             }`}
           >
+            <Activity className="w-4 h-4 mr-2" />
             Signals
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedTab("achievements")}
-            className={`px-4 sm:px-8 py-3 rounded-lg transition-all duration-300 text-sm ${
-              selectedTab === "achievements" 
-                ? "bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30" 
-                : "text-white/60 hover:text-white/90"
+            onClick={() => setSelectedTab('recognition')}
+            className={`px-6 py-3 rounded-lg transition-all duration-300 ${
+              selectedTab === 'recognition'
+                ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
+                : 'text-white/60 hover:text-white/90'
             }`}
           >
-            Achievements
+            <Trophy className="w-4 h-4 mr-2" />
+            Recognition
           </Button>
         </div>
       </div>
 
-      {/* Signals Tab - Vertical Feed */}
-      {selectedTab === "signals" && (
-        <div className="space-y-3 sm:space-y-4">
-          {signals.length === 0 ? (
-            <div className="text-center py-8 sm:py-12">
-              <Activity className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-white/30" />
-              <p className="text-white/60 text-sm sm:text-base">No signals yet</p>
-              <p className="text-white/40 text-xs sm:text-sm">Activity will appear here when you connect with others</p>
+      {/* Signals Feed */}
+      <div className="space-y-4">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="text-center space-y-4">
+              <div className="w-12 h-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-[#00F6FF]"></div>
+              <p className="text-white/60">Loading network activity...</p>
             </div>
-          ) : (
-            signals.slice(0, 10).map((signal) => {
-              const getSignalIcon = () => {
-                if (signal.class === 'contact') return <Users className="w-4 h-4" />
-                if (signal.class === 'trust') return <Heart className="w-4 h-4" />
-                return <Activity className="w-4 h-4" />
-              }
-              
-              const getSignalColor = () => {
-                if (signal.class === 'contact') return 'text-blue-400'
-                if (signal.class === 'trust') return 'text-green-400'
-                return 'text-purple-400'
-              }
-              
-              return (
-                <div key={signal.id} className="flex items-start gap-3 sm:gap-4 py-3 sm:py-4 px-4 sm:px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 transition-all duration-300">
-                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${getSignalColor()} border-current bg-current/20 flex-shrink-0`}>
-                    {getSignalIcon()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="text-white font-medium text-sm sm:text-base pr-2">
-                        {signal.type === 'CONTACT_REQUEST' && 'Contact request sent'}
-                        {signal.type === 'CONTACT_ACCEPT' && 'Contact bonded'}
-                        {signal.type === 'TRUST_ALLOCATE' && 'Trust allocated'}
-                        {!['CONTACT_REQUEST', 'CONTACT_ACCEPT', 'TRUST_ALLOCATE'].includes(signal.type) && 
-                          signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
-                        }
-                      </p>
-                      <span className="text-xs text-white/50 flex-shrink-0">
-                        {new Date(signal.ts).toLocaleDateString()}
-                      </span>
+          </div>
+        ) : filteredSignals.length === 0 ? (
+          <div className="text-center py-12">
+            <Activity className="w-16 h-16 mx-auto mb-4 text-white/30" />
+            <h3 className="text-white/80 text-xl font-medium mb-2">No signals found</h3>
+            <p className="text-white/50">Try adjusting your search or check back later</p>
+          </div>
+        ) : (
+          filteredSignals.map((signal) => (
+            <Card key={signal.id} className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  {/* Left: User Info & Signal */}
+                  <div className="flex items-center gap-4 flex-1">
+                    {/* Avatar with status */}
+                    <div className="relative">
+                      <Avatar className="w-12 h-12 ring-2 ring-white/20">
+                        <AvatarFallback className={`bg-gradient-to-br ${getSignalColor(signal.type)} text-white font-bold`}>
+                          {signal.firstName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
                     </div>
-                    <p className="text-xs sm:text-sm text-white/60">
-                      {signal.class === 'contact' && 'Academic Signal'}
-                      {signal.class === 'trust' && 'Social Signal'}
-                      {signal.class === 'recognition' && 'Professional Signal'}
-                      {!['contact', 'trust', 'recognition'].includes(signal.class || '') && 'Network Signal'}
-                    </p>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-      )}
 
-      {/* Achievements Tab - Collections */}
-      {selectedTab === "achievements" && (
-        <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-          {mockAchievements.map((achievement) => {
-            const getCategoryColor = () => {
-              if (achievement.category === 'community') return 'border-green-400/30 bg-green-400/10'
-              if (achievement.category === 'social') return 'border-blue-400/30 bg-blue-400/10'
-              if (achievement.category === 'special') return 'border-purple-400/30 bg-purple-400/10'
-              return 'border-white/20 bg-white/5'
-            }
-            
-            return (
-              <div
-                key={achievement.id}
-                className={`backdrop-blur-sm border rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 hover:scale-105 transition-all duration-300 cursor-pointer ${getCategoryColor()}`}
-              >
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl mb-2 sm:mb-3">{achievement.emoji}</div>
-                  <h3 className="font-medium text-white mb-1 sm:mb-2 text-xs sm:text-sm lg:text-base">{achievement.name}</h3>
-                  <p className="text-xs sm:text-sm text-white/60 mb-2 sm:mb-3 lg:mb-4 line-clamp-2">{achievement.description}</p>
-                  
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-2 text-xs">
-                    <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border text-xs ${
-                      achievement.category === 'community' ? 'border-green-400/50 text-green-400' :
-                      achievement.category === 'social' ? 'border-blue-400/50 text-blue-400' :
-                      achievement.category === 'special' ? 'border-purple-400/50 text-purple-400' :
-                      'border-white/30 text-white/60'
-                    } capitalize`}>
-                      {achievement.category}
-                    </span>
-                    <span className="text-white/50 text-xs">
-                      {new Date(achievement.earnedAt).toLocaleDateString()}
-                    </span>
+                    {/* Signal Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="font-semibold text-white text-lg">{signal.firstName}</h3>
+                        <div className={`p-1.5 rounded-full bg-gradient-to-br ${getSignalColor(signal.type)}`}>
+                          {getSignalIcon(signal.type)}
+                        </div>
+                        <span className="text-white/50 text-sm">
+                          {new Date(signal.ts).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-white/80 mb-2">{signal.eventDescription}</p>
+                      
+                      {/* Engagement Stats */}
+                      <div className="flex items-center gap-4 text-sm text-white/50">
+                        <div className="flex items-center gap-1">
+                          <Heart className="w-4 h-4" />
+                          <span>{signal.likes}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>{signal.comments}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Action Buttons */}
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      size="sm"
+                      onClick={() => handleSendSignal(signal.firstName)}
+                      className="bg-blue-500/20 text-blue-400 border-blue-400/30 hover:bg-blue-500/30 hover:scale-105 transition-all duration-200"
+                    >
+                      <Zap className="w-4 h-4 mr-1" />
+                      Signal
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      onClick={() => handleSendTrust(signal.firstName)}
+                      className="bg-green-500/20 text-green-400 border-green-400/30 hover:bg-green-500/30 hover:scale-105 transition-all duration-200"
+                    >
+                      <DollarSign className="w-4 h-4 mr-1" />
+                      $TRST
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      onClick={() => handleSendMessage(signal.firstName)}
+                      className="bg-purple-500/20 text-purple-400 border-purple-400/30 hover:bg-purple-500/30 hover:scale-105 transition-all duration-200"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-1" />
+                      Message
+                    </Button>
+                    
+                    <Button variant="ghost" size="sm" className="text-white/40 hover:text-white/80">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   )
 }
