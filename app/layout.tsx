@@ -21,8 +21,8 @@ const sourceSans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: "TrustMesh - Build Your Circle",
-  description: "Decentralized trust architecture with three-layer token system",
+  title: "TrustMesh - Community Builder Edition",
+  description: "Analytics-driven trust network platform for community builders and organizations",
   generator: "v0.app",
 }
 

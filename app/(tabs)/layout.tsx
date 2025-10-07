@@ -92,7 +92,7 @@ export default function TabsLayout({
               <div>
                 <h1 className="font-bold text-lg text-white">TrustMesh</h1>
                 <p className="text-xs text-muted-foreground">
-                  a Service of Scend Technologies
+                  Community Builder Edition
                 </p>
               </div>
             </div>
