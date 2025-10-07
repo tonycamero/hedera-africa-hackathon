@@ -126,36 +126,36 @@ html.theme-mesh-dark * {
   --muted-foreground: #cbd5e1 !important;     /* Maps to text-muted */
   --secondary-foreground: #e2e8f0 !important; /* Maps to text-secondary */
   
-  /* ==> INTERACTIVE ELEMENTS */
-  --primary: #0ea5e9 !important;              /* Primary buttons/links */
-  --primary-foreground: #0f1827 !important;   /* Text on primary buttons */
-  --accent: #22d3ee !important;               /* Accent color */
-  --accent-foreground: #0f1827 !important;    /* Text on accent elements */
+  /* ==> INTERACTIVE ELEMENTS - ANALYTICS DATA PALETTE */
+  --primary: #1e40af !important;              /* Deep blue - primary charts/data */
+  --primary-foreground: #ffffff !important;   /* White text on blue */
+  --accent: #8b5cf6 !important;               /* Purple - insights/highlights */
+  --accent-foreground: #ffffff !important;    /* White text on purple */
   
   /* ==> BORDERS & OUTLINES - Two card outline options */
   --border: #475569 !important;               /* Default borders */
   --ring: #0ea5e9 !important;                 /* Focus rings */
   
-  /* Card outline options - choose one by uncommenting */
-  --card-border-option-1: #00ff41 !important; /* LED Green outline */
-  --card-border-option-2: #00ffff !important; /* Electric Cyan outline */
+  /* Card outline options - analytics theme variants */
+  --card-border-option-1: #3b82f6 !important; /* Blue outline - primary data */
+  --card-border-option-2: #8b5cf6 !important; /* Purple outline - insights */
   
-  /* Active card border - change this to switch between options */
-  --card-border: var(--card-border-option-1) !important; /* Currently using LED Green */
+  /* Active card border - analytics theme */
+  --card-border: var(--card-border-option-1) !important; /* Using analytics blue */
   
   /* ==> SYSTEM COLORS */
   --destructive: #ef4444 !important;          /* Error/delete actions */
   --destructive-foreground: #ffffff !important;
   
-  /* ==> NEON/LED COLOR PALETTE - Bright accent colors */
-  --neon-green: #00ff41 !important;           /* Electric LED green */
-  --neon-lime: #32ff32 !important;            /* Bright lime green */
-  --neon-mint: #00ffa1 !important;            /* Mint neon green */
-  --neon-cyan: #00ffff !important;            /* Electric cyan */
-  --neon-blue: #0080ff !important;            /* Electric blue */
-  --neon-purple: #8000ff !important;          /* Electric purple */
-  --neon-pink: #ff0080 !important;            /* Hot pink neon */
-  --neon-orange: #ff8000 !important;          /* Electric orange */
+  /* ==> ANALYTICS COLOR PALETTE - Data visualization colors */
+  --data-blue: #3b82f6 !important;            /* Primary data blue */
+  --data-purple: #8b5cf6 !important;          /* Insights purple */
+  --data-indigo: #6366f1 !important;          /* Deep insight indigo */
+  --data-success: #10b981 !important;         /* Positive trend green */
+  --data-warning: #f59e0b !important;         /* Optimization warning amber */
+  --data-info: #06b6d4 !important;           /* Information cyan */
+  --data-chart-1: #3b82f6 !important;        /* Chart color 1 - blue */
+  --data-chart-2: #8b5cf6 !important;        /* Chart color 2 - purple */
   
   /* ==> SIGNAL CATEGORY COLORS - Using neon palette */
   --social: #00ffff !important;               /* Social signals - electric cyan */

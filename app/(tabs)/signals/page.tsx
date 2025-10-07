@@ -1,69 +1,378 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { signalsStore, type SignalEvent, type SignalClass } from "@/lib/stores/signalsStore"
-import { SignalDetailModal } from "@/components/SignalDetailModal"
-import { hcsFeedService } from "@/lib/services/HCSFeedService"
-import { hcsRecognitionService, type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
+import { Input } from "@/components/ui/input"
 import { 
   Activity, 
-  Users, 
-  Heart, 
-  Award,
-  AlertCircle,
-  Check,
+  BarChart3,
+  LineChart,
+  PieChart,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  Brain,
+  Search,
+  Filter,
+  Calendar,
   Clock,
-  Copy,
-  Filter
+  Target,
+  AlertTriangle,
+  CheckCircle,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  Settings,
+  Database,
+  Cpu,
+  Globe
 } from "lucide-react"
-import { toast } from "sonner"
+import { signalsStore } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
-import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { loadSignals as loadSignalsCache, saveSignals as saveSignalsCache, loadDerivedState, saveDerivedState } from "@/lib/cache/sessionCache"
-import { computeDerivedFromSignals } from "@/lib/ux/derive"
-// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 
-type FilterChip = {
-  label: string
-  value: SignalClass | "all"
-  icon: React.ReactNode
+interface SignalProcessingMetrics {
+  totalProcessed: number;
+  processingRate: number; // signals per minute
+  latency: number; // ms
+  accuracy: number; // %
+  anomaliesDetected: number;
+  patternMatches: number;
 }
 
-const filterChips: FilterChip[] = [
-  { label: "All", value: "all", icon: <Activity className="w-3 h-3" /> },
-  { label: "Contact", value: "contact", icon: <Users className="w-3 h-3" /> },
-  { label: "Trust", value: "trust", icon: <Heart className="w-3 h-3" /> },
-  { label: "Recognition", value: "recognition", icon: <Award className="w-3 h-3" /> }
-]
+interface TrendAnalysis {
+  period: string;
+  signalType: string;
+  volume: number;
+  change: number;
+  changeType: "increase" | "decrease" | "stable";
+  confidence: number;
+  forecast: number[];
+}
 
-function SignalStatusBadge({ status }: { status: string }) {
-  if (status === "onchain") {
-    return (
-      <Badge variant="secondary" className="text-xs bg-emerald-400/20 text-emerald-300">
-        <Check className="w-3 h-3 mr-1" />
-        On-chain ✓
-      </Badge>
-    )
+interface PredictiveInsight {
+  id: string;
+  type: "prediction" | "anomaly" | "pattern" | "correlation";
+  title: string;
+  description: string;
+  confidence: number;
+  impact: "high" | "medium" | "low";
+  timeframe: string;
+  dataPoints: number;
+  accuracy: number;
+  actionable: boolean;
+  tags: string[];
+}
+
+interface SignalIntelligence {
+  patternRecognition: {
+    trustPatterns: number;
+    socialPatterns: number;
+    behaviorPatterns: number;
+    anomalies: number;
+  };
+  predictiveModeling: {
+    trustPrediction: number;
+    networkGrowth: number;
+    riskAssessment: number;
+    opportunityScore: number;
+  };
+  realTimeAnalytics: {
+    activeSignals: number;
+    processingQueue: number;
+    latency: number;
+    throughput: number;
+  };
+}
+
+// Mock data intelligence analytics
+const signalProcessingMetrics: SignalProcessingMetrics = {
+  totalProcessed: 12847,
+  processingRate: 34.6,
+  latency: 127,
+  accuracy: 94.3,
+  anomaliesDetected: 23,
+  patternMatches: 156
+};
+
+const trendAnalyses: TrendAnalysis[] = [
+  {
+    period: "24h",
+    signalType: "Trust Allocation",
+    volume: 89,
+    change: 23.4,
+    changeType: "increase",
+    confidence: 87,
+    forecast: [89, 95, 102, 108, 115, 121, 128]
+  },
+  {
+    period: "7d",
+    signalType: "Social Recognition",
+    volume: 234,
+    change: -12.1,
+    changeType: "decrease",
+    confidence: 92,
+    forecast: [234, 228, 221, 215, 208, 202, 195]
+  },
+  {
+    period: "24h",
+    signalType: "Network Activity",
+    volume: 567,
+    change: 8.7,
+    changeType: "increase",
+    confidence: 76,
+    forecast: [567, 578, 590, 601, 613, 624, 636]
   }
-  
-  if (status === "error") {
-    return (
-      <Badge variant="destructive" className="text-xs">
-        <AlertCircle className="w-3 h-3 mr-1" />
-        Error
-      </Badge>
-    )
+];
+
+const predictiveInsights: PredictiveInsight[] = [
+  {
+    id: "pred-1",
+    type: "prediction",
+    title: "Trust Network Growth Acceleration",
+    description: "Based on current patterns, trust network expansion will increase 40% in next 30 days",
+    confidence: 87,
+    impact: "high",
+    timeframe: "30 days",
+    dataPoints: 1247,
+    accuracy: 94.2,
+    actionable: true,
+    tags: ["network-growth", "trust", "expansion"]
+  },
+  {
+    id: "pred-2",
+    type: "anomaly",
+    title: "Unusual Recognition Pattern Detected",
+    description: "Professional signals showing 3x normal velocity in specific network cluster",
+    confidence: 92,
+    impact: "medium",
+    timeframe: "ongoing",
+    dataPoints: 234,
+    accuracy: 96.8,
+    actionable: true,
+    tags: ["anomaly", "professional", "velocity"]
+  },
+  {
+    id: "pred-3",
+    type: "pattern",
+    title: "Cyclical Trust Allocation Pattern",
+    description: "Trust allocations follow weekly cycles with peaks on Tuesday and Thursday",
+    confidence: 78,
+    impact: "low",
+    timeframe: "weekly",
+    dataPoints: 892,
+    accuracy: 82.1,
+    actionable: false,
+    tags: ["pattern", "trust", "cyclical"]
+  },
+  {
+    id: "pred-4",
+    type: "correlation",
+    title: "Strong Signal-Trust Correlation",
+    description: "Recognition signals correlate 0.84 with trust allocation increases within 48h",
+    confidence: 95,
+    impact: "high",
+    timeframe: "48 hours",
+    dataPoints: 567,
+    accuracy: 91.7,
+    actionable: true,
+    tags: ["correlation", "recognition", "trust"]
   }
+];
+
+const signalIntelligence: SignalIntelligence = {
+  patternRecognition: {
+    trustPatterns: 47,
+    socialPatterns: 23,
+    behaviorPatterns: 34,
+    anomalies: 12
+  },
+  predictiveModeling: {
+    trustPrediction: 89,
+    networkGrowth: 76,
+    riskAssessment: 23,
+    opportunityScore: 84
+  },
+  realTimeAnalytics: {
+    activeSignals: 156,
+    processingQueue: 23,
+    latency: 127,
+    throughput: 34.6
+  }
+};
+
+// Data intelligence component functions
+function getInsightIcon(type: string) {
+  switch (type) {
+    case "prediction": return <Brain className="h-4 w-4" />;
+    case "anomaly": return <AlertTriangle className="h-4 w-4" />;
+    case "pattern": return <Target className="h-4 w-4" />;
+    case "correlation": return <Zap className="h-4 w-4" />;
+    default: return <Activity className="h-4 w-4" />;
+  }
+}
+
+function getImpactColor(impact: string) {
+  switch (impact) {
+    case "high": return "text-red-400";
+    case "medium": return "text-amber-400";
+    case "low": return "text-blue-400";
+    default: return "text-gray-400";
+  }
+}
+
+function getTrendIcon(changeType: string) {
+  switch (changeType) {
+    case "increase": return <ArrowUp className="h-3 w-3 text-green-400" />;
+    case "decrease": return <ArrowDown className="h-3 w-3 text-red-400" />;
+    default: return null;
+  }
+}
+
+function ProcessingMetricsCard({ metrics }: { metrics: SignalProcessingMetrics }) {
+  const metricsData = [
+    { label: "Total Processed", value: metrics.totalProcessed.toLocaleString(), icon: <Database className="h-4 w-4" />, color: "var(--data-blue)" },
+    { label: "Processing Rate", value: `${metrics.processingRate}/min`, icon: <Cpu className="h-4 w-4" />, color: "var(--data-purple)" },
+    { label: "Latency", value: `${metrics.latency}ms`, icon: <Clock className="h-4 w-4" />, color: "var(--data-warning)" },
+    { label: "Accuracy", value: `${metrics.accuracy}%`, icon: <CheckCircle className="h-4 w-4" />, color: "var(--data-success)" },
+    { label: "Anomalies", value: metrics.anomaliesDetected.toString(), icon: <AlertTriangle className="h-4 w-4" />, color: "var(--data-warning)" },
+    { label: "Patterns", value: metrics.patternMatches.toString(), icon: <Target className="h-4 w-4" />, color: "var(--data-info)" }
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {metricsData.map((metric, index) => (
+        <Card key={index} className="bg-card border border-[var(--data-blue)]/20">
+          <CardContent className="p-3 text-center">
+            <div className="flex items-center justify-center mb-2" style={{ color: metric.color }}>
+              {metric.icon}
+            </div>
+            <div className="text-lg font-bold" style={{ color: metric.color }}>
+              {metric.value}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {metric.label}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function TrendAnalysisCard({ trend }: { trend: TrendAnalysis }) {
+  const isPositive = trend.changeType === "increase";
   
   return (
-    <Badge variant="outline" className="text-xs text-[hsl(var(--muted-foreground))]">
-      <Clock className="w-3 h-3 mr-1" />
-      Local
-    </Badge>
-  )
+    <Card className="bg-card border border-[var(--data-purple)]/30">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h4 className="font-medium text-sm">{trend.signalType}</h4>
+            <p className="text-xs text-muted-foreground">{trend.period} trend</p>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center gap-1">
+              <span className="text-lg font-bold text-[var(--data-blue)]">
+                {trend.volume}
+              </span>
+              {getTrendIcon(trend.changeType)}
+            </div>
+            <p className={`text-xs ${
+              isPositive ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {isPositive ? '+' : ''}{trend.change.toFixed(1)}%
+            </p>
+          </div>
+        </div>
+        
+        {/* Mini forecast chart */}
+        <div className="h-8 flex items-end gap-1">
+          {trend.forecast.map((value, index) => {
+            const maxValue = Math.max(...trend.forecast);
+            const height = (value / maxValue) * 100;
+            return (
+              <div
+                key={index}
+                className="flex-1 bg-[var(--data-purple)]/30 rounded-sm"
+                style={{ height: `${height}%` }}
+              />
+            );
+          })}
+        </div>
+        
+        <div className="flex justify-between items-center mt-2">
+          <Badge variant="outline" className="text-xs">
+            {trend.confidence}% confidence
+          </Badge>
+          <Button size="sm" variant="ghost" className="text-xs h-6 px-2">
+            <Eye className="h-3 w-3 mr-1" />
+            Details
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PredictiveInsightCard({ insight, onAction }: { insight: PredictiveInsight; onAction: (insight: PredictiveInsight) => void }) {
+  return (
+    <Card className={`bg-card border-l-4 ${
+      insight.impact === 'high' ? 'border-l-red-500' :
+      insight.impact === 'medium' ? 'border-l-amber-500' : 'border-l-blue-500'
+    } hover:bg-card/80 transition-colors`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <div className={getImpactColor(insight.impact)}>
+              {getInsightIcon(insight.type)}
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium">{insight.title}</h3>
+              <p className="text-xs text-muted-foreground">{insight.description}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-sm font-bold text-[var(--data-blue)]">
+              {insight.confidence}%
+            </div>
+            <p className="text-xs text-muted-foreground">confidence</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span>📅 {insight.timeframe}</span>
+            <span>📊 {insight.dataPoints} points</span>
+            <span>🎯 {insight.accuracy}% accurate</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-1">
+            {insight.tags.map(tag => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+          {insight.actionable && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-xs h-6 px-2"
+              onClick={() => onAction(insight)}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Analyze
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 
@@ -190,191 +499,299 @@ function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => v
   )
 }
 
-export default function SignalsPage() {
-  const [signals, setSignals] = useState<SignalEvent[]>([])
-  const [activeFilter, setActiveFilter] = useState<SignalClass | "all">("all")
-  const [sessionId, setSessionId] = useState("")
-  const [hcsTopicIds, setHcsTopicIds] = useState<ReturnType<typeof hcsFeedService.getTopicIds> | null>(null)
-  const [selectedRecognition, setSelectedRecognition] = useState<HCSRecognitionDefinition | null>(null)
-  const [isRecognitionModalOpen, setIsRecognitionModalOpen] = useState(false)
-  
-  // Direct HCS data loading - bypass broken bootstrap
-  useEffect(() => {
-    const loadDirectFromHCS = async () => {
-      try {
-        console.log('🚀 [SignalsPage] Loading directly from HCS...')
-        
-        const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        console.log('📋 [SignalsPage] Session ID:', currentSessionId)
-        
-        // Mark signals tab as seen
-        signalsStore.markSeen("signals")
-        
-        // Initialize HCS service and get all events
-        await hcsFeedService.initialize()
-        const events = await hcsFeedService.getAllFeedEvents()
-        
-        console.log('📡 [SignalsPage] Loaded', events.length, 'events from HCS')
-        
-        if (events.length > 0) {
-          // Filter events based on scope
-          const flags = getRuntimeFlags()
-          let filteredSignals = events
-          
-          if (flags.scope === 'my') {
-            filteredSignals = events.filter(signal => 
-              signal.actors.from === currentSessionId || signal.actors.to === currentSessionId
-            )
-          }
-          
-          setSignals(filteredSignals.sort((a, b) => b.ts - a.ts))
-          
-          console.log('✅ [SignalsPage] Data loaded:', {
-            total: events.length,
-            filtered: filteredSignals.length,
-            session: currentSessionId
-          })
-        } else {
-          console.log('⚠️ [SignalsPage] No events found')
-          setSignals([])
-        }
-        
-        // Update HCS topic IDs
-        const topicIds = hcsFeedService.getTopicIds()
-        setHcsTopicIds(topicIds)
-        
-      } catch (error) {
-        console.error('❌ [SignalsPage] Direct HCS load failed:', error)
-        const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        setSignals([])
-        signalsStore.markSeen("signals")
-      }
-    }
-    
-    loadDirectFromHCS()
-  }, [])
+export default function DataIntelligencePage() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedInsightType, setSelectedInsightType] = useState<string>("all")
+  const [timeRange, setTimeRange] = useState<"24h" | "7d" | "30d">("24h")
+  const [metrics] = useState(signalProcessingMetrics)
+  const [trends] = useState(trendAnalyses)
+  const [insights] = useState(predictiveInsights)
+  const [intelligence] = useState(signalIntelligence)
 
-  // Filter signals based on active filter
-  const filteredSignals = signals.filter(signal => 
-    activeFilter === "all" || signal.class === activeFilter
-  )
+  const filteredInsights = useMemo(() => {
+    return insights.filter(insight => {
+      const matchesSearch = searchQuery === "" || 
+        insight.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        insight.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        insight.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesType = selectedInsightType === "all" || insight.type === selectedInsightType;
+      
+      return matchesSearch && matchesType;
+    });
+  }, [searchQuery, selectedInsightType, insights]);
 
+  const filteredTrends = useMemo(() => {
+    return trends.filter(trend => trend.period === timeRange);
+  }, [trends, timeRange]);
 
-  const handleRecognitionSignalClick = async (signal: SignalEvent) => {
-    if (signal.class !== "recognition") return
-    
-    console.log("[SignalsPage] Recognition signal clicked:", signal)
-    
-    // Try to find the recognition definition if we have a recognition instance ID
-    const recognitionInstanceId = signal.payload?.recognitionInstanceId
-    if (recognitionInstanceId) {
-      try {
-        const instance = await hcsRecognitionService.getRecognitionInstance(recognitionInstanceId)
-        if (instance) {
-          const definition = await hcsRecognitionService.getRecognitionDefinition(instance.definitionId)
-          if (definition) {
-            setSelectedRecognition(definition)
-            setIsRecognitionModalOpen(true)
-            return
-          }
-        }
-      } catch (error) {
-        console.error("[SignalsPage] Failed to load recognition data:", error)
-      }
-    }
-    
-    // Fallback: try to find definition by name
-    const definitions = await hcsRecognitionService.getAllRecognitionDefinitions()
-    const matchingDefinition = definitions.find(def => 
-      def.name === signal.payload?.name || 
-      def.description === signal.payload?.description
-    )
-    
-    if (matchingDefinition) {
-      setSelectedRecognition(matchingDefinition)
-      setIsRecognitionModalOpen(true)
-    } else {
-      toast.info("Recognition signal details not available")
-    }
-  }
+  const handleInsightAction = (insight: PredictiveInsight) => {
+    console.log("Analyzing insight:", insight.title);
+    // TODO: Open detailed analysis modal or navigate to deep-dive view
+  };
+
+  const insightTypeFilters = [
+    { value: "all", label: "All Types", icon: <Activity className="h-4 w-4" /> },
+    { value: "prediction", label: "Predictions", icon: <Brain className="h-4 w-4" /> },
+    { value: "anomaly", label: "Anomalies", icon: <AlertTriangle className="h-4 w-4" /> },
+    { value: "pattern", label: "Patterns", icon: <Target className="h-4 w-4" /> },
+    { value: "correlation", label: "Correlations", icon: <Zap className="h-4 w-4" /> }
+  ];
+
+  const timeRangeOptions = [
+    { value: "24h" as const, label: "24 Hours" },
+    { value: "7d" as const, label: "7 Days" },
+    { value: "30d" as const, label: "30 Days" }
+  ];
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Activity Feed</h1>
-          <p className="text-xs text-muted-foreground">
-            Network activity • {filteredSignals.length} signals
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-xl font-bold text-[var(--data-blue)] flex items-center gap-2">
+          <Brain className="h-5 w-5" />
+          Data Intelligence & Predictive Analytics
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          AI-powered signal processing, trend analysis, and predictive insights for trust network optimization
+        </p>
       </div>
 
-      {/* Compact filter pills */}
-      <div className="flex justify-center">
-        <div className="flex gap-1 p-1 bg-[hsl(var(--muted))]/30 rounded-full">
-          {filterChips.map((chip) => (
-            <Button
-              key={chip.value}
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveFilter(chip.value)}
-              className={`h-8 w-8 rounded-full p-0 transition-all ${
-                activeFilter === chip.value 
-                  ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg" 
-                  : "hover:bg-[hsl(var(--muted))]"
-              }`}
-              title={chip.label}
-            >
-              {chip.icon}
-            </Button>
+      {/* Signal Processing Metrics */}
+      <ProcessingMetricsCard metrics={metrics} />
+
+      {/* Real-time Intelligence Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-card border border-[var(--data-blue)]/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-[var(--data-blue)]">
+              <Target className="h-4 w-4" />
+              Pattern Recognition
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-blue)]">{intelligence.patternRecognition.trustPatterns}</div>
+                <div className="text-muted-foreground">Trust Patterns</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-purple)]">{intelligence.patternRecognition.socialPatterns}</div>
+                <div className="text-muted-foreground">Social Patterns</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-success)]">{intelligence.patternRecognition.behaviorPatterns}</div>
+                <div className="text-muted-foreground">Behavior Patterns</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-warning)]">{intelligence.patternRecognition.anomalies}</div>
+                <div className="text-muted-foreground">Anomalies</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border border-[var(--data-purple)]/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-[var(--data-purple)]">
+              <Brain className="h-4 w-4" />
+              Predictive Modeling
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-blue)]">{intelligence.predictiveModeling.trustPrediction}%</div>
+                <div className="text-muted-foreground">Trust Prediction</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-success)]">{intelligence.predictiveModeling.networkGrowth}%</div>
+                <div className="text-muted-foreground">Network Growth</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-warning)]">{intelligence.predictiveModeling.riskAssessment}%</div>
+                <div className="text-muted-foreground">Risk Score</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-info)]">{intelligence.predictiveModeling.opportunityScore}%</div>
+                <div className="text-muted-foreground">Opportunity</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border border-[var(--data-success)]/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-[var(--data-success)]">
+              <Zap className="h-4 w-4" />
+              Real-time Analytics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-blue)]">{intelligence.realTimeAnalytics.activeSignals}</div>
+                <div className="text-muted-foreground">Active Signals</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-warning)]">{intelligence.realTimeAnalytics.processingQueue}</div>
+                <div className="text-muted-foreground">Queue</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-info)]">{intelligence.realTimeAnalytics.latency}ms</div>
+                <div className="text-muted-foreground">Latency</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-[var(--data-purple)]">{intelligence.realTimeAnalytics.throughput}/min</div>
+                <div className="text-muted-foreground">Throughput</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Trend Analysis */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[var(--data-purple)] flex items-center gap-2">
+            <LineChart className="h-5 w-5" />
+            Trend Analysis
+            <Badge variant="secondary">{filteredTrends.length} trends</Badge>
+          </h2>
+          <div className="flex gap-2">
+            {timeRangeOptions.map((option) => (
+              <Button
+                key={option.value}
+                size="sm"
+                variant={timeRange === option.value ? "default" : "outline"}
+                onClick={() => setTimeRange(option.value)}
+                className={`text-xs ${
+                  timeRange === option.value 
+                    ? 'bg-[var(--data-purple)] hover:bg-[var(--data-purple)]/90' 
+                    : 'border-[var(--data-purple)]/30 hover:bg-[var(--data-purple)]/10'
+                }`}
+              >
+                <Calendar className="h-3 w-3 mr-1" />
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTrends.map((trend, index) => (
+            <TrendAnalysisCard key={index} trend={trend} />
           ))}
         </div>
       </div>
 
-      {/* Signals list */}
-      <div>
-        {filteredSignals.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Activity className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-medium mb-2">No signals yet</h3>
-              <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">
-                {activeFilter === "all" 
-                  ? "Activity will appear here when you interact with contacts or allocate trust"
-                  : `No ${activeFilter} signals found`}
+      {/* Predictive Insights */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-start">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-[var(--data-blue)] flex items-center gap-2 mb-2">
+              <PieChart className="h-5 w-5" />
+              Predictive Insights
+              <Badge variant="secondary">{filteredInsights.length} insights</Badge>
+            </h2>
+          </div>
+          
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <div className="min-w-64">
+              <Input 
+                placeholder="Search insights..." 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-card border-[var(--data-blue)]/30"
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto">
+              {insightTypeFilters.map((filter) => (
+                <Button
+                  key={filter.value}
+                  size="sm"
+                  variant={selectedInsightType === filter.value ? "default" : "outline"}
+                  onClick={() => setSelectedInsightType(filter.value)}
+                  className={`flex items-center gap-2 whitespace-nowrap text-xs ${
+                    selectedInsightType === filter.value 
+                      ? 'bg-[var(--data-blue)] hover:bg-[var(--data-blue)]/90' 
+                      : 'border-[var(--data-blue)]/30 hover:bg-[var(--data-blue)]/10'
+                  }`}
+                >
+                  {filter.icon}
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {filteredInsights.length === 0 ? (
+          <Card className="bg-card border-dashed border-[var(--data-blue)]/30">
+            <CardContent className="p-12 text-center">
+              <Brain className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No insights match your criteria</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Try adjusting your search terms or insight type filters to discover predictive analytics.
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                <h4 className="font-medium text-blue-900 mb-2">💡 Demo the Recognition System</h4>
-                <p className="text-blue-700 text-sm mb-3">
-                  Click the <strong>"Seed"</strong> button in the header to load demo data and see recognition signals in action!
-                </p>
-                <p className="text-blue-600 text-xs">
-                  This will create real HCS topics on Hedera testnet with various recognition signals like Chad, Skibidi, Prof Fav, and more.
-                </p>
-              </div>
+              <Button 
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedInsightType("all");
+                }}
+                size="sm"
+              >
+                Clear Filters
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {filteredSignals.map((signal) => (
-              <SignalRow 
-                key={signal.id} 
-                signal={signal}
-                onClick={() => handleRecognitionSignalClick(signal)}
+          <div className="space-y-3">
+            {filteredInsights.map(insight => (
+              <PredictiveInsightCard 
+                key={insight.id} 
+                insight={insight} 
+                onAction={handleInsightAction}
               />
             ))}
           </div>
         )}
       </div>
       
-      {/* Recognition Signal Detail Modal */}
-      <SignalDetailModal
-        isOpen={isRecognitionModalOpen}
-        onClose={() => setIsRecognitionModalOpen(false)}
-        signal={selectedRecognition}
-      />
+      {/* Advanced Analytics Tools */}
+      <Card className="bg-card border border-[var(--data-indigo)]/30">
+        <CardHeader>
+          <h3 className="text-lg font-semibold text-[var(--data-indigo)] flex items-center gap-2">
+            <Cpu className="h-5 w-5" />
+            Advanced Analytics & Machine Learning
+          </h3>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <BarChart3 className="h-8 w-8 mb-2 text-[var(--data-blue)]" />
+              <span className="font-medium">Deep Analysis</span>
+              <span className="text-xs text-muted-foreground">Multi-dimensional insights</span>
+            </Button>
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <TrendingUp className="h-8 w-8 mb-2 text-[var(--data-success)]" />
+              <span className="font-medium">Forecasting Models</span>
+              <span className="text-xs text-muted-foreground">Future predictions</span>
+            </Button>
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <AlertTriangle className="h-8 w-8 mb-2 text-[var(--data-warning)]" />
+              <span className="font-medium">Anomaly Detection</span>
+              <span className="text-xs text-muted-foreground">Outlier identification</span>
+            </Button>
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <Globe className="h-8 w-8 mb-2 text-[var(--data-info)]" />
+              <span className="font-medium">Network Simulation</span>
+              <span className="text-xs text-muted-foreground">What-if scenarios</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,509 +1,609 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AddContactDialog } from "@/components/AddContactDialog"
-import { signalsStore, type BondedContact, type SignalEvent } from "@/lib/stores/signalsStore"
-import { getBondedContactsFromHCS, getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
-// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
-import Link from "next/link"
 import { 
+  GitBranch, 
+  Network, 
   Users, 
-  UserPlus, 
-  Heart, 
   Activity, 
-  AlertCircle,
-  Check,
-  Clock
+  BarChart3,
+  PieChart,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
+  Eye,
+  Filter,
+  Search,
+  Settings,
+  Zap,
+  Target,
+  Globe
 } from "lucide-react"
-import { toast } from "sonner"
-import { hederaClient } from "@/packages/hedera/HederaClient"
+import { signalsStore } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
-import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { HCS_ENABLED, TOPIC, MIRROR_REST, MIRROR_WS } from "@/lib/env"
-import { seedDemo } from "@/lib/demo/seed"
-import { RecognitionGrid } from "@/components/RecognitionGrid"
 
-const TRUST_TOPIC = TOPIC.trust || ""
-
-// Expose store for debugging
-if (typeof window !== 'undefined') {
-  (window as any).__signalsStore = signalsStore;
+interface NetworkNode {
+  id: string;
+  name: string;
+  avatar: string;
+  level: "core" | "close" | "known" | "observed";
+  trustScore: number;
+  connections: number;
+  activity: number;
+  position: { x: number; y: number };
+  size: "small" | "medium" | "large";
 }
 
-// Generate circular trust visualization
-function TrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
-  const totalSlots = 9
-  const dots = Array.from({ length: totalSlots }, (_, i) => {
-    // Arrange dots in a circle
-    const angle = (i * 360) / totalSlots - 90 // Start from top
-    const radian = (angle * Math.PI) / 180
-    const radius = 20 // Distance from center
-    const x = Math.cos(radian) * radius + 32 // 32 is center (64/2)
-    const y = Math.sin(radian) * radius + 32
-
-    // Determine LED state: green (trust allocated), gray (available slot)
-    let ledStyle = ""
-    let innerStyle = ""
-    
-    if (i < allocatedOut) {
-      // Green LEDs for trust allocations
-      ledStyle = "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/50 border-2 border-green-300"
-      innerStyle = "bg-gradient-to-br from-green-300 to-green-500"
-    } else {
-      // Gray LEDs for available trust slots
-      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200"
-      innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
-    }
-
-    return (
-      <div
-        key={i}
-        className={`absolute w-4 h-4 rounded-full transform -translate-x-2 -translate-y-2 ${ledStyle}`}
-        style={{ left: x, top: y }}
-      >
-        {/* LED inner glow effect */}
-        <div className={`absolute inset-1 rounded-full ${innerStyle}`} />
-        {/* LED highlight spot */}
-        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-white opacity-60" />
-      </div>
-    )
-  })
-
-  return (
-    <div className="relative w-16 h-16 flex-shrink-0">
-      {dots}
-      {/* Center flame emoji */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-        <span className="text-base">🔥</span>
-      </div>
-    </div>
-  )
+interface NetworkEdge {
+  from: string;
+  to: string;
+  strength: number;
+  type: "trust" | "social" | "professional" | "weak";
+  bidirectional: boolean;
 }
 
-async function submitTrustToHCS(envelope: any, signalId?: string) {
-  if (!HCS_ENABLED || !TRUST_TOPIC) return
+interface NetworkMetrics {
+  totalNodes: number;
+  totalEdges: number;
+  averageDegree: number;
+  clusteringCoefficient: number;
+  networkDensity: number;
+  centralityScore: number;
+}
+
+interface PathAnalysis {
+  shortestPath: string[];
+  pathLength: number;
+  intermediateNodes: NetworkNode[];
+  trustScore: number;
+}
+
+// Mock network topology data
+const mockNodes: NetworkNode[] = [
+  // Center node (you)
+  { id: "self", name: "You", avatar: "🧑‍💼", level: "core", trustScore: 100, connections: 8, activity: 95, position: { x: 250, y: 200 }, size: "large" },
   
-  try {
-    await hederaClient.submitMessage(TRUST_TOPIC, JSON.stringify(envelope))
-    if (signalId) {
-      signalsStore.updateSignalStatus(signalId, "onchain")
-    }
-    toast.success("Trust allocated on-chain ✓", { description: `TRUST …${TRUST_TOPIC.slice(-6)}` })
-  } catch (e: any) {
-    if (signalId) {
-      signalsStore.updateSignalStatus(signalId, "error")
-    }
-    toast.error("Trust allocation failed", { description: e?.message ?? "Unknown error" })
+  // Core circle (high trust)
+  { id: "sarah", name: "Sarah C.", avatar: "👩‍💼", level: "core", trustScore: 95, connections: 12, activity: 85, position: { x: 180, y: 120 }, size: "medium" },
+  { id: "alex", name: "Alex M.", avatar: "👨‍💻", level: "core", trustScore: 92, connections: 10, activity: 90, position: { x: 320, y: 140 }, size: "medium" },
+  { id: "maria", name: "Maria L.", avatar: "👩‍🔬", level: "core", trustScore: 88, connections: 15, activity: 75, position: { x: 200, y: 280 }, size: "medium" },
+  
+  // Close circle (medium trust)
+  { id: "david", name: "David K.", avatar: "👨‍🎨", level: "close", trustScore: 76, connections: 8, activity: 65, position: { x: 120, y: 200 }, size: "small" },
+  { id: "lisa", name: "Lisa W.", avatar: "👩‍💼", level: "close", trustScore: 82, connections: 11, activity: 70, position: { x: 350, y: 240 }, size: "small" },
+  { id: "james", name: "James R.", avatar: "👨‍📊", level: "close", trustScore: 74, connections: 6, activity: 60, position: { x: 300, y: 80 }, size: "small" },
+  
+  // Known circle (low trust)
+  { id: "emily", name: "Emily D.", avatar: "👩‍🎓", level: "known", trustScore: 65, connections: 4, activity: 45, position: { x: 80, y: 150 }, size: "small" },
+  { id: "mike", name: "Mike T.", avatar: "👨‍🔧", level: "known", trustScore: 58, connections: 7, activity: 40, position: { x: 380, y: 180 }, size: "small" },
+  { id: "anna", name: "Anna S.", avatar: "👩‍🎤", level: "observed", trustScore: 45, connections: 3, activity: 25, position: { x: 250, y: 320 }, size: "small" }
+];
+
+const mockEdges: NetworkEdge[] = [
+  // Self connections
+  { from: "self", to: "sarah", strength: 95, type: "trust", bidirectional: true },
+  { from: "self", to: "alex", strength: 92, type: "professional", bidirectional: true },
+  { from: "self", to: "maria", strength: 88, type: "trust", bidirectional: true },
+  { from: "self", to: "david", strength: 76, type: "social", bidirectional: true },
+  { from: "self", to: "lisa", strength: 82, type: "professional", bidirectional: true },
+  { from: "self", to: "james", strength: 74, type: "weak", bidirectional: false },
+  { from: "self", to: "emily", strength: 65, type: "weak", bidirectional: false },
+  { from: "self", to: "mike", strength: 58, type: "weak", bidirectional: false },
+  
+  // Interconnections
+  { from: "sarah", to: "alex", strength: 85, type: "professional", bidirectional: true },
+  { from: "sarah", to: "maria", strength: 70, type: "social", bidirectional: true },
+  { from: "alex", to: "lisa", strength: 78, type: "professional", bidirectional: true },
+  { from: "maria", to: "david", strength: 60, type: "social", bidirectional: true },
+  { from: "lisa", to: "james", strength: 55, type: "weak", bidirectional: false },
+  { from: "emily", to: "anna", strength: 40, type: "weak", bidirectional: true }
+];
+
+const networkMetrics: NetworkMetrics = {
+  totalNodes: 10,
+  totalEdges: 14,
+  averageDegree: 2.8,
+  clusteringCoefficient: 0.65,
+  networkDensity: 0.31,
+  centralityScore: 0.89
+};
+
+// Network topology visualization components
+function getNodeColor(level: string) {
+  switch (level) {
+    case "core": return "var(--data-blue)";
+    case "close": return "var(--data-purple)";
+    case "known": return "var(--data-info)";
+    case "observed": return "var(--muted-foreground)";
+    default: return "var(--border)";
   }
 }
 
-function BondedContactCard({ 
-  contact, 
-  canAllocate, 
-  onAllocateTrust 
-}: { 
-  contact: BondedContact
-  canAllocate: boolean
-  onAllocateTrust: (peerId: string, weight: number) => void
+function getNodeSize(size: string) {
+  switch (size) {
+    case "large": return 40;
+    case "medium": return 28;
+    case "small": return 20;
+    default: return 24;
+  }
+}
+
+function getEdgeColor(type: string) {
+  switch (type) {
+    case "trust": return "var(--data-blue)";
+    case "professional": return "var(--data-purple)";
+    case "social": return "var(--data-success)";
+    case "weak": return "var(--muted-foreground)";
+    default: return "var(--border)";
+  }
+}
+
+function NetworkTopologyVisualization({ nodes, edges, selectedNode, onNodeSelect }: {
+  nodes: NetworkNode[];
+  edges: NetworkEdge[];
+  selectedNode: string | null;
+  onNodeSelect: (nodeId: string) => void;
 }) {
+  const svgWidth = 500;
+  const svgHeight = 400;
+  
   return (
-    <Card className="p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <Users className="w-4 h-4 text-blue-600" />
-          </div>
-          <div>
-            <div className="font-medium text-sm">
-              {contact.handle || `User ${contact.peerId.slice(-6)}`}
-            </div>
-            <div className="text-xs text-[hsl(var(--muted-foreground))]">
-              Bonded {new Date(contact.bondedAt).toLocaleDateString()}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {contact.trustLevel && (
-            <Badge variant="secondary" className="text-xs">
-              Trust {contact.trustLevel}
-            </Badge>
-          )}
+    <div className="relative bg-card border border-[var(--data-blue)]/30 rounded-lg overflow-hidden">
+      <svg width={svgWidth} height={svgHeight} className="w-full h-full">
+        {/* Render edges first (behind nodes) */}
+        {edges.map((edge, index) => {
+          const fromNode = nodes.find(n => n.id === edge.from);
+          const toNode = nodes.find(n => n.id === edge.to);
           
-          {canAllocate && !contact.trustLevel && (
-            <div className="flex gap-1">
-              {[1, 2, 3].map((weight) => (
-                <Button
-                  key={weight}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs px-2 py-1 h-6"
-                  onClick={() => onAllocateTrust(contact.peerId, weight)}
-                >
-                  {weight}
-                </Button>
-              ))}
-            </div>
-          )}
+          if (!fromNode || !toNode) return null;
+          
+          const strokeWidth = Math.max(1, edge.strength / 30);
+          const opacity = selectedNode ? 
+            (selectedNode === edge.from || selectedNode === edge.to ? 1 : 0.3) : 0.6;
+          
+          return (
+            <line
+              key={`${edge.from}-${edge.to}-${index}`}
+              x1={fromNode.position.x}
+              y1={fromNode.position.y}
+              x2={toNode.position.x}
+              y2={toNode.position.y}
+              stroke={getEdgeColor(edge.type)}
+              strokeWidth={strokeWidth}
+              opacity={opacity}
+              strokeDasharray={edge.bidirectional ? "none" : "4,4"}
+            />
+          );
+        })}
+        
+        {/* Render nodes */}
+        {nodes.map((node) => {
+          const nodeSize = getNodeSize(node.size);
+          const isSelected = selectedNode === node.id;
+          const opacity = selectedNode ? (isSelected ? 1 : 0.4) : 1;
+          
+          return (
+            <g key={node.id}>
+              {/* Node circle */}
+              <circle
+                cx={node.position.x}
+                cy={node.position.y}
+                r={nodeSize / 2}
+                fill={getNodeColor(node.level)}
+                stroke={isSelected ? "white" : "transparent"}
+                strokeWidth={isSelected ? 2 : 0}
+                opacity={opacity}
+                className="cursor-pointer transition-all duration-200 hover:scale-110"
+                onClick={() => onNodeSelect(node.id)}
+              />
+              
+              {/* Node avatar/emoji */}
+              <text
+                x={node.position.x}
+                y={node.position.y + 4}
+                textAnchor="middle"
+                fontSize={nodeSize / 2}
+                opacity={opacity}
+                className="cursor-pointer pointer-events-none select-none"
+              >
+                {node.avatar}
+              </text>
+              
+              {/* Node label */}
+              <text
+                x={node.position.x}
+                y={node.position.y + nodeSize / 2 + 12}
+                textAnchor="middle"
+                fontSize="10"
+                fill="var(--foreground)"
+                opacity={opacity}
+                className="pointer-events-none select-none font-medium"
+              >
+                {node.name}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      
+      {/* Legend */}
+      <div className="absolute top-2 left-2 bg-card/90 backdrop-blur-sm rounded border border-border/50 p-2 space-y-1">
+        <div className="text-xs font-medium text-muted-foreground mb-1">Trust Levels</div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--data-blue)" }}></div>
+          <span className="text-xs">Core</span>
         </div>
-      </div>
-    </Card>
-  )
-}
-
-function MiniFeedItem({ signal }: { signal: SignalEvent }) {
-  const getIcon = () => {
-    if (signal.class === "contact") return <UserPlus className="w-3 h-3" />
-    if (signal.class === "trust") return <Heart className="w-3 h-3" />
-    return <Activity className="w-3 h-3" />
-  }
-
-  const getStatusIcon = () => {
-    if (signal.status === "onchain") return <Check className="w-3 h-3 text-green-600" />
-    if (signal.status === "error") return <AlertCircle className="w-3 h-3 text-red-600" />
-    return <Clock className="w-3 h-3 text-slate-400" />
-  }
-
-  const getTitle = () => {
-    if (signal.type === "CONTACT_REQUEST") {
-      return signal.direction === "outbound" ? "Contact request sent" : "Contact request received"
-    }
-    if (signal.type === "CONTACT_ACCEPT") {
-      return signal.direction === "outbound" ? "Contact accepted" : "Contact bonded"
-    }
-    if (signal.type === "TRUST_ALLOCATE") {
-      return `Trust allocated (${signal.payload?.weight || 1})`
-    }
-    return signal.type
-  }
-
-  return (
-    <div className="flex items-center gap-2 py-2 border-b last:border-0">
-      <div className="flex items-center gap-1">
-        {getIcon()}
-        {getStatusIcon()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate">{getTitle()}</div>
-        <div className="text-xs text-[hsl(var(--muted-foreground))]">
-          {new Date(signal.ts).toLocaleDateString()} · {signal.direction}
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--data-purple)" }}></div>
+          <span className="text-xs">Close</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--data-info)" }}></div>
+          <span className="text-xs">Known</span>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default function CirclePage() {
-  const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
-  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9 })
-  const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
-  const [allEvents, setAllEvents] = useState<SignalEvent[]>([])
-  const [sessionId, setSessionId] = useState("")
-  
-  // Log changes to UI state for debugging
-  useEffect(() => {
-    console.log('📋 [UI] bonded contacts updated:', bondedContacts.length, bondedContacts.map(b => b.handle || b.peerId.slice(-6)));
-  }, [bondedContacts]);
-  
-  useEffect(() => {
-    console.log('📋 [UI] recent signals updated:', recentSignals.length, recentSignals.map(s => s.type));
-  }, [recentSignals]);
-  
-  useEffect(() => {
-    console.log('📋 [UI] trust stats updated:', trustStats);
-  }, [trustStats]);
-  
-  // Note: Removed signalsStore subscription since we're using direct HCS loading for consistency
-  
-  // Load data from SignalsStore (single source of truth)
-  useEffect(() => {
-    const loadFromSignalsStore = () => {
-      try {
-        const currentSessionId = getSessionId()
-        // Fallback to 'tm-alex-chen' if session ID is null/undefined (common in demo mode)
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
-        console.log('🚀 [CirclePage] Loading from SignalsStore (single source)...')
-        console.log('📋 [CirclePage] Session ID:', effectiveSessionId, '(raw:', currentSessionId, ')')
-        
-        // Get all events from SignalsStore
-        const allStoreEvents = signalsStore.getAll()
-        
-        console.log('📡 [CirclePage] Loaded', allStoreEvents.length, 'events from SignalsStore')
-        
-        if (allStoreEvents.length > 0) {
-          // Process events using the same HCS utility functions but with store data
-          const bonded = getBondedContactsFromHCS(allStoreEvents, effectiveSessionId)
-          const recent = getRecentSignalsFromHCS(allStoreEvents, effectiveSessionId, 5)
-          const allSignals = getRecentSignalsFromHCS(allStoreEvents, effectiveSessionId, 1000)
-          
-          // Calculate TRUST allocation for LEDs (not contacts!)
-          const trustEvents = allStoreEvents.filter(e => 
-            e.type === 'trust_allocate' && e.actor === effectiveSessionId
-          )
-          
-          // Count trust allocations (green LEDs) - each allocation = 1 LED
-          const trustAllocated = trustEvents.length
-          
-          console.log('📊 [CirclePage] Trust calculation:', {
-            totalEvents: allStoreEvents.length,
-            trustEvents: trustEvents.length,
-            trustAllocated,
-            sessionId: effectiveSessionId,
-            sampleTrustEvent: trustEvents[0]
-          })
-          
-          const stats = { 
-            allocatedOut: trustAllocated, // Green LEDs = trust allocations (not contacts!)
-            cap: 9
-          }
-          
-          setBondedContacts(bonded)
-          setTrustStats(stats)
-          setRecentSignals(recent)
-          setAllEvents(allSignals)
-          
-          console.log('✅ [CirclePage] Data loaded from SignalsStore:', {
-            bonded: bonded.length,
-            stats,
-            recent: recent.length,
-            total: allStoreEvents.length,
-            session: currentSessionId
-          })
-        } else {
-          console.log('⚠️ [CirclePage] SignalsStore empty - waiting for ingestion...')
-          setBondedContacts([])
-          setTrustStats({ allocatedOut: 0, cap: 9 })
-          setRecentSignals([])
-          setAllEvents([])
-        }
-        
-      } catch (error) {
-        console.error('❌ [CirclePage] SignalsStore load failed:', error)
-        const currentSessionId = getSessionId()
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
-        setBondedContacts([])
-        setTrustStats({ allocatedOut: 0, cap: 9 })
-        setRecentSignals([])
-      }
-    }
-    
-    // Initial load
-    loadFromSignalsStore()
-    
-    // Subscribe to SignalsStore changes
-    const unsubscribe = signalsStore.subscribe(() => {
-      console.log('📡 [CirclePage] SignalsStore updated, refreshing...')
-      loadFromSignalsStore()
-    })
-    
-    return unsubscribe
-  }, [])
-
-  const availableSlots = Math.max(0, 9 - trustStats.allocatedOut)
-
-  const handleAllocateTrust = async (peerId: string, weight: number) => {
-    try {
-      // Create a trust allocation signal and add to store
-      const trustSignal: SignalEvent = {
-        id: `trust_${sessionId}_${peerId}_${Date.now()}`,
-        type: 'TRUST_ALLOCATE',
-        actor: sessionId,
-        target: peerId,
-        ts: Date.now(),
-        topicId: TRUST_TOPIC,
-        metadata: { weight, tag: 'circle_allocation' },
-        source: 'hcs-cached'
-      }
-      
-      signalsStore.addSignal(trustSignal)
-      
-      toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
-      
-      // SignalsStore subscription will automatically refresh the UI
-      // No need to manually refresh since we're subscribed to store changes
-    } catch (error) {
-      console.error('[CirclePage] Failed to allocate trust via HCS:', error)
-      toast.error('Failed to allocate trust', { description: error.message || 'Unknown error' })
-    }
-  }
-
-  // Get metrics for compact display (connection workflow model)
-  const metrics = {
-    bondedContacts: bondedContacts.length,
-    trustAllocated: trustStats.allocatedOut, // Green LEDs = accepted connections
-    trustCapacity: 9,
-    recognitionOwned: allEvents.filter(s => 
-      (s.type === 'NFT_MINT' || s.type === 'RECOGNITION_MINT' || s.type === 'recognition_mint') && 
-      (s.target === effectiveSessionId || s.target === sessionId)
-    ).length // Recognition minted to current user
-  }
+function NetworkMetricsCard({ metrics }: { metrics: NetworkMetrics }) {
+  const metricsData = [
+    { label: "Total Nodes", value: metrics.totalNodes.toString(), icon: <Users className="h-4 w-4" />, color: "var(--data-blue)" },
+    { label: "Connections", value: metrics.totalEdges.toString(), icon: <GitBranch className="h-4 w-4" />, color: "var(--data-purple)" },
+    { label: "Avg. Degree", value: metrics.averageDegree.toFixed(1), icon: <Network className="h-4 w-4" />, color: "var(--data-info)" },
+    { label: "Centrality", value: `${(metrics.centralityScore * 100).toFixed(0)}%`, icon: <Target className="h-4 w-4" />, color: "var(--data-success)" },
+    { label: "Density", value: `${(metrics.networkDensity * 100).toFixed(0)}%`, icon: <Globe className="h-4 w-4" />, color: "var(--data-warning)" },
+    { label: "Clustering", value: `${(metrics.clusteringCoefficient * 100).toFixed(0)}%`, icon: <PieChart className="h-4 w-4" />, color: "var(--data-indigo)" }
+  ];
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Your Circle of Trust</h1>
-          {/* Personal Metrics under title */}
-          <div className="flex items-center gap-4 text-sm mt-2">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span className="font-semibold">{metrics.bondedContacts}</span>
-              <span className="text-muted-foreground">Bonded</span>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {metricsData.map((metric, index) => (
+        <Card key={index} className="bg-card border border-[var(--data-blue)]/20">
+          <CardContent className="p-3 text-center">
+            <div className="flex items-center justify-center mb-2" style={{ color: metric.color }}>
+              {metric.icon}
             </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4 text-green-600" />
-              <span className="font-semibold">{metrics.trustAllocated}/9</span>
-              <span className="text-muted-foreground">Connected</span>
+            <div className="text-lg font-bold" style={{ color: metric.color }}>
+              {metric.value}
             </div>
-            <div className="flex items-center gap-1">
-              <Activity className="w-4 h-4 text-purple-600" />
-              <span className="font-semibold">{metrics.recognitionOwned}</span>
-              <span className="text-muted-foreground">Recognition</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <AddContactDialog />
-        </div>
-      </div>
-
-      {/* Trust & Contacts Summary */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <TrustCircle 
-                allocatedOut={trustStats.allocatedOut} 
-                maxSlots={9} 
-              />
-              <div>
-                <div className="font-semibold text-[hsl(var(--card-foreground))]">
-                  Connections: {trustStats.allocatedOut}/9
-                </div>
-                <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                  {bondedContacts.length} bonded contacts
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {availableSlots > 0 ? (
-                <Badge variant="secondary" className="bg-emerald-400/20 text-emerald-300">
-                  {availableSlots} slots
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-                  Full
-                </Badge>
-              )}
-              <Link 
-                href="/contacts"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Manage →
-              </Link>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-
-      {/* Recognition Collection */}
-      <RecognitionGrid ownerId={sessionId} maxItems={5} />
-
-      {/* Recent Signals Feed */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Recent Signals
-            </CardTitle>
-            {recentSignals.length > 0 && (
-              <Link 
-                href="/signals"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                View All →
-              </Link>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {recentSignals.length === 0 ? (
-            <div className="text-center py-6 text-[hsl(var(--muted-foreground))]">
-              <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No signals yet</p>
-              <p className="text-xs">Activity will appear here when you connect with others</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentSignals.map((signal) => (
-                <MiniFeedItem key={signal.id} signal={signal} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Trust Allocation - Show for all bonded contacts */}
-      {bondedContacts.length > 0 && (
-        <Card className="border-card-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
-              <Heart className="w-5 h-5 text-neon-green" />
-              Send Trust
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {bondedContacts.map((contact) => {
-                const hasTrust = contact.trustLevel && contact.trustLevel > 0
-                return (
-                  <div key={contact.peerId} className="flex items-center justify-between p-3 border-card-border bg-card rounded border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm text-card-foreground">
-                          {contact.handle || `User ${contact.peerId.slice(-6)}`}
-                        </div>
-                        {hasTrust && (
-                          <div className="text-xs text-neon-green">
-                            Trust Level: {contact.trustLevel}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {!hasTrust && (
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3].map((weight) => (
-                          <Button
-                            key={weight}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAllocateTrust(contact.peerId, weight)}
-                            disabled={trustStats.allocatedOut + weight > 9}
-                            className="text-xs px-2 py-1 h-6 border-card-border text-card-foreground hover:bg-card-border hover:text-card-foreground"
-                          >
-                            {weight}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+            <div className="text-xs text-muted-foreground mt-1">
+              {metric.label}
             </div>
           </CardContent>
         </Card>
-      )}
+      ))}
+    </div>
+  );
+}
+
+function NodeDetailsPanel({ node, edges }: { node: NetworkNode | null; edges: NetworkEdge[] }) {
+  if (!node) {
+    return (
+      <Card className="bg-card border border-[var(--data-purple)]/30">
+        <CardContent className="p-6 text-center">
+          <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-medium mb-2">Select a Node</h3>
+          <p className="text-sm text-muted-foreground">
+            Click on any node in the network to view detailed analytics and connection information.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const nodeConnections = edges.filter(e => e.from === node.id || e.to === node.id);
+  const strongConnections = nodeConnections.filter(e => e.strength > 80).length;
+  const weakConnections = nodeConnections.filter(e => e.strength < 60).length;
+  
+  return (
+    <Card className="bg-card border-l-4" style={{ borderLeftColor: getNodeColor(node.level) }}>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+            style={{ backgroundColor: getNodeColor(node.level), color: 'white' }}
+          >
+            {node.avatar}
+          </div>
+          <div>
+            <CardTitle className="text-lg">{node.name}</CardTitle>
+            <Badge variant="outline" className="mt-1">
+              {node.level.charAt(0).toUpperCase() + node.level.slice(1)} Circle
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-2xl font-bold" style={{ color: getNodeColor(node.level) }}>
+              {node.trustScore}
+            </div>
+            <div className="text-xs text-muted-foreground">Trust Score</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-[var(--data-purple)]">
+              {nodeConnections.length}
+            </div>
+            <div className="text-xs text-muted-foreground">Connections</div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Activity Level</span>
+            <span className="font-medium">{node.activity}%</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div 
+              className="h-2 rounded-full"
+              style={{ 
+                width: `${node.activity}%`, 
+                backgroundColor: getNodeColor(node.level)
+              }}
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
+          <div className="text-center">
+            <div className="text-lg font-bold text-[var(--data-success)]">
+              {strongConnections}
+            </div>
+            <div className="text-xs text-muted-foreground">Strong Links</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-[var(--data-warning)]">
+              {weakConnections}
+            </div>
+            <div className="text-xs text-muted-foreground">Weak Links</div>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1 text-xs">
+            <Eye className="h-3 w-3 mr-1" />
+            View Profile
+          </Button>
+          <Button size="sm" variant="outline" className="flex-1 text-xs">
+            <ArrowRight className="h-3 w-3 mr-1" />
+            Analyze Path
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function NetworkTopologyPage() {
+  const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const [nodes] = useState(mockNodes)
+  const [edges] = useState(mockEdges)
+  const [metrics] = useState(networkMetrics)
+  const [viewMode, setViewMode] = useState<"topology" | "matrix" | "hierarchy">("topology")
+  const [filterLevel, setFilterLevel] = useState<string>("all")
+
+  const filteredNodes = useMemo(() => {
+    if (filterLevel === "all") return nodes;
+    return nodes.filter(node => node.level === filterLevel);
+  }, [nodes, filterLevel]);
+
+  const filteredEdges = useMemo(() => {
+    const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+    return edges.filter(edge => 
+      filteredNodeIds.has(edge.from) && filteredNodeIds.has(edge.to)
+    );
+  }, [edges, filteredNodes]);
+
+  const selectedNodeData = useMemo(() => {
+    return nodes.find(n => n.id === selectedNode) || null;
+  }, [nodes, selectedNode]);
+
+  const viewModes = [
+    { value: "topology", label: "Network Graph", icon: <Network className="h-4 w-4" /> },
+    { value: "matrix", label: "Adjacency Matrix", icon: <BarChart3 className="h-4 w-4" /> },
+    { value: "hierarchy", label: "Trust Hierarchy", icon: <GitBranch className="h-4 w-4" /> }
+  ];
+
+  const levelFilters = [
+    { value: "all", label: "All Levels", color: "var(--muted-foreground)" },
+    { value: "core", label: "Core", color: "var(--data-blue)" },
+    { value: "close", label: "Close", color: "var(--data-purple)" },
+    { value: "known", label: "Known", color: "var(--data-info)" },
+    { value: "observed", label: "Observed", color: "var(--muted-foreground)" }
+  ];
+
+  const handleNodeSelect = (nodeId: string) => {
+    setSelectedNode(selectedNode === nodeId ? null : nodeId);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-xl font-bold text-[var(--data-blue)] flex items-center gap-2">
+          <Network className="h-5 w-5" />
+          Network Topology Analytics
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Interactive visualization and analysis of your trust network structure and relationships
+        </p>
+      </div>
+
+      {/* Network Metrics */}
+      <NetworkMetricsCard metrics={metrics} />
+
+      {/* View Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        {/* View Mode Selector */}
+        <div className="flex gap-2">
+          {viewModes.map((mode) => (
+            <Button
+              key={mode.value}
+              size="sm"
+              variant={viewMode === mode.value ? "default" : "outline"}
+              onClick={() => setViewMode(mode.value as any)}
+              className={`flex items-center gap-2 ${
+                viewMode === mode.value 
+                  ? 'bg-[var(--data-blue)] hover:bg-[var(--data-blue)]/90' 
+                  : 'border-[var(--data-blue)]/30 hover:bg-[var(--data-blue)]/10'
+              }`}
+            >
+              {mode.icon}
+              {mode.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Level Filter */}
+        <div className="flex gap-2 overflow-x-auto">
+          {levelFilters.map((filter) => (
+            <Button
+              key={filter.value}
+              size="sm"
+              variant={filterLevel === filter.value ? "default" : "outline"}
+              onClick={() => setFilterLevel(filter.value)}
+              className={`flex items-center gap-2 whitespace-nowrap ${
+                filterLevel === filter.value 
+                  ? 'bg-[var(--data-purple)] hover:bg-[var(--data-purple)]/90' 
+                  : 'border-[var(--data-purple)]/30 hover:bg-[var(--data-purple)]/10'
+              }`}
+            >
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: filter.color }}
+              ></div>
+              {filter.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex-1" />
+        
+        {/* Analysis Tools */}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="text-xs">
+            <Settings className="h-3 w-3 mr-1" />
+            Layout
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs">
+            <Search className="h-3 w-3 mr-1" />
+            Find Path
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Network Visualization */}
+        <div className="lg:col-span-2">
+          <Card className="bg-card border border-[var(--data-blue)]/30">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2 text-[var(--data-blue)]">
+                  <PieChart className="h-5 w-5" />
+                  Trust Network Graph
+                  <Badge variant="secondary">{filteredNodes.length} nodes</Badge>
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Eye className="h-3 w-3 mr-1" />
+                    Zoom Fit
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Filter className="h-3 w-3 mr-1" />
+                    Export
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {viewMode === "topology" ? (
+                <NetworkTopologyVisualization 
+                  nodes={filteredNodes} 
+                  edges={filteredEdges}
+                  selectedNode={selectedNode}
+                  onNodeSelect={handleNodeSelect}
+                />
+              ) : viewMode === "matrix" ? (
+                <Card className="bg-muted/20 border-dashed">
+                  <CardContent className="p-12 text-center">
+                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">Adjacency Matrix View</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Interactive adjacency matrix visualization showing connection strengths between all network members.
+                    </p>
+                    <Button size="sm">
+                      <Zap className="h-3 w-3 mr-1" />
+                      Generate Matrix
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="bg-muted/20 border-dashed">
+                  <CardContent className="p-12 text-center">
+                    <GitBranch className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">Trust Hierarchy View</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Hierarchical tree layout showing trust levels and influence patterns in your network.
+                    </p>
+                    <Button size="sm">
+                      <Target className="h-3 w-3 mr-1" />
+                      Build Hierarchy
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Node Details Panel */}
+        <div>
+          <NodeDetailsPanel 
+            node={selectedNodeData} 
+            edges={edges}
+          />
+        </div>
+      </div>
+
+      {/* Network Analysis Tools */}
+      <Card className="bg-card border border-[var(--data-purple)]/30">
+        <CardHeader>
+          <h3 className="text-lg font-semibold text-[var(--data-purple)] flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Network Analysis Tools
+          </h3>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <TrendingUp className="h-8 w-8 mb-2 text-[var(--data-success)]" />
+              <span className="font-medium">Influence Analysis</span>
+              <span className="text-xs text-muted-foreground">Identify key influencers</span>
+            </Button>
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <Target className="h-8 w-8 mb-2 text-[var(--data-warning)]" />
+              <span className="font-medium">Community Detection</span>
+              <span className="text-xs text-muted-foreground">Find network clusters</span>
+            </Button>
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <ArrowRight className="h-8 w-8 mb-2 text-[var(--data-info)]" />
+              <span className="font-medium">Path Analysis</span>
+              <span className="text-xs text-muted-foreground">Shortest trust paths</span>
+            </Button>
+            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
+              <Zap className="h-8 w-8 mb-2 text-[var(--data-purple)]" />
+              <span className="font-medium">Simulation</span>
+              <span className="text-xs text-muted-foreground">Network dynamics</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
