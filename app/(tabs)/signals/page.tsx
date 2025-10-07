@@ -17,7 +17,19 @@ import {
   Check,
   Clock,
   Copy,
-  Filter
+  Filter,
+  Trophy,
+  ThumbsUp,
+  Share2,
+  Star,
+  Crown,
+  Sparkles,
+  Gift,
+  Medal,
+  Zap,
+  Flame,
+  Target,
+  Handshake
 } from "lucide-react"
 import { toast } from "sonner"
 import { getSessionId } from "@/lib/session"
@@ -190,13 +202,15 @@ function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => v
   )
 }
 
-export default function SignalsPage() {
+export default function SocialRecognitionPage() {
   const [signals, setSignals] = useState<SignalEvent[]>([])
   const [activeFilter, setActiveFilter] = useState<SignalClass | "all">("all")
   const [sessionId, setSessionId] = useState("")
   const [hcsTopicIds, setHcsTopicIds] = useState<ReturnType<typeof hcsFeedService.getTopicIds> | null>(null)
   const [selectedRecognition, setSelectedRecognition] = useState<HCSRecognitionDefinition | null>(null)
   const [isRecognitionModalOpen, setIsRecognitionModalOpen] = useState(false)
+  const [showNominateModal, setShowNominateModal] = useState(false)
+  const [activeTab, setActiveTab] = useState<'community' | 'personal'>('community')
   
   // Direct HCS data loading - bypass broken bootstrap
   useEffect(() => {
@@ -300,74 +314,346 @@ export default function SignalsPage() {
     }
   }
 
+  // Mock recognition data for social demo
+  const mockUserRecognitions = [
+    {
+      id: 1,
+      name: "Eco Helper",
+      icon: "🎖️",
+      rarity: "Rare",
+      boost: "+20 Trust Boost",
+      description: "Helped organize campus sustainability event",
+      fromCircle: true
+    },
+    {
+      id: 2, 
+      name: "Best Guide",
+      icon: "🏅",
+      rarity: "Common",
+      boost: "+10 Network Points",
+      description: "From Study Group event",
+      fromCircle: false
+    }
+  ]
+
+  const mockCommunityNominations = [
+    {
+      id: 1,
+      nominee: "Jordan Kim",
+      category: "Style Icon",
+      votes: 12,
+      timeLeft: "2 days",
+      hasVoted: false
+    },
+    {
+      id: 2,
+      nominee: "Alex Chen",
+      category: "Tech Helper", 
+      votes: 8,
+      timeLeft: "1 day",
+      hasVoted: true
+    },
+    {
+      id: 3,
+      nominee: "Sarah Kim",
+      category: "Event Organizer",
+      votes: 15,
+      timeLeft: "3 days", 
+      hasVoted: false
+    }
+  ]
+
+  const mockChallenges = [
+    {
+      id: 1,
+      title: "Network Builder",
+      description: "Connect with 5 new people this week",
+      progress: 3,
+      total: 5,
+      reward: "+50 Trust Points",
+      icon: Users
+    },
+    {
+      id: 2,
+      title: "Recognition Giver", 
+      description: "Nominate 3 community members",
+      progress: 1,
+      total: 3,
+      reward: "Curator Badge",
+      icon: Gift
+    }
+  ]
+
+  const handleShareRecognition = (recognition: any) => {
+    toast.success(`🔗 Shared ${recognition.name}!`, {
+      description: "Posted to your social circle feed"
+    })
+  }
+
+  const handleVoteNomination = (nomination: any) => {
+    toast.success(`👍 Voted for ${nomination.nominee}!`, {
+      description: `Supporting them for ${nomination.category}`
+    })
+  }
+
+  const handleNominate = (contactName: string) => {
+    toast.success(`✨ Nominated ${contactName}!`, {
+      description: "Community will vote on this recognition"
+    })
+    setShowNominateModal(false)
+  }
+
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+      {/* Social Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Activity Feed</h1>
-          <p className="text-xs text-muted-foreground">
-            Network activity • {filteredSignals.length} signals
-          </p>
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-neon-coral" />
+            Community Signals
+          </h1>
+          <p className="text-sm text-white/60">Earn, share & celebrate achievements</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            size="sm" 
+            onClick={() => setShowNominateModal(true)}
+            className="bg-neon-coral/20 hover:bg-neon-coral/30 text-neon-coral border border-neon-coral/30"
+          >
+            <ThumbsUp className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Compact filter pills */}
-      <div className="flex justify-center">
-        <div className="flex gap-1 p-1 bg-[hsl(var(--muted))]/30 rounded-full">
-          {filterChips.map((chip) => (
-            <Button
-              key={chip.value}
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveFilter(chip.value)}
-              className={`h-8 w-8 rounded-full p-0 transition-all ${
-                activeFilter === chip.value 
-                  ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg" 
-                  : "hover:bg-[hsl(var(--muted))]"
-              }`}
-              title={chip.label}
-            >
-              {chip.icon}
-            </Button>
-          ))}
-        </div>
+      {/* Tab Navigation */}
+      <div className="flex bg-card/30 p-1 rounded-xl border border-orange-400/20">
+        <button
+          onClick={() => setActiveTab('community')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+            activeTab === 'community'
+              ? 'bg-neon-coral/20 text-neon-coral border border-neon-coral/30 shadow-sm'
+              : 'text-white/70 hover:text-white/90 hover:bg-white/5'
+          }`}
+        >
+          <Flame className="w-4 h-4" />
+          Community Signals
+        </button>
+        <button
+          onClick={() => setActiveTab('personal')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+            activeTab === 'personal'
+              ? 'bg-neon-coral/20 text-neon-coral border border-neon-coral/30 shadow-sm'
+              : 'text-white/70 hover:text-white/90 hover:bg-white/5'
+          }`}
+        >
+          <Star className="w-4 h-4" />
+          My Recognition
+        </button>
       </div>
 
-      {/* Signals list */}
-      <div>
-        {filteredSignals.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Activity className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-medium mb-2">No signals yet</h3>
-              <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">
-                {activeFilter === "all" 
-                  ? "Activity will appear here when you interact with contacts or allocate trust"
-                  : `No ${activeFilter} signals found`}
-              </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                <h4 className="font-medium text-blue-900 mb-2">💡 Demo the Recognition System</h4>
-                <p className="text-blue-700 text-sm mb-3">
-                  Click the <strong>"Seed"</strong> button in the header to load demo data and see recognition signals in action!
-                </p>
-                <p className="text-blue-600 text-xs">
-                  This will create real HCS topics on Hedera testnet with various recognition signals like Chad, Skibidi, Prof Fav, and more.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {filteredSignals.map((signal) => (
-              <SignalRow 
-                key={signal.id} 
-                signal={signal}
-                onClick={() => handleRecognitionSignalClick(signal)}
-              />
+      {/* Tab Content */}
+      {activeTab === 'personal' && (
+        <div className="space-y-6">
+          {/* Your Achievements */}
+          <div className="space-y-4">
+            <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
+              <Medal className="w-4 h-4 text-neon-peach" />
+              Your Achievements
+            </h2>
+            
+            {mockUserRecognitions.map((recognition) => (
+              <Card key={recognition.id} className={`bg-gradient-to-r ${recognition.fromCircle ? 'from-orange-500/10 to-red-500/10 border border-orange-400/30' : 'from-slate-500/10 to-slate-600/10 border border-slate-400/20'}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">{recognition.icon}</div>
+                      <div>
+                        <h3 className="font-semibold text-white">{recognition.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`text-xs ${recognition.rarity === 'Rare' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'}`}>
+                            {recognition.rarity}
+                          </Badge>
+                          <span className="text-xs text-green-300">{recognition.boost}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {recognition.fromCircle && (
+                      <Crown className="w-4 h-4 text-orange-400" />
+                    )}
+                  </div>
+                  <p className="text-sm text-white/70 mb-3">{recognition.description}</p>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleShareRecognition(recognition)}
+                    className="w-full bg-neon-coral/20 hover:bg-neon-coral/30 text-neon-coral border border-neon-coral/30"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share to Circle
+                  </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        )}
-      </div>
+
+          {/* Personal Progress */}
+          <div className="space-y-4">
+            <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
+              <Target className="w-4 h-4 text-neon-orange" />
+              Your Progress
+            </h2>
+            
+            {mockChallenges.map((challenge) => {
+              const IconComponent = challenge.icon
+              const progress = Math.round((challenge.progress / challenge.total) * 100)
+              
+              return (
+                <Card key={challenge.id} className="bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-400/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                        <IconComponent className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{challenge.title}</h3>
+                        <p className="text-sm text-white/70">{challenge.description}</p>
+                      </div>
+                      <Badge className="bg-neon-peach/20 text-neon-peach border border-neon-peach/30 text-xs">
+                        {challenge.reward}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/80">Progress</span>
+                        <span className="text-orange-300">{challenge.progress}/{challenge.total}</span>
+                      </div>
+                      <div className="w-full bg-white/20 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-orange-400 to-red-400 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Community Tab */}
+      {activeTab === 'community' && (
+        <div className="space-y-6">
+          {/* Community Board */}
+          <div className="space-y-4">
+            <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
+              <Flame className="w-4 h-4 text-neon-orange" />
+              Community Nominations
+            </h2>
+        
+        {mockCommunityNominations.slice(0, 2).map((nomination) => (
+          <Card key={nomination.id} className="bg-card/50 border border-orange-400/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-white">Nominate {nomination.nominee}</h3>
+                  <p className="text-sm text-orange-300">for {nomination.category}</p>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1 mb-1">
+                    <ThumbsUp className="w-3 h-3 text-orange-400" />
+                    <span className="text-sm font-semibold text-white">{nomination.votes}</span>
+                  </div>
+                  <span className="text-xs text-white/60">{nomination.timeLeft} left</span>
+                </div>
+              </div>
+              
+              <Button 
+                size="sm" 
+                onClick={() => handleVoteNomination(nomination)}
+                disabled={nomination.hasVoted}
+                className={`w-full ${
+                  nomination.hasVoted 
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30 cursor-not-allowed'
+                    : 'bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange border border-neon-orange/30'
+                }`}
+              >
+                {nomination.hasVoted ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Voted
+                  </>
+                ) : (
+                  <>
+                    <ThumbsUp className="w-4 h-4 mr-2" />
+                    Vote/Endorse
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+            ))}
+          </div>
+          
+          {/* Community Challenges */}
+          <div className="space-y-4">
+            <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
+              <Handshake className="w-4 h-4 text-neon-peach" />
+              Community Challenges
+            </h2>
+            
+            {/* Community-specific challenge */}
+            <Card className="bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <ThumbsUp className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white">Community Supporter</h3>
+                    <p className="text-sm text-white/70">Vote on 5 community nominations</p>
+                  </div>
+                  <Badge className="bg-neon-peach/20 text-neon-peach border border-neon-peach/30 text-xs">
+                    Social Badge
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/80">Progress</span>
+                    <span className="text-orange-300">2/5</span>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-orange-400 to-red-400 h-2 rounded-full transition-all duration-300"
+                      style={{ width: '40%' }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Add nominate someone section */}
+            <Card className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-400/30">
+              <CardContent className="p-4 text-center">
+                <Sparkles className="w-8 h-8 text-neon-coral mx-auto mb-3" />
+                <h3 className="font-semibold text-white mb-2">Nominate Someone Special</h3>
+                <p className="text-sm text-white/70 mb-4">
+                  Recognize outstanding community members and help them shine!
+                </p>
+                <Button 
+                  onClick={() => setShowNominateModal(true)}
+                  className="w-full bg-neon-coral/20 hover:bg-neon-coral/30 text-neon-coral border border-neon-coral/30"
+                >
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Start Nomination
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
       
       {/* Recognition Signal Detail Modal */}
       <SignalDetailModal

@@ -8,7 +8,8 @@ import { HeaderModeChips } from "@/components/HeaderModeChips"
 import { 
   Circle, 
   Activity, 
-  Users
+  Users,
+  Trophy
 } from "lucide-react"
 
 export default function TabsLayout({
@@ -44,6 +45,13 @@ export default function TabsLayout({
 
   const tabs = [
     {
+      id: "contacts",
+      label: "Network", 
+      path: "/contacts",
+      icon: Users,
+      badge: null
+    },
+    {
       id: "circle",
       label: "Circle",
       path: "/circle",
@@ -54,15 +62,8 @@ export default function TabsLayout({
       id: "signals", 
       label: "Signals",
       path: "/signals",
-      icon: Activity,
+      icon: Trophy,
       badge: hasUnseen ? "•" : null
-    },
-    {
-      id: "contacts",
-      label: "Contacts", 
-      path: "/contacts",
-      icon: Users,
-      badge: null
     }
   ]
 
@@ -91,8 +92,8 @@ export default function TabsLayout({
               </div>
               <div>
                 <h1 className="font-bold text-lg text-white">TrustMesh</h1>
-                <p className="text-xs text-muted-foreground">
-                  a Service of Scend Technologies
+                <p className="text-xs text-orange-300">
+                  Social Network
                 </p>
               </div>
             </div>
@@ -122,8 +123,8 @@ export default function TabsLayout({
                   href={tab.path}
                   className={`flex-1 flex flex-col items-center justify-center py-3 px-2 text-xs font-medium transition-colors ${
                     isActive 
-                      ? "text-primary bg-primary/10" 
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-orange-400 bg-orange-400/10 font-semibold" 
+                      : "text-muted-foreground hover:text-orange-300"
                   }`}
                 >
                   <div className="relative">

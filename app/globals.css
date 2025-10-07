@@ -126,43 +126,43 @@ html.theme-mesh-dark * {
   --muted-foreground: #cbd5e1 !important;     /* Maps to text-muted */
   --secondary-foreground: #e2e8f0 !important; /* Maps to text-secondary */
   
-  /* ==> INTERACTIVE ELEMENTS */
-  --primary: #0ea5e9 !important;              /* Primary buttons/links */
-  --primary-foreground: #0f1827 !important;   /* Text on primary buttons */
-  --accent: #22d3ee !important;               /* Accent color */
-  --accent-foreground: #0f1827 !important;    /* Text on accent elements */
+  /* ==> INTERACTIVE ELEMENTS - WARM SOCIAL PALETTE */
+  --primary: #f97316 !important;              /* Warm orange - primary actions */
+  --primary-foreground: #ffffff !important;   /* White text on orange */
+  --accent: #ef4444 !important;               /* Vibrant red - accent color */
+  --accent-foreground: #ffffff !important;    /* White text on red */
   
-  /* ==> BORDERS & OUTLINES - Two card outline options */
+  /* ==> BORDERS & OUTLINES - WARM SOCIAL OPTIONS */
   --border: #475569 !important;               /* Default borders */
-  --ring: #0ea5e9 !important;                 /* Focus rings */
+  --ring: #f97316 !important;                 /* Orange focus rings */
   
-  /* Card outline options - choose one by uncommenting */
-  --card-border-option-1: #00ff41 !important; /* LED Green outline */
-  --card-border-option-2: #00ffff !important; /* Electric Cyan outline */
+  /* Card outline options - warm social variants */
+  --card-border-option-1: #ff6b35 !important; /* Warm coral/orange outline */
+  --card-border-option-2: #ff4757 !important; /* Vibrant red outline */
   
-  /* Active card border - change this to switch between options */
-  --card-border: var(--card-border-option-1) !important; /* Currently using LED Green */
+  /* Active card border - warm social theme */
+  --card-border: var(--card-border-option-1) !important; /* Using warm orange */
   
   /* ==> SYSTEM COLORS */
   --destructive: #ef4444 !important;          /* Error/delete actions */
   --destructive-foreground: #ffffff !important;
   
-  /* ==> NEON/LED COLOR PALETTE - Bright accent colors */
-  --neon-green: #00ff41 !important;           /* Electric LED green */
-  --neon-lime: #32ff32 !important;            /* Bright lime green */
-  --neon-mint: #00ffa1 !important;            /* Mint neon green */
-  --neon-cyan: #00ffff !important;            /* Electric cyan */
-  --neon-blue: #0080ff !important;            /* Electric blue */
-  --neon-purple: #8000ff !important;          /* Electric purple */
-  --neon-pink: #ff0080 !important;            /* Hot pink neon */
-  --neon-orange: #ff8000 !important;          /* Electric orange */
+  /* ==> WARM SOCIAL COLOR PALETTE - Energetic community colors */
+  --neon-coral: #ff6b6b !important;           /* Warm coral red */
+  --neon-orange: #ff8c42 !important;          /* Vibrant orange */
+  --neon-peach: #ffb74d !important;           /* Warm peach */
+  --neon-pink: #ff4081 !important;            /* Hot pink */
+  --neon-red: #f44336 !important;             /* Vibrant red */
+  --neon-amber: #ffa726 !important;           /* Warm amber */
+  --neon-sunset: #ff7043 !important;          /* Sunset orange */
+  --neon-crimson: #e91e63 !important;         /* Deep crimson */
   
-  /* ==> SIGNAL CATEGORY COLORS - Using neon palette */
-  --social: #00ffff !important;               /* Social signals - electric cyan */
-  --academic: #8000ff !important;             /* Academic signals - electric purple */
-  --professional: #0080ff !important;         /* Professional signals - electric blue */
-  --success: #00ff41 !important;              /* Success states - LED green */
-  --trust: #32ff32 !important;                /* Trust allocation - bright lime */
+  /* ==> SIGNAL CATEGORY COLORS - WARM SOCIAL THEME */
+  --social: #ff6b6b !important;               /* Social signals - warm coral */
+  --academic: #ffa726 !important;             /* Academic signals - warm amber */
+  --professional: #ff8c42 !important;         /* Professional signals - vibrant orange */
+  --success: #4caf50 !important;              /* Success states - balanced green */
+  --trust: #ff7043 !important;                /* Trust allocation - sunset orange */
 }
 
 /*
@@ -273,19 +273,19 @@ html.theme-mesh-dark .text-red-700 {
   color: var(--destructive) !important;
 }
 
-/* Neon accent overrides */
+/* Warm social accent overrides */
 html.theme-mesh-dark .text-primary {
-  color: var(--neon-cyan) !important;
+  color: var(--neon-coral) !important;
 }
 
 html.theme-mesh-dark .accent {
-  color: var(--neon-green) !important;
+  color: var(--neon-orange) !important;
 }
 
-/* Trust/bonded status with bright lime */
+/* Trust/bonded status with warm sunset orange */
 html.theme-mesh-dark .trust-indicator,
 html.theme-mesh-dark .bonded-status {
-  color: var(--trust) !important; /* Bright lime green */
+  color: var(--trust) !important; /* Sunset orange */
 }
 
 /* Signal category badges with neon colors */
@@ -410,13 +410,16 @@ html.theme-mesh-dark .badge-professional {
 .bg-success { background-color: hsl(var(--success)); }
 .text-trust { color: hsl(var(--trust)); }
 
-/* Neon color utilities */
-.text-neon-green { color: var(--neon-green); }
-.bg-neon-green { background-color: var(--neon-green); }
-.border-neon-green { border-color: var(--neon-green); }
-.text-neon-cyan { color: var(--neon-cyan); }
-.bg-neon-cyan { background-color: var(--neon-cyan); }
-.border-neon-cyan { border-color: var(--neon-cyan); }
+/* Warm social color utilities */
+.text-neon-coral { color: var(--neon-coral); }
+.bg-neon-coral { background-color: var(--neon-coral); }
+.border-neon-coral { border-color: var(--neon-coral); }
+.text-neon-orange { color: var(--neon-orange); }
+.bg-neon-orange { background-color: var(--neon-orange); }
+.border-neon-orange { border-color: var(--neon-orange); }
+.text-neon-peach { color: var(--neon-peach); }
+.bg-neon-peach { background-color: var(--neon-peach); }
+.border-neon-peach { border-color: var(--neon-peach); }
 
 /* High contrast text utilities - WCAG AA compliant */
 .text-high-contrast { color: hsl(var(--foreground)) !important; }
