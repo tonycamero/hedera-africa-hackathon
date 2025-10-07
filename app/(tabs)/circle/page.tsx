@@ -179,7 +179,7 @@ export default function CirclePage() {
             { name: 'Emma Rodriguez', role: 'Director', company: 'Innovation Lab', trust: 78, status: 'pending' }
           ].map((member, index) => (
             <Card key={index} className="backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
-                  onClick={() => handleMemberClick(`tm-${member.name.toLowerCase().replace(' ', '-')}`)}>>
+                  onClick={() => handleMemberClick(`tm-${member.name.toLowerCase().replace(' ', '-')}`)}>
               <CardContent className="p-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full border-2 border-[#00F6FF] bg-[#00F6FF]/20 flex items-center justify-center text-white font-medium text-sm">
