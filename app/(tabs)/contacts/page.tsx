@@ -14,7 +14,8 @@ import {
   UserPlus,
   CheckCircle,
   Network,
-  User
+  User,
+  Users
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -95,40 +96,55 @@ export default function ContactsPage() {
   )
 
   return (
-    <div className="max-w-lg mx-auto px-3 py-4 space-y-4 min-h-screen">
-      {/* Mobile-First Professional Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-xl font-medium text-white tracking-tight">
-          Build Your Network
-        </h1>
-        <p className="text-sm text-white/70 font-light">
-          Trust begins with contact.
-        </p>
-        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 text-sm px-4 py-2 w-full max-w-40 mx-auto">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Contact
-        </Button>
-      </div>
-
-      {/* Compact Graph Preview */}
-      <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4">
-        <div className="flex items-center justify-center h-16">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-[#00F6FF] rounded-full animate-pulse"></div>
-            <div className="w-px h-4 bg-[#00F6FF]/30"></div>
-            <Network className="w-5 h-5 text-[#00F6FF]/60" />
-            <div className="w-px h-4 bg-[#00F6FF]/30"></div>
-            <div className="w-2 h-2 bg-[#00F6FF] rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
-          </div>
+    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+      {/* Professional Header - BASELINE STRUCTURE */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#00F6FF]" />
+            Professional Contacts
+          </h1>
+          <p className="text-sm text-white/60">Build your professional network</p>
         </div>
-        <p className="text-center text-white/50 text-xs mt-2">Network visualization</p>
+        <div className="flex items-center gap-2">
+          <Button size="sm" className="bg-[#00F6FF]/20 hover:bg-[#00F6FF]/30 text-[#00F6FF] border border-[#00F6FF]/30">
+            <Search className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Mobile Search Bar */}
+      {/* Professional Suggestions */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
+          <Network className="w-4 h-4 text-[#00F6FF]" />
+          Recommended Connections
+        </h2>
+        
+        {/* Quick action card */}
+        <div className="backdrop-blur-md bg-white/5 border border-[#00F6FF]/20 hover:border-[#00F6FF]/40 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#00F6FF]/20 flex items-center justify-center">
+                <Network className="w-5 h-5 text-[#00F6FF]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">Expand Network</h3>
+                <p className="text-xs text-white/60">Find colleagues & partners</p>
+              </div>
+            </div>
+          </div>
+          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add Professional Contact
+          </Button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-white/40" />
         <Input
-          placeholder="Search network..."
+          placeholder="Search professional network..."
           className="pl-10 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#00F6FF] focus:ring-1 focus:ring-[#00F6FF]/20 rounded-lg transition-all duration-300 text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}

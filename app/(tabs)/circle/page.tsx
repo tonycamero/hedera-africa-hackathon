@@ -86,7 +86,7 @@ export default function CirclePage() {
   const availableSlots = trustStats.maxSlots - trustStats.allocatedOut
 
   return (
-    <div className="max-w-lg mx-auto px-3 py-4 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
       {/* Circle of Trust Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
