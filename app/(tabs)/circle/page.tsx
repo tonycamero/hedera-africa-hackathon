@@ -540,8 +540,7 @@ export default function NetworkTopologyPage() {
                 </Card>
               )}
             </CardContent>
-          </Card>
-        </div>
+      </Card>
 
       {/* Node Details Panel */}
       <NodeDetailsPanel 
