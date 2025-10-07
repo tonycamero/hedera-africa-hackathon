@@ -1,316 +1,274 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AddContactDialog } from "@/components/AddContactDialog"
-import { ContactProfileSheet } from "@/components/ContactProfileSheet"
-import { signalsStore } from "@/lib/stores/signalsStore"
+import { signalsStore, type BondedContact } from "@/lib/stores/signalsStore"
 import { getBondedContactsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
-import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { seedDemo } from "@/lib/demo/seed"
-// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
+import { 
+  Users, 
+  UserPlus, 
+  Search,
+  MessageCircle,
+  UserCheck,
+  Clock,
+  Sparkles,
+  Plus,
+  TrendingUp
+} from "lucide-react"
+import { toast } from "sonner"
 
-type ContactType = {
-  peerId: string
-  handle: string
-  bonded: boolean
-  lastSeen?: string
-  profileHrl?: string
-  trustWeightOut?: number
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-xs font-medium text-[hsl(var(--secondary-foreground))] mb-2">{title}</div>
-      <div className="space-y-2">{children}</div>
-    </div>
-  )
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="text-xs text-[hsl(var(--muted-foreground))] border border-dashed rounded p-3">
-      {text}
-    </div>
-  )
-}
-
-function Row({ 
-  c, 
-  onOpen, 
-  pending 
-}: { 
-  c: ContactType; 
-  onOpen: () => void; 
-  pending?: "in" | "out" 
-}) {
-  return (
-    <Card className="bg-card border border-[hsl(var(--border))]/80 hover:border-primary/50 cursor-pointer" onClick={onOpen}>
-      <CardContent className="p-3 flex items-center gap-3">
-        <Avatar className="w-10 h-10">
-          <AvatarFallback className="bg-blue-100 text-blue-600">
-            {(c.handle || c.peerId).slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-foreground">
-            {c.handle || c.peerId}
-          </div>
-          <div className="text-xs text-[hsl(var(--muted-foreground))]">
-            {c.lastSeen || "—"}
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {pending === "in" && (
-            <Badge className="bg-amber-400/20 text-amber-300">
-              Request
-            </Badge>
-          )}
-          {pending === "out" && (
-            <Badge className="bg-blue-400/20 text-blue-300">
-              Invited
-            </Badge>
-          )}
-          {c.bonded && (
-            <Badge className="bg-emerald-400/20 text-emerald-300">
-              Bonded
-            </Badge>
-          )}
-          {c.trustWeightOut && c.trustWeightOut > 0 && (
-            <Badge className="bg-emerald-400/20 text-emerald-300">
-              Trust {c.trustWeightOut}
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+// Mock contact suggestions - in real app would come from API/HCS
+const mockSuggestions = [
+  { id: "sarah-kim", name: "Sarah Kim", mutuals: 3, status: "suggested", avatar: "👩‍💼", lastActive: "2h ago" },
+  { id: "mike-rivera", name: "Mike Rivera", mutuals: 2, status: "recent", avatar: "👨‍💻", lastActive: "1h ago" },
+  { id: "emily-patel", name: "Emily Patel", mutuals: 1, status: "suggested", avatar: "👩‍🎨", lastActive: "4h ago" },
+  { id: "david-wong", name: "David Wong", mutuals: 4, status: "trending", avatar: "👨‍🔬", lastActive: "30m ago" },
+  { id: "alex-johnson", name: "Alex Johnson", mutuals: 2, status: "suggested", avatar: "👨‍🎓", lastActive: "3h ago" }
+]
 
 export default function ContactsPage() {
-  const [q, setQ] = useState("")
-  const [activePeer, setActivePeer] = useState<string | null>(null)
+  const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [sessionId, setSessionId] = useState("")
-  const [hcsEvents, setHcsEvents] = useState<any[]>([])
+  const [addingContact, setAddingContact] = useState<string | null>(null)
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false)
 
-  // Load data from SignalsStore (single source of truth)
   useEffect(() => {
-    const loadFromSignalsStore = () => {
-      try {
-        const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        console.log('🚀 [ContactsPage] Loading from SignalsStore (single source)...')
-        console.log('📋 [ContactsPage] Session ID:', currentSessionId)
-        
-        // Get all events from SignalsStore
-        const allStoreEvents = signalsStore.getAll()
-        
-        console.log('📡 [ContactsPage] Loaded', allStoreEvents.length, 'events from SignalsStore')
-        
-        // Set events for contact processing
-        setHcsEvents(allStoreEvents)
-        
-        console.log('✅ [ContactsPage] Data loaded from SignalsStore:', {
-          events: allStoreEvents.length,
-          session: currentSessionId
-        })
-        
-      } catch (error) {
-        console.error('❌ [ContactsPage] SignalsStore load failed:', error)
-        const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        setHcsEvents([])
-      }
+    const loadContacts = () => {
+      const currentSessionId = getSessionId()
+      const effectiveSessionId = currentSessionId || 'tm-alex-chen'
+      setSessionId(effectiveSessionId)
+      
+      const allEvents = signalsStore.getAll()
+      const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
+      setBondedContacts(contacts)
     }
+
+    loadContacts()
     
-    // Initial load
-    loadFromSignalsStore()
-    
-    // Subscribe to SignalsStore changes
-    const unsubscribe = signalsStore.subscribe(() => {
-      console.log('📡 [ContactsPage] SignalsStore updated, refreshing...')
-      loadFromSignalsStore()
-    })
-    
+    // Subscribe to updates
+    const unsubscribe = signalsStore.subscribe(loadContacts)
     return unsubscribe
   }, [])
 
-  const { bonded, incoming, outgoing, all } = useMemo(() => {
-    if (!sessionId) {
-      return { bonded: [], incoming: [], outgoing: [], all: [] }
-    }
-
-    // Use ONLY HCS events for consistency with Circle page - no local signalsStore mixing
-    const hcsBondedContacts = getBondedContactsFromHCS(hcsEvents, sessionId)
+  const handleAddContact = async (suggestion: any) => {
+    setAddingContact(suggestion.id)
     
-    // Convert HCS bonded contacts to ContactType format
-    const contacts: ContactType[] = hcsBondedContacts.map(contact => ({
-      peerId: contact.peerId,
-      handle: contact.handle || contact.peerId,
-      bonded: true, // All from getBondedContactsFromHCS are bonded
-      lastSeen: new Date(contact.bondedAt).toLocaleDateString(),
-      profileHrl: undefined,
-      trustWeightOut: contact.trustLevel
-    }))
-    
-    // Get pending requests from HCS events only (no local mixing)
-    const contactEvents = hcsEvents.filter(e => e.class === 'contact')
-    const pendingContacts: ContactType[] = []
-    
-    const filter = (arr: ContactType[]) =>
-      arr.filter(c => 
-        q ? (
-          c.handle?.toLowerCase().includes(q.toLowerCase()) || 
-          c.peerId.includes(q)
-        ) : true
-      )
-
-    // Process HCS contact events to find pending states
-    const requestMap = new Map<string, { hasRequest: boolean; hasAccept: boolean; isInbound: boolean }>()
-    
-    contactEvents.forEach(event => {
-      const isInbound = event.actors.to === sessionId
-      const isOutbound = event.actors.from === sessionId
-      
-      if (!isInbound && !isOutbound) return
-      
-      const peerId = isInbound ? event.actors.from : event.actors.to
-      if (!peerId) return
-      
-      if (!requestMap.has(peerId)) {
-        requestMap.set(peerId, { hasRequest: false, hasAccept: false, isInbound: false })
-      }
-      
-      const entry = requestMap.get(peerId)!
-      
-      if (event.type === 'CONTACT_REQUEST') {
-        entry.hasRequest = true
-        entry.isInbound = isInbound
-      } else if (event.type === 'CONTACT_ACCEPT') {
-        entry.hasAccept = true
-      }
+    // Simulate adding contact with sparkle animation
+    toast.success(`✨ Adding ${suggestion.name}...`, {
+      description: "Building trust connection",
+      duration: 2000,
     })
     
-    // Find pending contacts (requests without accepts)
-    const incomingRequests: ContactType[] = []
-    const outgoingRequests: ContactType[] = []
-    
-    requestMap.forEach((entry, peerId) => {
-      if (entry.hasRequest && !entry.hasAccept) {
-        const contact: ContactType = {
-          peerId,
-          handle: `User ${peerId.slice(-6)}`,
-          bonded: false,
-          lastSeen: 'Pending',
-          trustWeightOut: 0
-        }
-        
-        if (entry.isInbound) {
-          incomingRequests.push(contact)
-        } else {
-          outgoingRequests.push(contact)
-        }
-      }
-    })
+    setTimeout(() => {
+      setAddingContact(null)
+      toast.success(`🎉 ${suggestion.name} added to your network!`, {
+        description: "You can now allocate trust tokens",
+      })
+      // In real app, would create contact request via signalsStore
+    }, 1500)
+  }
 
-    // Use HCS bonded contacts only (no duplicates)
-    const bondedContacts = filter(contacts)
+  const filteredContacts = bondedContacts.filter(contact =>
+    (contact.handle || contact.peerId)
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  )
 
-    console.log('[ContactsPage] Debug data:')
-    console.log('  - HCS Events:', hcsEvents.length)
-    console.log('  - Contact Events:', contactEvents.length)
-    console.log('  - HCS Bonded Contacts:', hcsBondedContacts)
-    console.log('  - Request Map:', Object.fromEntries(requestMap))
-    console.log('  - Incoming Requests:', incomingRequests)
-    console.log('  - Outgoing Requests:', outgoingRequests)
-    
-    return {
-      bonded: bondedContacts,
-      incoming: filter(incomingRequests),
-      outgoing: filter(outgoingRequests),
-      all: filter([...contacts, ...incomingRequests, ...outgoingRequests])
-    }
-  }, [q, sessionId, hcsEvents])
+  const filteredSuggestions = mockSuggestions.filter(suggestion =>
+    suggestion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    suggestion.status.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const displaySuggestions = showAllSuggestions ? filteredSuggestions : filteredSuggestions.slice(0, 3)
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Input 
-          placeholder="Search contacts" 
-          value={q} 
-          onChange={(e) => setQ(e.target.value)}
-          className="flex-1 bg-background text-foreground placeholder:text-[hsl(var(--muted-foreground))] border-[hsl(var(--border))]"
-        />
+    <div className="container mx-auto p-4 max-w-2xl space-y-6">
+      {/* Header with Quick Stats */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            👥 Contacts
+            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+          </h1>
+          <div className="flex items-center gap-4 text-sm mt-1">
+            <span className="text-muted-foreground">{bondedContacts.length} bonded</span>
+            <span className="text-blue-600">•</span>
+            <span className="text-muted-foreground">{mockSuggestions.length} fresh suggestions</span>
+          </div>
+        </div>
         <AddContactDialog />
       </div>
 
-      <Section title={`Bonded (${bonded.length})`}>
-        {bonded.length === 0 ? (
-          <Empty text="No bonded contacts yet. Add via QR to unlock trust." />
-        ) : (
-          bonded.map(c => (
-            <Row 
-              key={c.peerId} 
-              c={c} 
-              onOpen={() => setActivePeer(c.peerId)} 
-            />
-          ))
-        )}
-      </Section>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search contacts or discover new people..."
+          className="pl-10 bg-muted/30 border-2 focus:border-blue-400 transition-colors"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
-      <Section title={`Incoming requests (${incoming.length})`}>
-        {incoming.length === 0 ? (
-          <Empty text="No incoming requests." />
-        ) : (
-          incoming.map(c => (
-            <Row 
-              key={c.peerId} 
-              c={c} 
-              onOpen={() => setActivePeer(c.peerId)} 
-              pending="in" 
-            />
-          ))
-        )}
-      </Section>
+      {/* Fresh Suggestions Section */}
+      {(!searchTerm || filteredSuggestions.length > 0) && (
+        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/30 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue-600" />
+                Fresh Suggestions
+              </span>
+              {!showAllSuggestions && filteredSuggestions.length > 3 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllSuggestions(true)}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  View All ({filteredSuggestions.length})
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {displaySuggestions.map((suggestion) => (
+              <div key={suggestion.id} className="flex items-center justify-between p-4 bg-white/70 rounded-xl border border-blue-100 hover:border-blue-200 transition-all hover:shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl animate-bounce">{suggestion.avatar}</div>
+                  <div>
+                    <div className="font-medium text-gray-900">{suggestion.name}</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      {suggestion.mutuals} mutual contacts
+                      {suggestion.status === "recent" && (
+                        <>
+                          <span className="mx-1">•</span>
+                          <Clock className="w-3 h-3" />
+                          <span>Active {suggestion.lastActive}</span>
+                        </>
+                      )}
+                      {suggestion.status === "trending" && (
+                        <>
+                          <span className="mx-1">•</span>
+                          <TrendingUp className="w-3 h-3 text-orange-500" />
+                          <span className="text-orange-600">Trending</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <Button
+                  size="sm"
+                  onClick={() => handleAddContact(suggestion)}
+                  disabled={addingContact === suggestion.id}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md"
+                >
+                  {addingContact === suggestion.id ? (
+                    <>
+                      <Clock className="w-4 h-4 animate-spin mr-1" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </>
+                  )}
+                </Button>
+              </div>
+            ))}
+            
+            {showAllSuggestions && filteredSuggestions.length > 3 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAllSuggestions(false)}
+                className="w-full text-muted-foreground"
+              >
+                Show Less
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-      <Section title={`Outgoing invites (${outgoing.length})`}>
-        {outgoing.length === 0 ? (
-          <Empty text="No outgoing invites." />
-        ) : (
-          outgoing.map(c => (
-            <Row 
-              key={c.peerId} 
-              c={c} 
-              onOpen={() => setActivePeer(c.peerId)} 
-              pending="out" 
-            />
-          ))
-        )}
-      </Section>
-
-      <Section title={`All contacts (${all.length})`}>
-        {all.length === 0 ? (
-          <Empty text="No contacts yet." />
-        ) : (
-          all.map(c => (
-            <Row 
-              key={c.peerId} 
-              c={c} 
-              onOpen={() => setActivePeer(c.peerId)} 
-            />
-          ))
-        )}
-      </Section>
-
-      <ContactProfileSheet
-        peerId={activePeer}
-        onClose={() => setActivePeer(null)}
-      />
+      {/* Your Contacts Section */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-green-600" />
+              Your Network
+            </span>
+            <Badge variant="secondary" className="bg-green-100 text-green-700">
+              {bondedContacts.length} bonded
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {filteredContacts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm ? (
+                <>
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No contacts found for "{searchTerm}"</p>
+                  <p className="text-xs mt-1">Try a different search term</p>
+                </>
+              ) : (
+                <>
+                  <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-lg font-medium mb-1">Build your network!</p>
+                  <p className="text-sm">Add contacts above to start building trust connections</p>
+                  <div className="mt-4">
+                    <AddContactDialog />
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            filteredContacts.map((contact) => (
+              <div key={contact.peerId} className="flex items-center justify-between p-4 bg-green-50/30 rounded-xl border border-green-100 hover:border-green-200 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                    <UserCheck className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {contact.handle || `User ${contact.peerId.slice(-6)}`}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Bonded {new Date(contact.bondedAt).toLocaleDateString()}
+                      {contact.trustLevel && (
+                        <>
+                          <span className="mx-1">•</span>
+                          <span className="text-green-600 font-medium">Trust Level {contact.trustLevel}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="bg-green-100 text-green-700 border-green-200">
+                    ✓ Trusted
+                  </Badge>
+                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-gray-900">
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

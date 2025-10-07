@@ -4,377 +4,376 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { signalsStore, type SignalEvent, type SignalClass } from "@/lib/stores/signalsStore"
-import { SignalDetailModal } from "@/components/SignalDetailModal"
-import { hcsFeedService } from "@/lib/services/HCSFeedService"
-import { hcsRecognitionService, type HCSRecognitionDefinition } from "@/lib/services/HCSRecognitionService"
+import { Progress } from "@/components/ui/progress"
+import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
+import { getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
+import { getSessionId } from "@/lib/session"
 import { 
   Activity, 
   Users, 
   Heart, 
-  Award,
+  UserPlus, 
   AlertCircle,
   Check,
   Clock,
-  Copy,
-  Filter
+  Coins,
+  Zap,
+  Trophy,
+  Award,
+  Star,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Calendar,
+  Gift
 } from "lucide-react"
 import { toast } from "sonner"
-import { getSessionId } from "@/lib/session"
-import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { loadSignals as loadSignalsCache, saveSignals as saveSignalsCache, loadDerivedState, saveDerivedState } from "@/lib/cache/sessionCache"
-import { computeDerivedFromSignals } from "@/lib/ux/derive"
-// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
 
-type FilterChip = {
-  label: string
-  value: SignalClass | "all"
-  icon: React.ReactNode
-}
-
-const filterChips: FilterChip[] = [
-  { label: "All", value: "all", icon: <Activity className="w-3 h-3" /> },
-  { label: "Contact", value: "contact", icon: <Users className="w-3 h-3" /> },
-  { label: "Trust", value: "trust", icon: <Heart className="w-3 h-3" /> },
-  { label: "Recognition", value: "recognition", icon: <Award className="w-3 h-3" /> }
+// Mock achievement data - in real app would come from recognition system
+const mockAchievements = [
+  { 
+    id: "eco-helper", 
+    name: "Eco Helper", 
+    emoji: "🌱", 
+    rarity: "rare", 
+    xp: 20, 
+    description: "Helped organize community cleanup",
+    earnedAt: Date.now() - 86400000,
+    category: "community"
+  },
+  { 
+    id: "trust-builder", 
+    name: "Trust Builder", 
+    emoji: "🤝", 
+    rarity: "common", 
+    xp: 10, 
+    description: "Connected 5+ people in your network",
+    earnedAt: Date.now() - 172800000,
+    category: "social"
+  },
+  { 
+    id: "early-adopter", 
+    name: "Early Adopter", 
+    emoji: "🚀", 
+    rarity: "epic", 
+    xp: 50, 
+    description: "One of the first 100 TrustMesh users",
+    earnedAt: Date.now() - 259200000,
+    category: "special"
+  }
 ]
 
-function SignalStatusBadge({ status }: { status: string }) {
-  if (status === "onchain") {
-    return (
-      <Badge variant="secondary" className="text-xs bg-emerald-400/20 text-emerald-300">
-        <Check className="w-3 h-3 mr-1" />
-        On-chain ✓
-      </Badge>
-    )
+const mockChallenges = [
+  {
+    id: "weekly-connect",
+    name: "Weekly Connector",
+    emoji: "🔗",
+    progress: 3,
+    target: 5,
+    reward: 15,
+    description: "Connect with 5 new people this week",
+    timeLeft: "4 days"
+  },
+  {
+    id: "trust-circle",
+    name: "Circle Master",
+    emoji: "🔄",
+    progress: 6,
+    target: 9,
+    reward: 25,
+    description: "Fill your complete Circle of Trust",
+    timeLeft: "No limit"
   }
-  
-  if (status === "error") {
-    return (
-      <Badge variant="destructive" className="text-xs">
-        <AlertCircle className="w-3 h-3 mr-1" />
-        Error
-      </Badge>
-    )
-  }
-  
-  return (
-    <Badge variant="outline" className="text-xs text-[hsl(var(--muted-foreground))]">
-      <Clock className="w-3 h-3 mr-1" />
-      Local
-    </Badge>
-  )
-}
+]
 
-
-// Signal type color mapping with better contrast for dark theme
-const getSignalTypeStyles = (signalClass: SignalClass) => {
+const getRarityStyles = (rarity: string) => {
   const styles = {
-    contact: { 
-      border: "border-l-blue-500",
-      badge: "bg-blue-500/20 text-blue-600 dark:text-blue-400"
-    },
-    trust: { 
-      border: "border-l-green-500",
-      badge: "bg-green-500/20 text-green-600 dark:text-green-400"
-    },
-    recognition: { 
-      border: "border-l-purple-500",
-      badge: "bg-purple-500/20 text-purple-600 dark:text-purple-400"
-    },
-    system: { 
-      border: "border-l-gray-500",
-      badge: "bg-gray-500/20 text-gray-600 dark:text-gray-400"
-    }
+    common: { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-700" },
+    rare: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-700" },
+    epic: { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-700" },
+    legendary: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-700" }
   }
-  return styles[signalClass] || styles.system
+  return styles[rarity as keyof typeof styles] || styles.common
 }
 
-function SignalRow({ signal, onClick }: { signal: SignalEvent; onClick?: () => void }) {
-  const getTitle = () => {
-    if (signal.type === "CONTACT_REQUEST" || signal.type === "contact_request") {
-      return signal.direction === "outbound" ? "Contact request sent" : "Contact request received"
-    }
-    if (signal.type === "CONTACT_ACCEPT" || signal.type === "contact_accept") {
-      return signal.direction === "outbound" ? "Contact accepted" : "Contact bonded"
-    }
-    if (signal.type === "TRUST_ALLOCATE" || signal.type === "trust_allocate") {
-      return `Trust allocated (weight ${signal.payload?.weight || signal.metadata?.weight || 1})`
-    }
-    if (signal.type === "TRUST_REVOKE" || signal.type === "trust_revoke") {
-      return "Trust revoked"
-    }
-    if (signal.type === "RECOGNITION_MINT" || signal.type === "recognition_mint") {
-      return signal.payload?.name || "Recognition earned"
-    }
-    return signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
-  }
-
-  const getSubtext = () => {
-    const from = signal.actor || signal.actors?.from || 'unknown'
-    const to = signal.target || signal.actors?.to || 'unknown'
-    
-    if (signal.direction === "outbound") {
-      return `${from.slice(-8)} → ${to.slice(-8)}`
-    } else {
-      return `${from.slice(-8)} → you`
-    }
-  }
-
-  const formatTime = (timestamp: number) => {
-    if (!timestamp || timestamp === 0) return "—"
-    
-    try {
-      const date = new Date(timestamp)
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        return "—"
-      }
-      
-      const now = new Date()
-      const diffMs = now.getTime() - date.getTime()
-      const diffMins = Math.floor(diffMs / (1000 * 60))
-      const diffHours = Math.floor(diffMins / 60)
-      const diffDays = Math.floor(diffHours / 24)
-      
-      if (diffMins < 1) return "now"
-      if (diffMins < 60) return `${diffMins}m ago`
-      if (diffHours < 24) return `${diffHours}h ago`
-      if (diffDays < 7) return `${diffDays}d ago`
-      return date.toLocaleDateString()
-    } catch {
-      return "—"
-    }
-  }
-
-  const getStatusBadge = () => {
-    if (signal.status === "onchain") {
-      return <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">✓</Badge>
-    }
-    if (signal.status === "error") {
-      return <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">⚠</Badge>
-    }
-    return <Badge className="bg-gray-500/20 text-gray-600 dark:text-gray-400">⏳</Badge>
-  }
-
-  const getIcon = () => {
-    switch (signal.class) {
-      case 'contact': return <Users className="w-4 h-4" />
-      case 'trust': return <Heart className="w-4 h-4" />
-      case 'recognition': return <Award className="w-4 h-4" />
-      default: return <Activity className="w-4 h-4" />
-    }
-  }
-
-  const styles = getSignalTypeStyles(signal.class)
-  
-  return (
-    <Card className={`bg-card border ${styles.border} border-l-4 hover:border-primary/50 cursor-pointer transition-colors`} onClick={onClick}>
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className={`p-2 rounded-lg ${styles.badge}`}>
-          {getIcon()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-foreground truncate">
-            {getTitle()}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {getSubtext()} • {formatTime(signal.ts)}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {getStatusBadge()}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-export default function SignalsPage() {
+export default function SignalsPageV1() {
   const [signals, setSignals] = useState<SignalEvent[]>([])
-  const [activeFilter, setActiveFilter] = useState<SignalClass | "all">("all")
   const [sessionId, setSessionId] = useState("")
-  const [hcsTopicIds, setHcsTopicIds] = useState<ReturnType<typeof hcsFeedService.getTopicIds> | null>(null)
-  const [selectedRecognition, setSelectedRecognition] = useState<HCSRecognitionDefinition | null>(null)
-  const [isRecognitionModalOpen, setIsRecognitionModalOpen] = useState(false)
-  
-  // Direct HCS data loading - bypass broken bootstrap
+  const [selectedTab, setSelectedTab] = useState<"earned" | "challenges">("earned")
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const loadDirectFromHCS = async () => {
+    const loadSignals = () => {
       try {
-        console.log('🚀 [SignalsPage] Loading directly from HCS...')
-        
         const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        console.log('📋 [SignalsPage] Session ID:', currentSessionId)
+        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
+        setSessionId(effectiveSessionId)
         
-        // Mark signals tab as seen
-        signalsStore.markSeen("signals")
+        const allEvents = signalsStore.getAll()
+        const recentSignals = getRecentSignalsFromHCS(allEvents, effectiveSessionId, 50)
         
-        // Initialize HCS service and get all events
-        await hcsFeedService.initialize()
-        const events = await hcsFeedService.getAllFeedEvents()
+        setSignals(recentSignals)
+        setLoading(false)
         
-        console.log('📡 [SignalsPage] Loaded', events.length, 'events from HCS')
-        
-        if (events.length > 0) {
-          // Filter events based on scope
-          const flags = getRuntimeFlags()
-          let filteredSignals = events
-          
-          if (flags.scope === 'my') {
-            filteredSignals = events.filter(signal => 
-              signal.actors.from === currentSessionId || signal.actors.to === currentSessionId
-            )
-          }
-          
-          setSignals(filteredSignals.sort((a, b) => b.ts - a.ts))
-          
-          console.log('✅ [SignalsPage] Data loaded:', {
-            total: events.length,
-            filtered: filteredSignals.length,
-            session: currentSessionId
-          })
-        } else {
-          console.log('⚠️ [SignalsPage] No events found')
-          setSignals([])
-        }
-        
-        // Update HCS topic IDs
-        const topicIds = hcsFeedService.getTopicIds()
-        setHcsTopicIds(topicIds)
-        
+        console.log('✅ [SignalsPage] Loaded signals:', recentSignals.length)
       } catch (error) {
-        console.error('❌ [SignalsPage] Direct HCS load failed:', error)
-        const currentSessionId = getSessionId()
-        setSessionId(currentSessionId)
-        setSignals([])
-        signalsStore.markSeen("signals")
+        console.error('❌ [SignalsPage] Failed to load signals:', error)
+        setLoading(false)
       }
     }
+
+    loadSignals()
     
-    loadDirectFromHCS()
+    // Subscribe to updates
+    const unsubscribe = signalsStore.subscribe(() => {
+      console.log('📡 [SignalsPage] SignalsStore updated, refreshing...')
+      loadSignals()
+    })
+    
+    return unsubscribe
   }, [])
 
-  // Filter signals based on active filter
-  const filteredSignals = signals.filter(signal => 
-    activeFilter === "all" || signal.class === activeFilter
-  )
-
-
-  const handleRecognitionSignalClick = async (signal: SignalEvent) => {
-    if (signal.class !== "recognition") return
-    
-    console.log("[SignalsPage] Recognition signal clicked:", signal)
-    
-    // Try to find the recognition definition if we have a recognition instance ID
-    const recognitionInstanceId = signal.payload?.recognitionInstanceId
-    if (recognitionInstanceId) {
-      try {
-        const instance = await hcsRecognitionService.getRecognitionInstance(recognitionInstanceId)
-        if (instance) {
-          const definition = await hcsRecognitionService.getRecognitionDefinition(instance.definitionId)
-          if (definition) {
-            setSelectedRecognition(definition)
-            setIsRecognitionModalOpen(true)
-            return
-          }
-        }
-      } catch (error) {
-        console.error("[SignalsPage] Failed to load recognition data:", error)
-      }
-    }
-    
-    // Fallback: try to find definition by name
-    const definitions = await hcsRecognitionService.getAllRecognitionDefinitions()
-    const matchingDefinition = definitions.find(def => 
-      def.name === signal.payload?.name || 
-      def.description === signal.payload?.description
-    )
-    
-    if (matchingDefinition) {
-      setSelectedRecognition(matchingDefinition)
-      setIsRecognitionModalOpen(true)
-    } else {
-      toast.info("Recognition signal details not available")
-    }
+  const handleClaimReward = (challengeId: string) => {
+    toast.success("🎉 Challenge completed!", {
+      description: "Reward added to your profile",
+      duration: 3000,
+    })
   }
 
+  const totalXP = mockAchievements.reduce((sum, achievement) => sum + achievement.xp, 0)
+
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+    <div className="container mx-auto p-4 max-w-2xl space-y-6">
+      {/* Header with XP Summary */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Activity Feed</h1>
-          <p className="text-xs text-muted-foreground">
-            Network activity • {filteredSignals.length} signals
-          </p>
-        </div>
-      </div>
-
-      {/* Compact filter pills */}
-      <div className="flex justify-center">
-        <div className="flex gap-1 p-1 bg-[hsl(var(--muted))]/30 rounded-full">
-          {filterChips.map((chip) => (
-            <Button
-              key={chip.value}
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveFilter(chip.value)}
-              className={`h-8 w-8 rounded-full p-0 transition-all ${
-                activeFilter === chip.value 
-                  ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg" 
-                  : "hover:bg-[hsl(var(--muted))]"
-              }`}
-              title={chip.label}
-            >
-              {chip.icon}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Signals list */}
-      <div>
-        {filteredSignals.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Activity className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-medium mb-2">No signals yet</h3>
-              <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">
-                {activeFilter === "all" 
-                  ? "Activity will appear here when you interact with contacts or allocate trust"
-                  : `No ${activeFilter} signals found`}
-              </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                <h4 className="font-medium text-blue-900 mb-2">💡 Demo the Recognition System</h4>
-                <p className="text-blue-700 text-sm mb-3">
-                  Click the <strong>"Seed"</strong> button in the header to load demo data and see recognition signals in action!
-                </p>
-                <p className="text-blue-600 text-xs">
-                  This will create real HCS topics on Hedera testnet with various recognition signals like Chad, Skibidi, Prof Fav, and more.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {filteredSignals.map((signal) => (
-              <SignalRow 
-                key={signal.id} 
-                signal={signal}
-                onClick={() => handleRecognitionSignalClick(signal)}
-              />
-            ))}
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            🏆 Signals & Achievements
+            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+          </h1>
+          <div className="flex items-center gap-4 text-sm mt-1">
+            <span className="text-muted-foreground">{mockAchievements.length} earned</span>
+            <span className="text-yellow-600">•</span>
+            <span className="flex items-center gap-1">
+              <Zap className="w-3 h-3 text-yellow-600" />
+              <span className="text-muted-foreground">{totalXP} XP total</span>
+            </span>
           </div>
-        )}
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-yellow-600">{totalXP}</div>
+          <div className="text-xs text-muted-foreground">Experience Points</div>
+        </div>
       </div>
-      
-      {/* Recognition Signal Detail Modal */}
-      <SignalDetailModal
-        isOpen={isRecognitionModalOpen}
-        onClose={() => setIsRecognitionModalOpen(false)}
-        signal={selectedRecognition}
-      />
+
+      {/* Tab Navigation */}
+      <div className="flex gap-2 p-1 bg-muted rounded-lg">
+        <Button
+          variant={selectedTab === "earned" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setSelectedTab("earned")}
+          className="flex-1"
+        >
+          <Trophy className="w-4 h-4 mr-1" />
+          Earned ({mockAchievements.length})
+        </Button>
+        <Button
+          variant={selectedTab === "challenges" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setSelectedTab("challenges")}
+          className="flex-1"
+        >
+          <Target className="w-4 h-4 mr-1" />
+          Challenges ({mockChallenges.length})
+        </Button>
+      </div>
+
+      {/* Earned Achievements Gallery */}
+      {selectedTab === "earned" && (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Award className="w-5 h-5 text-yellow-600" />
+              Achievement Gallery
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {mockAchievements.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Trophy className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-lg font-medium mb-1">No achievements yet!</p>
+                <p className="text-sm">Complete challenges to earn your first signals</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {mockAchievements.map((achievement) => {
+                  const rarityStyles = getRarityStyles(achievement.rarity)
+                  return (
+                    <div
+                      key={achievement.id}
+                      className={`p-4 rounded-xl border-2 ${rarityStyles.border} ${rarityStyles.bg} hover:shadow-md transition-all`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="text-3xl animate-bounce">
+                          {achievement.emoji}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-medium text-gray-900">
+                              {achievement.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-yellow-600" />
+                              <span className="text-sm font-medium">+{achievement.xp}</span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {achievement.description}
+                          </p>
+                          <div className="flex items-center justify-between text-xs">
+                            <Badge
+                              variant="secondary"
+                              className={`${rarityStyles.text} capitalize`}
+                            >
+                              {achievement.rarity}
+                            </Badge>
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(achievement.earnedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active Challenges */}
+      {selectedTab === "challenges" && (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Target className="w-5 h-5 text-blue-600" />
+              Active Challenges
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {mockChallenges.map((challenge) => {
+              const progressPercent = (challenge.progress / challenge.target) * 100
+              const isCompleted = challenge.progress >= challenge.target
+              
+              return (
+                <div
+                  key={challenge.id}
+                  className="p-4 border rounded-xl hover:border-blue-200 transition-colors"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="text-2xl">{challenge.emoji}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium">{challenge.name}</h3>
+                        <div className="flex items-center gap-1">
+                          <Gift className="w-3 h-3 text-green-600" />
+                          <span className="text-sm font-medium">+{challenge.reward} XP</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {challenge.description}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{challenge.progress}/{challenge.target} completed</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {challenge.timeLeft}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Progress value={progressPercent} className="h-2" />
+                    {isCompleted && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleClaimReward(challenge.id)}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        <Gift className="w-4 h-4 mr-1" />
+                        Claim Reward
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            
+            <div className="text-center pt-4 border-t">
+              <Button variant="outline" size="sm">
+                <TrendingUp className="w-4 h-4 mr-1" />
+                View More Challenges
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Activity Feed */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="w-5 h-5 text-gray-600" />
+            Recent Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {signals.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No recent activity</p>
+              <p className="text-xs mt-1">Activity will appear here when you interact with others</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {signals.slice(0, 5).map((signal) => (
+                <div
+                  key={signal.id}
+                  className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    {signal.class === 'contact' && <Users className="w-4 h-4 text-blue-600" />}
+                    {signal.class === 'trust' && <Heart className="w-4 h-4 text-red-600" />}
+                    {signal.class === 'recognition' && <Award className="w-4 h-4 text-purple-600" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">
+                      {signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(signal.ts).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <Badge variant="outline" size="sm">
+                    {signal.status === 'onchain' ? '✓' : '⏳'}
+                  </Badge>
+                </div>
+              ))}
+              
+              {signals.length > 5 && (
+                <div className="text-center pt-2">
+                  <Button variant="ghost" size="sm">
+                    View All Activity ({signals.length})
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
