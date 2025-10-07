@@ -99,7 +99,7 @@ const getRarityStyles = (rarity: string) => {
 export default function SignalsPageV1() {
   const [signals, setSignals] = useState<SignalEvent[]>([])
   const [sessionId, setSessionId] = useState("")
-  const [selectedTab, setSelectedTab] = useState<"earned" | "challenges">("earned")
+  const [selectedTab, setSelectedTab] = useState<"signals" | "achievements">("signals")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -143,237 +143,140 @@ export default function SignalsPageV1() {
   const totalXP = mockAchievements.reduce((sum, achievement) => sum + achievement.xp, 0)
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl space-y-6">
-      {/* Header with XP Summary */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            🏆 Signals & Achievements
-            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
-          </h1>
-          <div className="flex items-center gap-4 text-sm mt-1">
-            <span className="text-muted-foreground">{mockAchievements.length} earned</span>
-            <span className="text-yellow-600">•</span>
-            <span className="flex items-center gap-1">
-              <Zap className="w-3 h-3 text-yellow-600" />
-              <span className="text-muted-foreground">{totalXP} XP total</span>
-            </span>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-yellow-600">{totalXP}</div>
-          <div className="text-xs text-muted-foreground">Experience Points</div>
+    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      {/* Professional Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-medium text-white mb-2 tracking-tight">
+          Signals & Achievements
+        </h1>
+      </div>
+
+      {/* Professional Tab Navigation */}
+      <div className="flex justify-center">
+        <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedTab("signals")}
+            className={`px-8 py-3 rounded-lg transition-all duration-300 ${
+              selectedTab === "signals" 
+                ? "bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30" 
+                : "text-white/60 hover:text-white/90"
+            }`}
+          >
+            Signals
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedTab("achievements")}
+            className={`px-8 py-3 rounded-lg transition-all duration-300 ${
+              selectedTab === "achievements" 
+                ? "bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30" 
+                : "text-white/60 hover:text-white/90"
+            }`}
+          >
+            Achievements
+          </Button>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-2 p-1 bg-muted rounded-lg">
-        <Button
-          variant={selectedTab === "earned" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setSelectedTab("earned")}
-          className="flex-1"
-        >
-          <Trophy className="w-4 h-4 mr-1" />
-          Earned ({mockAchievements.length})
-        </Button>
-        <Button
-          variant={selectedTab === "challenges" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setSelectedTab("challenges")}
-          className="flex-1"
-        >
-          <Target className="w-4 h-4 mr-1" />
-          Challenges ({mockChallenges.length})
-        </Button>
-      </div>
-
-      {/* Earned Achievements Gallery */}
-      {selectedTab === "earned" && (
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Award className="w-5 h-5 text-yellow-600" />
-              Achievement Gallery
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {mockAchievements.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Trophy className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="text-lg font-medium mb-1">No achievements yet!</p>
-                <p className="text-sm">Complete challenges to earn your first signals</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {mockAchievements.map((achievement) => {
-                  const rarityStyles = getRarityStyles(achievement.rarity)
-                  return (
-                    <div
-                      key={achievement.id}
-                      className={`p-4 rounded-xl border-2 ${rarityStyles.border} ${rarityStyles.bg} hover:shadow-md transition-all`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="text-3xl animate-bounce">
-                          {achievement.emoji}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-medium text-gray-900">
-                              {achievement.name}
-                            </h3>
-                            <div className="flex items-center gap-1">
-                              <Zap className="w-3 h-3 text-yellow-600" />
-                              <span className="text-sm font-medium">+{achievement.xp}</span>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {achievement.description}
-                          </p>
-                          <div className="flex items-center justify-between text-xs">
-                            <Badge
-                              variant="secondary"
-                              className={`${rarityStyles.text} capitalize`}
-                            >
-                              {achievement.rarity}
-                            </Badge>
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(achievement.earnedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Active Challenges */}
-      {selectedTab === "challenges" && (
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-600" />
-              Active Challenges
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {mockChallenges.map((challenge) => {
-              const progressPercent = (challenge.progress / challenge.target) * 100
-              const isCompleted = challenge.progress >= challenge.target
+      {/* Signals Tab - Vertical Feed */}
+      {selectedTab === "signals" && (
+        <div className="space-y-4">
+          {signals.length === 0 ? (
+            <div className="text-center py-12">
+              <Activity className="w-12 h-12 mx-auto mb-4 text-white/30" />
+              <p className="text-white/60">No signals yet</p>
+              <p className="text-white/40 text-sm">Activity will appear here when you connect with others</p>
+            </div>
+          ) : (
+            signals.slice(0, 10).map((signal) => {
+              const getSignalIcon = () => {
+                if (signal.class === 'contact') return <Users className="w-4 h-4" />
+                if (signal.class === 'trust') return <Heart className="w-4 h-4" />
+                return <Activity className="w-4 h-4" />
+              }
+              
+              const getSignalColor = () => {
+                if (signal.class === 'contact') return 'text-blue-400'
+                if (signal.class === 'trust') return 'text-green-400'
+                return 'text-purple-400'
+              }
               
               return (
-                <div
-                  key={challenge.id}
-                  className="p-4 border rounded-xl hover:border-blue-200 transition-colors"
-                >
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="text-2xl">{challenge.emoji}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium">{challenge.name}</h3>
-                        <div className="flex items-center gap-1">
-                          <Gift className="w-3 h-3 text-green-600" />
-                          <span className="text-sm font-medium">+{challenge.reward} XP</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {challenge.description}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{challenge.progress}/{challenge.target} completed</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {challenge.timeLeft}
-                        </span>
-                      </div>
-                    </div>
+                <div key={signal.id} className="flex items-start gap-4 py-4 px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 transition-all duration-300">
+                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${getSignalColor()} border-current bg-current/20`}>
+                    {getSignalIcon()}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Progress value={progressPercent} className="h-2" />
-                    {isCompleted && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleClaimReward(challenge.id)}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        <Gift className="w-4 h-4 mr-1" />
-                        Claim Reward
-                      </Button>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-white font-medium">
+                        {signal.type === 'CONTACT_REQUEST' && 'Contact request sent'}
+                        {signal.type === 'CONTACT_ACCEPT' && 'Contact bonded'}
+                        {signal.type === 'TRUST_ALLOCATE' && 'Trust allocated'}
+                        {!['CONTACT_REQUEST', 'CONTACT_ACCEPT', 'TRUST_ALLOCATE'].includes(signal.type) && 
+                          signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
+                        }
+                      </p>
+                      <span className="text-xs text-white/50">
+                        {new Date(signal.ts).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-white/60">
+                      {signal.class === 'contact' && 'Academic Signal'}
+                      {signal.class === 'trust' && 'Social Signal'}
+                      {signal.class === 'recognition' && 'Professional Signal'}
+                      {!['contact', 'trust', 'recognition'].includes(signal.class || '') && 'Network Signal'}
+                    </p>
                   </div>
                 </div>
               )
-            })}
-            
-            <div className="text-center pt-4 border-t">
-              <Button variant="outline" size="sm">
-                <TrendingUp className="w-4 h-4 mr-1" />
-                View More Challenges
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            })
+          )}
+        </div>
       )}
 
-      {/* Recent Activity Feed */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Activity className="w-5 h-5 text-gray-600" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {signals.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No recent activity</p>
-              <p className="text-xs mt-1">Activity will appear here when you interact with others</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {signals.slice(0, 5).map((signal) => (
-                <div
-                  key={signal.id}
-                  className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
-                >
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    {signal.class === 'contact' && <Users className="w-4 h-4 text-blue-600" />}
-                    {signal.class === 'trust' && <Heart className="w-4 h-4 text-red-600" />}
-                    {signal.class === 'recognition' && <Award className="w-4 h-4 text-purple-600" />}
+      {/* Achievements Tab - Collections */}
+      {selectedTab === "achievements" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {mockAchievements.map((achievement) => {
+            const getCategoryColor = () => {
+              if (achievement.category === 'community') return 'border-green-400/30 bg-green-400/10'
+              if (achievement.category === 'social') return 'border-blue-400/30 bg-blue-400/10'
+              if (achievement.category === 'special') return 'border-purple-400/30 bg-purple-400/10'
+              return 'border-white/20 bg-white/5'
+            }
+            
+            return (
+              <div
+                key={achievement.id}
+                className={`backdrop-blur-sm border rounded-xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer ${getCategoryColor()}`}
+              >
+                <div className="text-center">
+                  <div className="text-4xl mb-3">{achievement.emoji}</div>
+                  <h3 className="font-medium text-white mb-2">{achievement.name}</h3>
+                  <p className="text-sm text-white/60 mb-4">{achievement.description}</p>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={`px-2 py-1 rounded-full border ${
+                      achievement.category === 'community' ? 'border-green-400/50 text-green-400' :
+                      achievement.category === 'social' ? 'border-blue-400/50 text-blue-400' :
+                      achievement.category === 'special' ? 'border-purple-400/50 text-purple-400' :
+                      'border-white/30 text-white/60'
+                    } capitalize`}>
+                      {achievement.category}
+                    </span>
+                    <span className="text-white/50">
+                      {new Date(achievement.earnedAt).toLocaleDateString()}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">
-                      {signal.type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(signal.ts).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <Badge variant="outline" size="sm">
-                    {signal.status === 'onchain' ? '✓' : '⏳'}
-                  </Badge>
                 </div>
-              ))}
-              
-              {signals.length > 5 && (
-                <div className="text-center pt-2">
-                  <Button variant="ghost" size="sm">
-                    View All Activity ({signals.length})
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

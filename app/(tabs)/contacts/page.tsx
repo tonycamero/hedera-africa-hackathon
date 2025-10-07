@@ -2,33 +2,27 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { AddContactDialog } from "@/components/AddContactDialog"
 import { signalsStore, type BondedContact } from "@/lib/stores/signalsStore"
 import { getBondedContactsFromHCS } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { 
-  Users, 
-  UserPlus, 
   Search,
   MessageCircle,
-  UserCheck,
+  UserPlus,
+  CheckCircle,
   Clock,
-  Sparkles,
-  Plus,
-  TrendingUp
+  Network,
+  User
 } from "lucide-react"
 import { toast } from "sonner"
 
-// Mock contact suggestions - in real app would come from API/HCS
+// Mock professional suggestions
 const mockSuggestions = [
-  { id: "sarah-kim", name: "Sarah Kim", mutuals: 3, status: "suggested", avatar: "👩‍💼", lastActive: "2h ago" },
-  { id: "mike-rivera", name: "Mike Rivera", mutuals: 2, status: "recent", avatar: "👨‍💻", lastActive: "1h ago" },
-  { id: "emily-patel", name: "Emily Patel", mutuals: 1, status: "suggested", avatar: "👩‍🎨", lastActive: "4h ago" },
-  { id: "david-wong", name: "David Wong", mutuals: 4, status: "trending", avatar: "👨‍🔬", lastActive: "30m ago" },
-  { id: "alex-johnson", name: "Alex Johnson", mutuals: 2, status: "suggested", avatar: "👨‍🎓", lastActive: "3h ago" }
+  { id: "sarah-kim", name: "Sarah Kim", status: "bonded", role: "Engineering Lead", company: "TechCorp", mutuals: 3 },
+  { id: "mike-rivera", name: "Mike Rivera", status: "pending", role: "Product Manager", company: "Startup.io", mutuals: 2 },
+  { id: "emily-patel", name: "Emily Patel", status: "bonded", role: "Strategy Director", company: "Consultancy", mutuals: 1 }
 ]
 
 export default function ContactsPage() {
@@ -81,194 +75,115 @@ export default function ContactsPage() {
   )
 
   const filteredSuggestions = mockSuggestions.filter(suggestion =>
-    suggestion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    suggestion.status.toLowerCase().includes(searchTerm.toLowerCase())
+    suggestion.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const displaySuggestions = showAllSuggestions ? filteredSuggestions : filteredSuggestions.slice(0, 3)
-
   return (
-    <div className="container mx-auto p-4 max-w-2xl space-y-6">
-      {/* Header with Quick Stats */}
+    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      {/* Professional Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            👥 Contacts
-            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+          <h1 className="text-3xl font-medium text-white mb-2 tracking-tight">
+            Build Your Network
           </h1>
-          <div className="flex items-center gap-4 text-sm mt-1">
-            <span className="text-muted-foreground">{bondedContacts.length} bonded</span>
-            <span className="text-blue-600">•</span>
-            <span className="text-muted-foreground">{mockSuggestions.length} fresh suggestions</span>
+          <p className="text-white/70 font-light">
+            Trust begins with contact.
+          </p>
+        </div>
+        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Add Contact
+        </Button>
+      </div>
+
+      {/* Graph Preview Placeholder */}
+      <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-8">
+        <div className="flex items-center justify-center h-32">
+          <div className="flex items-center gap-4">
+            <div className="w-3 h-3 bg-[#00F6FF] rounded-full animate-pulse"></div>
+            <div className="w-px h-8 bg-[#00F6FF]/30"></div>
+            <Network className="w-8 h-8 text-[#00F6FF]/60" />
+            <div className="w-px h-8 bg-[#00F6FF]/30"></div>
+            <div className="w-3 h-3 bg-[#00F6FF] rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
           </div>
         </div>
-        <AddContactDialog />
+        <p className="text-center text-white/50 text-sm mt-4">Interactive network visualization</p>
       </div>
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-4 top-4 h-5 w-5 text-white/40" />
         <Input
-          placeholder="Search contacts or discover new people..."
-          className="pl-10 bg-muted/30 border-2 focus:border-blue-400 transition-colors"
+          placeholder="Search your network..."
+          className="pl-12 py-4 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#00F6FF] focus:ring-1 focus:ring-[#00F6FF]/20 rounded-xl transition-all duration-300"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {/* Fresh Suggestions Section */}
-      {(!searchTerm || filteredSuggestions.length > 0) && (
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/30 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-600" />
-                Fresh Suggestions
-              </span>
-              {!showAllSuggestions && filteredSuggestions.length > 3 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAllSuggestions(true)}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  View All ({filteredSuggestions.length})
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {displaySuggestions.map((suggestion) => (
-              <div key={suggestion.id} className="flex items-center justify-between p-4 bg-white/70 rounded-xl border border-blue-100 hover:border-blue-200 transition-all hover:shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl animate-bounce">{suggestion.avatar}</div>
+      {/* Your Contacts */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-medium text-white tracking-tight">Your Contacts</h2>
+        <div className="space-y-1">
+          {[...filteredSuggestions, ...filteredContacts.slice(0, 2)].map((contact, index) => {
+            const isBonded = 'peerId' in contact || contact.status === 'bonded'
+            const displayName = 'name' in contact ? contact.name : (contact.handle || `User ${contact.peerId.slice(-6)}`)
+            const role = 'role' in contact ? contact.role : 'Trusted Contact'
+            const company = 'company' in contact ? contact.company : 'Network Member'
+            
+            return (
+              <div key={contact.id || contact.peerId} className="flex items-center justify-between py-4 px-6 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl hover:border-[#00F6FF]/30 transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                    isBonded 
+                      ? 'border-[#00F6FF] bg-[#00F6FF]/10 text-[#00F6FF]' 
+                      : 'border-white/30 bg-white/5 text-white/60'
+                  }`}>
+                    {isBonded ? <CheckCircle className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                  </div>
                   <div>
-                    <div className="font-medium text-gray-900">{suggestion.name}</div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {suggestion.mutuals} mutual contacts
-                      {suggestion.status === "recent" && (
-                        <>
-                          <span className="mx-1">•</span>
-                          <Clock className="w-3 h-3" />
-                          <span>Active {suggestion.lastActive}</span>
-                        </>
-                      )}
-                      {suggestion.status === "trending" && (
-                        <>
-                          <span className="mx-1">•</span>
-                          <TrendingUp className="w-3 h-3 text-orange-500" />
-                          <span className="text-orange-600">Trending</span>
-                        </>
-                      )}
-                    </div>
+                    <div className="font-medium text-white">{displayName}</div>
+                    <div className="text-sm text-white/60">{role} • {company}</div>
                   </div>
                 </div>
-                
-                <Button
-                  size="sm"
-                  onClick={() => handleAddContact(suggestion)}
-                  disabled={addingContact === suggestion.id}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md"
-                >
-                  {addingContact === suggestion.id ? (
+                <div className="flex items-center gap-3">
+                  {isBonded ? (
                     <>
-                      <Clock className="w-4 h-4 animate-spin mr-1" />
-                      Adding...
+                      <span className="text-xs px-2 py-1 bg-[#00F6FF]/20 text-[#00F6FF] rounded-full border border-[#00F6FF]/30">
+                        ● Bonded
+                      </span>
+                      <Button size="sm" variant="ghost" className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10">
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add
+                      <span className="text-xs px-2 py-1 bg-white/10 text-white/60 rounded-full">
+                        ○ Pending
+                      </span>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/50 hover:bg-[#00F6FF]/30 text-xs px-3">
+                          Bond
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-white/40 hover:text-white/60 text-xs px-3">
+                          Decline
+                        </Button>
+                      </div>
                     </>
                   )}
-                </Button>
-              </div>
-            ))}
-            
-            {showAllSuggestions && filteredSuggestions.length > 3 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAllSuggestions(false)}
-                className="w-full text-muted-foreground"
-              >
-                Show Less
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Your Contacts Section */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-green-600" />
-              Your Network
-            </span>
-            <Badge variant="secondary" className="bg-green-100 text-green-700">
-              {bondedContacts.length} bonded
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {filteredContacts.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? (
-                <>
-                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No contacts found for "{searchTerm}"</p>
-                  <p className="text-xs mt-1">Try a different search term</p>
-                </>
-              ) : (
-                <>
-                  <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-lg font-medium mb-1">Build your network!</p>
-                  <p className="text-sm">Add contacts above to start building trust connections</p>
-                  <div className="mt-4">
-                    <AddContactDialog />
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            filteredContacts.map((contact) => (
-              <div key={contact.peerId} className="flex items-center justify-between p-4 bg-green-50/30 rounded-xl border border-green-100 hover:border-green-200 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm">
-                    <UserCheck className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {contact.handle || `User ${contact.peerId.slice(-6)}`}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Bonded {new Date(contact.bondedAt).toLocaleDateString()}
-                      {contact.trustLevel && (
-                        <>
-                          <span className="mx-1">•</span>
-                          <span className="text-green-600 font-medium">Trust Level {contact.trustLevel}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Badge variant="default" className="bg-green-100 text-green-700 border-green-200">
-                    ✓ Trusted
-                  </Badge>
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-gray-900">
-                    <MessageCircle className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+            )
+          })}
+        </div>
+        
+        {/* Recommend Action */}
+        <div className="text-center py-8">
+          <Button className="bg-transparent border border-white/20 text-white/70 hover:border-[#00F6FF]/50 hover:text-[#00F6FF] transition-all duration-300">
+            Recommend a Peer
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

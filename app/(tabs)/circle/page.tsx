@@ -33,51 +33,47 @@ if (typeof window !== 'undefined') {
   (window as any).__signalsStore = signalsStore;
 }
 
-// Generate circular trust visualization
-function TrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
+// Professional Trust Circle - Ultra Minimal
+function ProfessionalTrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
   const totalSlots = 9
   const dots = Array.from({ length: totalSlots }, (_, i) => {
-    // Arrange dots in a circle
-    const angle = (i * 360) / totalSlots - 90 // Start from top
+    const angle = (i * 360) / totalSlots - 90
     const radian = (angle * Math.PI) / 180
-    const radius = 20 // Distance from center
-    const x = Math.cos(radian) * radius + 32 // 32 is center (64/2)
-    const y = Math.sin(radian) * radius + 32
+    const radius = 60 // Larger radius for professional look
+    const x = Math.cos(radian) * radius + 80 // Centered in larger container
+    const y = Math.sin(radian) * radius + 80
 
-    // Determine LED state: green (trust allocated), gray (available slot)
-    let ledStyle = ""
-    let innerStyle = ""
+    const isActive = i < allocatedOut
+    const isInvite = !isActive
     
-    if (i < allocatedOut) {
-      // Green LEDs for trust allocations
-      ledStyle = "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/50 border-2 border-green-300"
-      innerStyle = "bg-gradient-to-br from-green-300 to-green-500"
-    } else {
-      // Gray LEDs for available trust slots
-      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200"
-      innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
-    }
-
     return (
       <div
         key={i}
-        className={`absolute w-4 h-4 rounded-full transform -translate-x-2 -translate-y-2 ${ledStyle}`}
-        style={{ left: x, top: y }}
+        className={`absolute w-6 h-6 rounded-full border transition-all duration-500 cursor-pointer ${
+          isActive 
+            ? 'border-[#00F6FF] bg-[#00F6FF]/20 shadow-[0_0_8px_rgba(0,246,255,0.4)]' 
+            : 'border-white/30 bg-transparent hover:border-[#00F6FF]/50'
+        }`}
+        style={{ left: x - 12, top: y - 12 }}
       >
-        {/* LED inner glow effect */}
-        <div className={`absolute inset-1 rounded-full ${innerStyle}`} />
-        {/* LED highlight spot */}
-        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-white opacity-60" />
+        {isActive && (
+          <div className="absolute inset-2 rounded-full bg-[#00F6FF] animate-pulse" />
+        )}
+        {isInvite && (
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-white/40 font-light">
+            +
+          </div>
+        )}
       </div>
     )
   })
 
   return (
-    <div className="relative w-16 h-16 flex-shrink-0">
+    <div className="relative w-40 h-40 flex-shrink-0">
       {dots}
-      {/* Center flame emoji */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-        <span className="text-base">🔥</span>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+        <div className="text-2xl font-light text-[#00F6FF]">{allocatedOut}</div>
+        <div className="text-xs text-white/50">/9</div>
       </div>
     </div>
   )
@@ -344,166 +340,41 @@ export default function CirclePage() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Your Circle of Trust</h1>
-          {/* Personal Metrics under title */}
-          <div className="flex items-center gap-4 text-sm mt-2">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span className="font-semibold">{metrics.bondedContacts}</span>
-              <span className="text-muted-foreground">Bonded</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4 text-green-600" />
-              <span className="font-semibold">{metrics.trustAllocated}/9</span>
-              <span className="text-muted-foreground">Connected</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Activity className="w-4 h-4 text-purple-600" />
-              <span className="font-semibold">{metrics.recognitionOwned}</span>
-              <span className="text-muted-foreground">Recognition</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <AddContactDialog />
+    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      {/* Professional Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-medium text-white mb-2 tracking-tight">
+          Your Circle of Trust ({trustStats.allocatedOut}/9)
+        </h1>
+      </div>
+
+      {/* Professional Trust Circle */}
+      <div className="flex justify-center">
+        <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-12">
+          <ProfessionalTrustCircle 
+            allocatedOut={trustStats.allocatedOut} 
+            maxSlots={9} 
+          />
         </div>
       </div>
 
-      {/* Trust & Contacts Summary */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <TrustCircle 
-                allocatedOut={trustStats.allocatedOut} 
-                maxSlots={9} 
-              />
-              <div>
-                <div className="font-semibold text-[hsl(var(--card-foreground))]">
-                  Connections: {trustStats.allocatedOut}/9
-                </div>
-                <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                  {bondedContacts.length} bonded contacts
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {availableSlots > 0 ? (
-                <Badge variant="secondary" className="bg-emerald-400/20 text-emerald-300">
-                  {availableSlots} slots
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-                  Full
-                </Badge>
-              )}
-              <Link 
-                href="/contacts"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Manage →
-              </Link>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Action Buttons */}
+      <div className="flex justify-center gap-4">
+        <Button className="bg-transparent border border-[#00F6FF] text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300 px-8">
+          Send a Signal
+        </Button>
+      </div>
 
-
-      {/* Recognition Collection */}
-      <RecognitionGrid ownerId={sessionId} maxItems={5} />
-
-      {/* Recent Signals Feed */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Recent Signals
-            </CardTitle>
-            {recentSignals.length > 0 && (
-              <Link 
-                href="/signals"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                View All →
-              </Link>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {recentSignals.length === 0 ? (
-            <div className="text-center py-6 text-[hsl(var(--muted-foreground))]">
-              <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No signals yet</p>
-              <p className="text-xs">Activity will appear here when you connect with others</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentSignals.map((signal) => (
-                <MiniFeedItem key={signal.id} signal={signal} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Trust Allocation - Show for all bonded contacts */}
-      {bondedContacts.length > 0 && (
-        <Card className="border-card-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
-              <Heart className="w-5 h-5 text-neon-green" />
-              Send Trust
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {bondedContacts.map((contact) => {
-                const hasTrust = contact.trustLevel && contact.trustLevel > 0
-                return (
-                  <div key={contact.peerId} className="flex items-center justify-between p-3 border-card-border bg-card rounded border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm text-card-foreground">
-                          {contact.handle || `User ${contact.peerId.slice(-6)}`}
-                        </div>
-                        {hasTrust && (
-                          <div className="text-xs text-neon-green">
-                            Trust Level: {contact.trustLevel}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {!hasTrust && (
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3].map((weight) => (
-                          <Button
-                            key={weight}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAllocateTrust(contact.peerId, weight)}
-                            disabled={trustStats.allocatedOut + weight > 9}
-                            className="text-xs px-2 py-1 h-6 border-card-border text-card-foreground hover:bg-card-border hover:text-card-foreground"
-                          >
-                            {weight}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Management Controls */}
+      <div className="text-center">
+        <Button 
+          variant="ghost" 
+          className="text-white/60 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10 transition-all duration-300"
+          onClick={() => window.location.href = '/contacts'}
+        >
+          Manage Slots
+        </Button>
+      </div>
     </div>
   )
 }
