@@ -74,7 +74,7 @@ export default function TabsLayout({
     <div className="min-h-screen theme-professional" style={{background: 'linear-gradient(135deg, #0B1622 0%, #111827 100%)'}}>
       {/* Header - Minimal Professional */}
       <header className="backdrop-blur-md bg-black/20 border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-md mx-auto px-4 py-3">
+        <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {/* TrustMesh Logo - Minimal */}
@@ -113,7 +113,7 @@ export default function TabsLayout({
 
       {/* Bottom navigation - Glass morphism */}
       <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-black/30 border-t border-white/10 z-40">
-        <div className="max-w-md mx-auto px-4">
+        <div className="max-w-2xl mx-auto px-4">
           <div className="flex">
             {tabs.map((tab) => {
               const Icon = tab.icon
