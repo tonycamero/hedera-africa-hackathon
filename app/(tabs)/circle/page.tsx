@@ -251,26 +251,26 @@ function NetworkTopologyVisualization({ nodes, edges, selectedNode, onNodeSelect
 
 function NetworkMetricsCard({ metrics }: { metrics: NetworkMetrics }) {
   const metricsData = [
-    { label: "Total Nodes", value: metrics.totalNodes.toString(), icon: <Users className="h-4 w-4" />, color: "var(--data-blue)" },
-    { label: "Connections", value: metrics.totalEdges.toString(), icon: <GitBranch className="h-4 w-4" />, color: "var(--data-purple)" },
-    { label: "Avg. Degree", value: metrics.averageDegree.toFixed(1), icon: <Network className="h-4 w-4" />, color: "var(--data-info)" },
-    { label: "Centrality", value: `${(metrics.centralityScore * 100).toFixed(0)}%`, icon: <Target className="h-4 w-4" />, color: "var(--data-success)" },
-    { label: "Density", value: `${(metrics.networkDensity * 100).toFixed(0)}%`, icon: <Globe className="h-4 w-4" />, color: "var(--data-warning)" },
-    { label: "Clustering", value: `${(metrics.clusteringCoefficient * 100).toFixed(0)}%`, icon: <PieChart className="h-4 w-4" />, color: "var(--data-indigo)" }
+    { label: "Nodes", value: metrics.totalNodes.toString(), icon: <Users className="h-3 w-3" />, color: "var(--data-blue)" },
+    { label: "Links", value: metrics.totalEdges.toString(), icon: <GitBranch className="h-3 w-3" />, color: "var(--data-purple)" },
+    { label: "Degree", value: metrics.averageDegree.toFixed(1), icon: <Network className="h-3 w-3" />, color: "var(--data-info)" },
+    { label: "Central", value: `${(metrics.centralityScore * 100).toFixed(0)}%`, icon: <Target className="h-3 w-3" />, color: "var(--data-success)" },
+    { label: "Density", value: `${(metrics.networkDensity * 100).toFixed(0)}%`, icon: <Globe className="h-3 w-3" />, color: "var(--data-warning)" },
+    { label: "Cluster", value: `${(metrics.clusteringCoefficient * 100).toFixed(0)}%`, icon: <PieChart className="h-3 w-3" />, color: "var(--data-indigo)" }
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-3 gap-2">
       {metricsData.map((metric, index) => (
         <Card key={index} className="bg-card border border-[var(--data-blue)]/20">
-          <CardContent className="p-3 text-center">
-            <div className="flex items-center justify-center mb-2" style={{ color: metric.color }}>
+          <CardContent className="p-2 text-center">
+            <div className="flex items-center justify-center mb-1" style={{ color: metric.color }}>
               {metric.icon}
             </div>
-            <div className="text-lg font-bold" style={{ color: metric.color }}>
+            <div className="text-sm font-bold" style={{ color: metric.color }}>
               {metric.value}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-xs text-muted-foreground truncate">
               {metric.label}
             </div>
           </CardContent>
@@ -422,15 +422,15 @@ export default function NetworkTopologyPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-xl font-bold text-[var(--data-blue)] flex items-center gap-2">
-          <Network className="h-5 w-5" />
-          Network Topology Analytics
+      <div className="space-y-1">
+        <h1 className="text-lg font-bold text-[var(--data-blue)] flex items-center gap-2">
+          <Network className="h-4 w-4" />
+          Network Topology
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Interactive visualization and analysis of your trust network structure and relationships
+        <p className="text-xs text-muted-foreground">
+          Interactive network analysis & visualization
         </p>
       </div>
 
@@ -438,89 +438,70 @@ export default function NetworkTopologyPage() {
       <NetworkMetricsCard metrics={metrics} />
 
       {/* View Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start">
+      <div className="space-y-2">
         {/* View Mode Selector */}
-        <div className="flex gap-2">
+        <div className="flex gap-1 overflow-x-auto">
           {viewModes.map((mode) => (
             <Button
               key={mode.value}
               size="sm"
               variant={viewMode === mode.value ? "default" : "outline"}
               onClick={() => setViewMode(mode.value as any)}
-              className={`flex items-center gap-2 ${
+              className={`flex items-center gap-1 whitespace-nowrap text-xs px-2 h-7 ${
                 viewMode === mode.value 
                   ? 'bg-[var(--data-blue)] hover:bg-[var(--data-blue)]/90' 
                   : 'border-[var(--data-blue)]/30 hover:bg-[var(--data-blue)]/10'
               }`}
             >
-              {mode.icon}
+              <div className="w-3 h-3">{mode.icon}</div>
               {mode.label}
             </Button>
           ))}
         </div>
 
         {/* Level Filter */}
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto">
           {levelFilters.map((filter) => (
             <Button
               key={filter.value}
               size="sm"
               variant={filterLevel === filter.value ? "default" : "outline"}
               onClick={() => setFilterLevel(filter.value)}
-              className={`flex items-center gap-2 whitespace-nowrap ${
+              className={`flex items-center gap-1 whitespace-nowrap text-xs px-2 h-7 ${
                 filterLevel === filter.value 
                   ? 'bg-[var(--data-purple)] hover:bg-[var(--data-purple)]/90' 
                   : 'border-[var(--data-purple)]/30 hover:bg-[var(--data-purple)]/10'
               }`}
             >
               <div 
-                className="w-3 h-3 rounded-full" 
+                className="w-2 h-2 rounded-full" 
                 style={{ backgroundColor: filter.color }}
               ></div>
               {filter.label}
             </Button>
           ))}
         </div>
-
-        <div className="flex-1" />
-        
-        {/* Analysis Tools */}
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="text-xs">
-            <Settings className="h-3 w-3 mr-1" />
-            Layout
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs">
-            <Search className="h-3 w-3 mr-1" />
-            Find Path
-          </Button>
-        </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Network Visualization */}
-        <div className="lg:col-span-2">
-          <Card className="bg-card border border-[var(--data-blue)]/30">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2 text-[var(--data-blue)]">
-                  <PieChart className="h-5 w-5" />
-                  Trust Network Graph
-                  <Badge variant="secondary">{filteredNodes.length} nodes</Badge>
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="text-xs">
-                    <Eye className="h-3 w-3 mr-1" />
-                    Zoom Fit
-                  </Button>
-                  <Button size="sm" variant="outline" className="text-xs">
-                    <Filter className="h-3 w-3 mr-1" />
-                    Export
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
+      {/* Network Visualization */}
+      <Card className="bg-card border border-[var(--data-blue)]/30">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-1 text-[var(--data-blue)]">
+              <PieChart className="h-4 w-4" />
+              Network Graph
+              <Badge variant="secondary" className="text-xs">{filteredNodes.length} nodes</Badge>
+            </CardTitle>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="text-xs h-6 px-2">
+                <Eye className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs h-6 px-2">
+                <Filter className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
             <CardContent>
               {viewMode === "topology" ? (
                 <NetworkTopologyVisualization 
@@ -562,44 +543,37 @@ export default function NetworkTopologyPage() {
           </Card>
         </div>
 
-        {/* Node Details Panel */}
-        <div>
-          <NodeDetailsPanel 
-            node={selectedNodeData} 
-            edges={edges}
-          />
-        </div>
-      </div>
+      {/* Node Details Panel */}
+      <NodeDetailsPanel 
+        node={selectedNodeData} 
+        edges={edges}
+      />
 
       {/* Network Analysis Tools */}
       <Card className="bg-card border border-[var(--data-purple)]/30">
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-[var(--data-purple)] flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Network Analysis Tools
+        <CardHeader className="pb-2">
+          <h3 className="text-sm font-semibold text-[var(--data-purple)] flex items-center gap-1">
+            <Activity className="h-4 w-4" />
+            Analysis Tools
           </h3>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <TrendingUp className="h-8 w-8 mb-2 text-[var(--data-success)]" />
-              <span className="font-medium">Influence Analysis</span>
-              <span className="text-xs text-muted-foreground">Identify key influencers</span>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <TrendingUp className="h-4 w-4 mb-1 text-[var(--data-success)]" />
+              <span className="text-xs font-medium">Influence</span>
             </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <Target className="h-8 w-8 mb-2 text-[var(--data-warning)]" />
-              <span className="font-medium">Community Detection</span>
-              <span className="text-xs text-muted-foreground">Find network clusters</span>
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <Target className="h-4 w-4 mb-1 text-[var(--data-warning)]" />
+              <span className="text-xs font-medium">Clusters</span>
             </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <ArrowRight className="h-8 w-8 mb-2 text-[var(--data-info)]" />
-              <span className="font-medium">Path Analysis</span>
-              <span className="text-xs text-muted-foreground">Shortest trust paths</span>
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <ArrowRight className="h-4 w-4 mb-1 text-[var(--data-info)]" />
+              <span className="text-xs font-medium">Paths</span>
             </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <Zap className="h-8 w-8 mb-2 text-[var(--data-purple)]" />
-              <span className="font-medium">Simulation</span>
-              <span className="text-xs text-muted-foreground">Network dynamics</span>
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <Zap className="h-4 w-4 mb-1 text-[var(--data-purple)]" />
+              <span className="text-xs font-medium">Simulate</span>
             </Button>
           </div>
         </CardContent>

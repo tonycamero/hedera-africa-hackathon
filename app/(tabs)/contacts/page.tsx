@@ -173,24 +173,17 @@ function MetricCard({ metric }: { metric: TrustMetric }) {
   
   return (
     <Card className="bg-card border border-[var(--data-blue)]/30">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{metric.label}</p>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold" style={{ color: metric.color }}>
-                {metric.current}{metric.unit}
-              </span>
-              {getTrendIcon(isPositive ? "positive" : "negative")}
-            </div>
-          </div>
-          <div className="text-right">
-            <p className={`text-xs ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-              {isPositive ? '+' : ''}{changePercent}%
-            </p>
-            <p className="text-xs text-muted-foreground">vs. last period</p>
-          </div>
+      <CardContent className="p-2 text-center">
+        <p className="text-xs text-muted-foreground mb-1 truncate">{metric.label}</p>
+        <div className="flex items-center justify-center gap-1 mb-1">
+          <span className="text-sm font-bold" style={{ color: metric.color }}>
+            {metric.current}
+          </span>
+          {getTrendIcon(isPositive ? "positive" : "negative")}
         </div>
+        <p className={`text-xs ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+          {isPositive ? '+' : ''}{changePercent}%
+        </p>
       </CardContent>
     </Card>
   );
@@ -296,50 +289,47 @@ export default function AnalyticsInsightsPage() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-4 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-xl font-bold text-[var(--data-blue)] flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          Trust Network Analytics
+      <div className="space-y-1">
+        <h1 className="text-lg font-bold text-[var(--data-blue)] flex items-center gap-2">
+          <BarChart3 className="h-4 w-4" />
+          Network Analytics
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Data-driven insights into your trust network performance and optimization opportunities
+        <p className="text-xs text-muted-foreground">
+          Data insights & optimization opportunities
         </p>
       </div>
 
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Key Metrics Grid - 3 columns on mobile */}
+      <div className="grid grid-cols-3 gap-2">
         {metrics.map((metric, index) => (
           <MetricCard key={index} metric={metric} />
         ))}
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <Input 
-            placeholder="Search insights and analytics..." 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-card border-[var(--data-blue)]/30"
-            icon={<Search className="h-4 w-4" />}
-          />
-        </div>
-        <div className="flex gap-2 overflow-x-auto">
+      <div className="space-y-2">
+        <Input 
+          placeholder="Search insights..." 
+          value={searchQuery} 
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="bg-card border-[var(--data-blue)]/30 text-sm"
+        />
+        <div className="flex gap-1 overflow-x-auto">
           {categoryFilters.map((filter) => (
             <Button
               key={filter.value}
               size="sm"
               variant={filterCategory === filter.value ? "default" : "outline"}
               onClick={() => setFilterCategory(filter.value)}
-              className={`flex items-center gap-2 whitespace-nowrap ${
+              className={`flex items-center gap-1 whitespace-nowrap text-xs px-2 h-7 ${
                 filterCategory === filter.value 
                   ? 'bg-[var(--data-blue)] hover:bg-[var(--data-blue)]/90' 
                   : 'border-[var(--data-blue)]/30 hover:bg-[var(--data-blue)]/10'
               }`}
             >
-              {filter.icon}
+              <div className="w-3 h-3">{filter.icon}</div>
               {filter.label}
             </Button>
           ))}
@@ -347,17 +337,13 @@ export default function AnalyticsInsightsPage() {
       </div>
 
       {/* Insights Feed */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--data-purple)] flex items-center gap-2">
-            <PieChart className="h-5 w-5" />
-            Insights Feed
-            <Badge variant="secondary">{filteredInsights.length}</Badge>
+          <h2 className="text-sm font-semibold text-[var(--data-purple)] flex items-center gap-1">
+            <PieChart className="h-4 w-4" />
+            Insights
+            <Badge variant="secondary" className="text-xs">{filteredInsights.length}</Badge>
           </h2>
-          <Button size="sm" variant="outline" className="text-xs">
-            <Filter className="h-3 w-3 mr-1" />
-            Advanced Filters
-          </Button>
         </div>
         
         {filteredInsights.length === 0 ? (
@@ -394,26 +380,26 @@ export default function AnalyticsInsightsPage() {
       
       {/* Quick Actions */}
       <Card className="bg-card border border-[var(--data-purple)]/30">
-        <CardHeader>
-          <h3 className="text-sm font-medium text-[var(--data-purple)]">Quick Actions</h3>
+        <CardHeader className="pb-2">
+          <h3 className="text-xs font-medium text-[var(--data-purple)]">Quick Actions</h3>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="text-xs">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="outline" className="text-xs h-7">
               <BarChart3 className="h-3 w-3 mr-1" />
-              Export Analytics
+              Export
             </Button>
-            <Button size="sm" variant="outline" className="text-xs">
+            <Button size="sm" variant="outline" className="text-xs h-7">
               <TrendingUp className="h-3 w-3 mr-1" />
-              Trend Analysis
+              Trends
             </Button>
-            <Button size="sm" variant="outline" className="text-xs">
+            <Button size="sm" variant="outline" className="text-xs h-7">
               <Target className="h-3 w-3 mr-1" />
-              Optimization Report
+              Reports
             </Button>
-            <Button size="sm" variant="outline" className="text-xs">
+            <Button size="sm" variant="outline" className="text-xs h-7">
               <Activity className="h-3 w-3 mr-1" />
-              Real-time Dashboard
+              Dashboard
             </Button>
           </div>
         </CardContent>

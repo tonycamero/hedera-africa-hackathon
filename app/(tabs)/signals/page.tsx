@@ -232,26 +232,26 @@ function getTrendIcon(changeType: string) {
 
 function ProcessingMetricsCard({ metrics }: { metrics: SignalProcessingMetrics }) {
   const metricsData = [
-    { label: "Total Processed", value: metrics.totalProcessed.toLocaleString(), icon: <Database className="h-4 w-4" />, color: "var(--data-blue)" },
-    { label: "Processing Rate", value: `${metrics.processingRate}/min`, icon: <Cpu className="h-4 w-4" />, color: "var(--data-purple)" },
-    { label: "Latency", value: `${metrics.latency}ms`, icon: <Clock className="h-4 w-4" />, color: "var(--data-warning)" },
-    { label: "Accuracy", value: `${metrics.accuracy}%`, icon: <CheckCircle className="h-4 w-4" />, color: "var(--data-success)" },
-    { label: "Anomalies", value: metrics.anomaliesDetected.toString(), icon: <AlertTriangle className="h-4 w-4" />, color: "var(--data-warning)" },
-    { label: "Patterns", value: metrics.patternMatches.toString(), icon: <Target className="h-4 w-4" />, color: "var(--data-info)" }
+    { label: "Processed", value: "12.8K", icon: <Database className="h-3 w-3" />, color: "var(--data-blue)" },
+    { label: "Rate", value: `${metrics.processingRate}/min`, icon: <Cpu className="h-3 w-3" />, color: "var(--data-purple)" },
+    { label: "Latency", value: `${metrics.latency}ms`, icon: <Clock className="h-3 w-3" />, color: "var(--data-warning)" },
+    { label: "Accuracy", value: `${metrics.accuracy}%`, icon: <CheckCircle className="h-3 w-3" />, color: "var(--data-success)" },
+    { label: "Anomalies", value: metrics.anomaliesDetected.toString(), icon: <AlertTriangle className="h-3 w-3" />, color: "var(--data-warning)" },
+    { label: "Patterns", value: metrics.patternMatches.toString(), icon: <Target className="h-3 w-3" />, color: "var(--data-info)" }
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-3 gap-2">
       {metricsData.map((metric, index) => (
         <Card key={index} className="bg-card border border-[var(--data-blue)]/20">
-          <CardContent className="p-3 text-center">
-            <div className="flex items-center justify-center mb-2" style={{ color: metric.color }}>
+          <CardContent className="p-2 text-center">
+            <div className="flex items-center justify-center mb-1" style={{ color: metric.color }}>
               {metric.icon}
             </div>
-            <div className="text-lg font-bold" style={{ color: metric.color }}>
+            <div className="text-sm font-bold" style={{ color: metric.color }}>
               {metric.value}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-xs text-muted-foreground truncate">
               {metric.label}
             </div>
           </CardContent>
@@ -545,15 +545,15 @@ export default function DataIntelligencePage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-4">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-xl font-bold text-[var(--data-blue)] flex items-center gap-2">
-          <Brain className="h-5 w-5" />
-          Data Intelligence & Predictive Analytics
+      <div className="space-y-1">
+        <h1 className="text-lg font-bold text-[var(--data-blue)] flex items-center gap-2">
+          <Brain className="h-4 w-4" />
+          Data Intelligence
         </h1>
-        <p className="text-sm text-muted-foreground">
-          AI-powered signal processing, trend analysis, and predictive insights for trust network optimization
+        <p className="text-xs text-muted-foreground">
+          AI-powered signals & predictive insights
         </p>
       </div>
 
@@ -561,31 +561,31 @@ export default function DataIntelligencePage() {
       <ProcessingMetricsCard metrics={metrics} />
 
       {/* Real-time Intelligence Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="space-y-3">
         <Card className="bg-card border border-[var(--data-blue)]/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-[var(--data-blue)]">
-              <Target className="h-4 w-4" />
+            <CardTitle className="text-xs flex items-center gap-1 text-[var(--data-blue)]">
+              <Target className="h-3 w-3" />
               Pattern Recognition
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 text-xs">
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="text-center">
-                <div className="text-lg font-bold text-[var(--data-blue)]">{intelligence.patternRecognition.trustPatterns}</div>
-                <div className="text-muted-foreground">Trust Patterns</div>
+                <div className="text-sm font-bold text-[var(--data-blue)]">{intelligence.patternRecognition.trustPatterns}</div>
+                <div className="text-muted-foreground text-xs">Trust</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-[var(--data-purple)]">{intelligence.patternRecognition.socialPatterns}</div>
-                <div className="text-muted-foreground">Social Patterns</div>
+                <div className="text-sm font-bold text-[var(--data-purple)]">{intelligence.patternRecognition.socialPatterns}</div>
+                <div className="text-muted-foreground text-xs">Social</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-[var(--data-success)]">{intelligence.patternRecognition.behaviorPatterns}</div>
-                <div className="text-muted-foreground">Behavior Patterns</div>
+                <div className="text-sm font-bold text-[var(--data-success)]">{intelligence.patternRecognition.behaviorPatterns}</div>
+                <div className="text-muted-foreground text-xs">Behavior</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-[var(--data-warning)]">{intelligence.patternRecognition.anomalies}</div>
-                <div className="text-muted-foreground">Anomalies</div>
+                <div className="text-sm font-bold text-[var(--data-warning)]">{intelligence.patternRecognition.anomalies}</div>
+                <div className="text-muted-foreground text-xs">Anomalies</div>
               </div>
             </div>
           </CardContent>
@@ -651,21 +651,21 @@ export default function DataIntelligencePage() {
       </div>
 
       {/* Trend Analysis */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--data-purple)] flex items-center gap-2">
-            <LineChart className="h-5 w-5" />
-            Trend Analysis
-            <Badge variant="secondary">{filteredTrends.length} trends</Badge>
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-[var(--data-purple)] flex items-center gap-1">
+            <LineChart className="h-4 w-4" />
+            Trends
+            <Badge variant="secondary" className="text-xs">{filteredTrends.length}</Badge>
           </h2>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             {timeRangeOptions.map((option) => (
               <Button
                 key={option.value}
                 size="sm"
                 variant={timeRange === option.value ? "default" : "outline"}
                 onClick={() => setTimeRange(option.value)}
-                className={`text-xs ${
+                className={`text-xs px-2 h-7 ${
                   timeRange === option.value 
                     ? 'bg-[var(--data-purple)] hover:bg-[var(--data-purple)]/90' 
                     : 'border-[var(--data-purple)]/30 hover:bg-[var(--data-purple)]/10'
@@ -678,7 +678,7 @@ export default function DataIntelligencePage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-2">
           {filteredTrends.map((trend, index) => (
             <TrendAnalysisCard key={index} trend={trend} />
           ))}
@@ -686,40 +686,36 @@ export default function DataIntelligencePage() {
       </div>
 
       {/* Predictive Insights */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-[var(--data-blue)] flex items-center gap-2 mb-2">
-              <PieChart className="h-5 w-5" />
-              Predictive Insights
-              <Badge variant="secondary">{filteredInsights.length} insights</Badge>
-            </h2>
-          </div>
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-[var(--data-blue)] flex items-center gap-1">
+            <PieChart className="h-4 w-4" />
+            Insights
+            <Badge variant="secondary" className="text-xs">{filteredInsights.length}</Badge>
+          </h2>
           
           {/* Search and Filter Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <div className="min-w-64">
-              <Input 
-                placeholder="Search insights..." 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-card border-[var(--data-blue)]/30"
-              />
-            </div>
-            <div className="flex gap-2 overflow-x-auto">
+          <div className="space-y-2">
+            <Input 
+              placeholder="Search insights..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-card border-[var(--data-blue)]/30 text-sm"
+            />
+            <div className="flex gap-1 overflow-x-auto">
               {insightTypeFilters.map((filter) => (
                 <Button
                   key={filter.value}
                   size="sm"
                   variant={selectedInsightType === filter.value ? "default" : "outline"}
                   onClick={() => setSelectedInsightType(filter.value)}
-                  className={`flex items-center gap-2 whitespace-nowrap text-xs ${
+                  className={`flex items-center gap-1 whitespace-nowrap text-xs px-2 h-7 ${
                     selectedInsightType === filter.value 
                       ? 'bg-[var(--data-blue)] hover:bg-[var(--data-blue)]/90' 
                       : 'border-[var(--data-blue)]/30 hover:bg-[var(--data-blue)]/10'
                   }`}
                 >
-                  {filter.icon}
+                  <div className="w-3 h-3">{filter.icon}</div>
                   {filter.label}
                 </Button>
               ))}
@@ -761,33 +757,29 @@ export default function DataIntelligencePage() {
       
       {/* Advanced Analytics Tools */}
       <Card className="bg-card border border-[var(--data-indigo)]/30">
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-[var(--data-indigo)] flex items-center gap-2">
-            <Cpu className="h-5 w-5" />
-            Advanced Analytics & Machine Learning
+        <CardHeader className="pb-2">
+          <h3 className="text-xs font-semibold text-[var(--data-indigo)] flex items-center gap-1">
+            <Cpu className="h-3 w-3" />
+            Advanced Analytics
           </h3>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <BarChart3 className="h-8 w-8 mb-2 text-[var(--data-blue)]" />
-              <span className="font-medium">Deep Analysis</span>
-              <span className="text-xs text-muted-foreground">Multi-dimensional insights</span>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <BarChart3 className="h-4 w-4 mb-1 text-[var(--data-blue)]" />
+              <span className="text-xs font-medium">Deep Analysis</span>
             </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <TrendingUp className="h-8 w-8 mb-2 text-[var(--data-success)]" />
-              <span className="font-medium">Forecasting Models</span>
-              <span className="text-xs text-muted-foreground">Future predictions</span>
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <TrendingUp className="h-4 w-4 mb-1 text-[var(--data-success)]" />
+              <span className="text-xs font-medium">Forecasting</span>
             </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <AlertTriangle className="h-8 w-8 mb-2 text-[var(--data-warning)]" />
-              <span className="font-medium">Anomaly Detection</span>
-              <span className="text-xs text-muted-foreground">Outlier identification</span>
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <AlertTriangle className="h-4 w-4 mb-1 text-[var(--data-warning)]" />
+              <span className="text-xs font-medium">Anomalies</span>
             </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto">
-              <Globe className="h-8 w-8 mb-2 text-[var(--data-info)]" />
-              <span className="font-medium">Network Simulation</span>
-              <span className="text-xs text-muted-foreground">What-if scenarios</span>
+            <Button variant="outline" className="flex flex-col items-center p-2 h-auto">
+              <Globe className="h-4 w-4 mb-1 text-[var(--data-info)]" />
+              <span className="text-xs font-medium">Simulation</span>
             </Button>
           </div>
         </CardContent>
