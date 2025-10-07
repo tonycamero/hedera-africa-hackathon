@@ -45,21 +45,21 @@ export default function TabsLayout({
   const tabs = [
     {
       id: "circle",
-      label: "Circle",
+      label: "Topology",
       path: "/circle",
       icon: Circle,
       badge: null
     },
     {
       id: "signals", 
-      label: "Signals",
+      label: "Intelligence",
       path: "/signals",
       icon: Activity,
       badge: hasUnseen ? "•" : null
     },
     {
       id: "contacts",
-      label: "Contacts", 
+      label: "Analytics", 
       path: "/contacts",
       icon: Users,
       badge: null
