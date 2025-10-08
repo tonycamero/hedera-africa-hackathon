@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
+import { signalsPoller } from "@/lib/services/SignalsPoller"
 import { 
   Activity, 
   Users, 
@@ -127,6 +128,9 @@ export default function SignalsPage() {
       }
     }
 
+    // Ensure signals poller is running for serverless environments
+    signalsPoller.start()
+    
     loadSignals()
     const unsubscribe = signalsStore.subscribe(loadSignals)
     return unsubscribe
