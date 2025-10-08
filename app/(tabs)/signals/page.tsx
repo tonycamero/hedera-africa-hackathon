@@ -108,7 +108,7 @@ export default function SignalsPage() {
       try {
         const allEvents = signalsStore.getAll()
         
-        const enhancedSignals: EnhancedSignal[] = allEvents.slice(0, 15).map(signal => ({
+        const enhancedSignals: EnhancedSignal[] = allEvents.map(signal => ({
           ...signal,
           firstName: getFirstName(signal.actor),
           onlineStatus: getOnlineStatus(),
