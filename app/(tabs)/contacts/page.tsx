@@ -8,6 +8,8 @@ import { getBondedContactsFromHCS } from '@/lib/services/HCSDataUtils'
 import { enhancedHCSDataService, type EnhancedContact } from '@/lib/services/EnhancedHCSDataService'
 import { getSessionId } from '@/lib/session'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
+import { AddContactModal } from '@/components/AddContactModal'
+import { PeerRecommendationModal } from '@/components/PeerRecommendationModal'
 import { 
   Search,
   MessageCircle,
@@ -15,7 +17,9 @@ import {
   CheckCircle,
   Network,
   User,
-  Users
+  Users,
+  Award,
+  Trophy
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -113,6 +117,49 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Send Recognition Tokens CTA */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
+          <Award className="w-4 h-4 text-[#00F6FF]" />
+          Send Recognition Tokens
+        </h2>
+        
+        {/* Recognition CTA card */}
+        <div className="backdrop-blur-md bg-gradient-to-br from-[#00F6FF]/10 to-cyan-500/5 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden">
+          {/* Subtle animated background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00F6FF]/5 to-transparent animate-pulse"></div>
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 flex items-center justify-center border border-[#00F6FF]/30">
+                  <Trophy className="w-5 h-5 text-[#00F6FF]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Recognize Excellence</h3>
+                  <p className="text-xs text-white/70">Award blockchain-verified professional tokens</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-[#00F6FF] font-medium">0.3-0.5</div>
+                <div className="text-xs text-white/60">trust units</div>
+              </div>
+            </div>
+            
+            <PeerRecommendationModal>
+              <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300">
+                <Award className="w-4 h-4 mr-2" />
+                Recommend a Professional Peer
+              </Button>
+            </PeerRecommendationModal>
+            
+            <div className="mt-3 text-xs text-center text-white/60">
+              🏆 21 professional tokens • 3 categories • Blockchain verified
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Professional Suggestions */}
       <div className="space-y-4">
         <h2 className="text-sm font-medium text-white/80 flex items-center gap-2">
@@ -133,10 +180,12 @@ export default function ContactsPage() {
               </div>
             </div>
           </div>
-          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium">
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add Professional Contact
-          </Button>
+          <AddContactModal>
+            <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Professional Contact
+            </Button>
+          </AddContactModal>
         </div>
       </div>
 
@@ -243,9 +292,11 @@ export default function ContactsPage() {
         
         {/* Recommend Action */}
         <div className="text-center py-4">
-          <Button className="bg-transparent border border-white/20 text-white/70 hover:border-[#00F6FF]/50 hover:text-[#00F6FF] transition-all duration-300 text-sm px-4 py-2">
-            Recommend a Peer
-          </Button>
+          <PeerRecommendationModal>
+            <Button className="bg-transparent border border-white/20 text-white/70 hover:border-[#00F6FF]/50 hover:text-[#00F6FF] transition-all duration-300 text-sm px-4 py-2">
+              Recommend a Peer
+            </Button>
+          </PeerRecommendationModal>
         </div>
       </div>
       

@@ -77,13 +77,14 @@ export default function TabsLayout({
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {/* TrustMesh Logo - Minimal */}
-              <div className="w-7 h-7 flex items-center justify-center opacity-90">
+              {/* TrustMesh Logo - Enhanced */}
+              <div className="w-9 h-9 flex items-center justify-center opacity-90">
                 <svg 
-                  width="20" 
-                  height="20"
+                  width="24" 
+                  height="24"
                   viewBox="0 0 24 24" 
                   fill="none"
+                  className="animate-spin-slow-ccw"
                 >
                   <circle cx="6" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
                   <circle cx="18" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
@@ -93,9 +94,9 @@ export default function TabsLayout({
                 </svg>
               </div>
               <div>
-                <h1 className="font-medium text-lg text-white tracking-tight">TrustMesh</h1>
+                <h1 className="font-bold text-xl text-white tracking-tight">TrustMesh</h1>
                 <p className="text-xs text-white/50 font-light">
-                  Professional Network • Mobile
+                  Professional Network
                 </p>
               </div>
             </div>
@@ -172,6 +173,19 @@ export default function TabsLayout({
           50% {
             opacity: 0.7;
             filter: drop-shadow(0 0 4px rgba(0, 246, 255, 0.5));
+          }
+        }
+        
+        .animate-spin-slow-ccw {
+          animation: spin-slow-ccw 27s linear infinite;
+        }
+        
+        @keyframes spin-slow-ccw {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(-360deg);
           }
         }
       `}</style>

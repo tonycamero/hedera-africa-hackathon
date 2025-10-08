@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSessionId } from "@/lib/session"
 
 export async function POST(request: NextRequest) {
+  // Production guard - disable demo endpoints
+  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_DEMO_MODE !== 'true') {
+    return NextResponse.json({
+      status: 'disabled',
+      message: 'Debug endpoints disabled in production mode'
+    }, { status: 403 })
+  }
+  
   try {
     const body = await request.json()
     const { ownerId = getSessionId(), definitionIds = ['skibidi', 'chad', 'prof-fav'] } = body
@@ -104,6 +112,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  // Production guard - disable demo endpoints
+  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_DEMO_MODE !== 'true') {
+    return NextResponse.json({
+      status: 'disabled',
+      message: 'Debug endpoints disabled in production mode'
+    }, { status: 403 })
+  }
+  
   try {
     const sessionId = getSessionId()
     

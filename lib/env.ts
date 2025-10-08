@@ -29,9 +29,10 @@ export type TopicKey = keyof typeof TOPICS;
 
 // Clean other environment variables - ensure Mirror REST URL has /api/v1
 export const MIRROR_REST = (() => {
-  const rawUrl = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_URL) || "https://testnet.mirrornode.hedera.com/api/v1";
-  // Ensure URL ends with /api/v1 if it doesn't already
-  return rawUrl.endsWith('/api/v1') ? rawUrl : `${rawUrl.replace(/\/$/, '')}/api/v1`;
+  const rawUrl = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_URL) || "https://testnet.mirrornode.hedera.com";
+  // Strip any existing /api/v1 and add it once
+  const cleanUrl = rawUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '');
+  return `${cleanUrl}/api/v1`;
 })();
 export const MIRROR_WS = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_WS) || "wss://testnet.mirrornode.hedera.com:5600";
 export const NODE_ENV = clean(process.env.NODE_ENV) || 'development';
