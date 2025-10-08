@@ -73,7 +73,7 @@ export default function TabsLayout({
   return (
     <div className="min-h-screen theme-professional" style={{background: 'linear-gradient(135deg, #0B1622 0%, #111827 100%)'}}>
       {/* Header - Minimal Professional */}
-      <header className="backdrop-blur-md bg-black/20 border-b border-white/10 sticky top-0 z-50">
+      <header className="bg-black/20 border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function TabsLayout({
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {/* HeaderModeChips moved to bottom nav */}
+              {/* Right side of header - empty for now */}
             </div>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function TabsLayout({
       </main>
 
       {/* Bottom navigation - Glass morphism */}
-      <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-black/30 border-t border-white/10 z-40">
+      <nav className="fixed bottom-0 left-0 right-0 bg-black/30 border-t border-white/10 z-40">
         <div className="max-w-2xl mx-auto px-4">
           {/* HeaderModeChips at top of bottom nav */}
           <div className="flex justify-center py-1 border-b border-white/5">
@@ -137,7 +137,7 @@ export default function TabsLayout({
                 >
                   <div className="relative">
                     <Icon className={`w-5 h-5 mb-1 transition-all duration-300 ${
-                      isActive ? "text-[#00F6FF] scale-110" : "
+                      isActive ? "text-[#00F6FF] scale-110" : "text-white/60"
                     }`} />
                     {tab.badge && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#00F6FF] rounded-full pulse-accent" />
@@ -147,7 +147,7 @@ export default function TabsLayout({
                     )}
                   </div>
                   <span className={`transition-all duration-300 text-xs ${
-                    isActive ? "text-[#00F6FF] font-medium" : "
+                    isActive ? "text-[#00F6FF] font-medium" : "text-white/60"
                   }`}>
                     {tab.label}
                   </span>

@@ -96,7 +96,7 @@ export default function CirclePage() {
       </div>
       
       {/* Compact 1/3 + 2/3 Layout */}
-      <Card className="backdrop-blur-md bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/10">
+      <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/10">
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             {/* 1/3 - Circle Visualization */}
@@ -142,7 +142,7 @@ export default function CirclePage() {
       
       {/* Compelling Completion CTA */}
       {availableSlots > 0 && (
-        <Card className="backdrop-blur-md bg-gradient-to-r from-[#00F6FF]/20 to-cyan-500/20 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02]" onClick={() => {
+        <Card className="bg-gradient-to-r from-[#00F6FF]/20 to-cyan-500/20 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02]" onClick={() => {
           console.log('🚀 Complete Circle clicked')
           toast.success('Let\'s complete your circle!', {
             description: `Add ${availableSlots} more trusted connections`,

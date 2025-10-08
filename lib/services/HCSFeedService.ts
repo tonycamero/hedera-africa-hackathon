@@ -35,6 +35,7 @@ export class HCSFeedService {
   private isSeeded: boolean = false
   private cachedEvents: HCSFeedEvent[] = [] // Cache for events successfully written to HCS
   private readonly CACHE_KEY = 'trustmesh_demo_cache'
+  private readonly WATERMARK_KEY = 'trustmesh_watermarks' // P1 fix from situation brief
   private mirrorReader: MirrorNodeReader | null = null;
   private isInitializing: boolean = false
   private initPromise: Promise<void> | null = null
@@ -584,12 +585,23 @@ export class HCSFeedService {
       console.log(`[HCSFeedService] Fetching from ${topics.length} topics:`, topics);
 
       const { fetchTopicMessages } = await import("@/lib/services/MirrorReader");
+      
+      // Get stored watermarks for each topic (P1 fix from situation brief)
+      const topicWatermarks = this.getTopicWatermarks();
+      
       const perTopic = await Promise.all(
         topics.map(async tid => {
           try {
-            const messages = await fetchTopicMessages(tid, 50);
-            console.log(`[HCSFeedService] Topic ${tid}: ${messages.length} messages`);
-            return messages;
+            const watermark = topicWatermarks[tid];
+            const result = await fetchTopicMessages(tid, 50, watermark);
+            console.log(`[HCSFeedService] Topic ${tid}: ${result.messages.length} messages since ${watermark || 'beginning'}`);
+            
+            // Update watermark for this topic (store max consensus_ns)
+            if (result.next_since) {
+              this.setTopicWatermark(tid, result.next_since);
+            }
+            
+            return result.messages;
           } catch (e) {
             console.warn(`[HCSFeedService] Topic ${tid} failed:`, e);
             return [];
@@ -603,6 +615,12 @@ export class HCSFeedService {
       for (const m of flat) {
         try {
           const obj = JSON.parse(m.decoded);
+          
+          // Check for realm_id requirement (P1 fix from situation brief)
+          if (!obj?.realm_id && !obj?.realmId) {
+            console.log(`[HCSFeedService] Rejecting message without realm_id from ${m.topicId}:${m.sequenceNumber}`);
+            continue;
+          }
           
           // Handle both Flex format and real HCS message formats
           let event: HCSFeedEvent | null = null;
@@ -684,6 +702,7 @@ export class HCSFeedService {
                 break;
               
               case 'RECOGNITION_MINT':
+              case 'recognition_award': // P1 fix from situation brief - include recognition_award family
                 event = {
                   id: eventId,
                   type: 'recognition_mint',
@@ -965,6 +984,32 @@ export class HCSFeedService {
       localStorage.setItem(this.CACHE_KEY, JSON.stringify(this.cachedEvents))
     } catch (error) {
       console.error('[HCSFeedService] Failed to save cached events:', error)
+    }
+  }
+  
+  // Watermark management (P1 fix from situation brief)
+  private getTopicWatermarks(): Record<string, string> {
+    if (typeof window === 'undefined') return {}
+    
+    try {
+      const stored = localStorage.getItem(this.WATERMARK_KEY)
+      return stored ? JSON.parse(stored) : {}
+    } catch (error) {
+      console.error('[HCSFeedService] Failed to load watermarks:', error)
+      return {}
+    }
+  }
+  
+  private setTopicWatermark(topicId: string, consensusTimestamp: string): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      const watermarks = this.getTopicWatermarks()
+      watermarks[topicId] = consensusTimestamp
+      localStorage.setItem(this.WATERMARK_KEY, JSON.stringify(watermarks))
+      console.log(`[HCSFeedService] Updated watermark for ${topicId}: ${consensusTimestamp}`)
+    } catch (error) {
+      console.error('[HCSFeedService] Failed to save watermark:', error)
     }
   }
   
