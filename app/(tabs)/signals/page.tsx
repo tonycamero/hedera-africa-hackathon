@@ -228,7 +228,7 @@ export default function SignalsPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-3 py-4 space-y-4 min-h-screen">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
       {/* Mobile Header */}
       <div className="text-center space-y-2">
         <h1 className="text-xl font-medium text-white tracking-tight">
