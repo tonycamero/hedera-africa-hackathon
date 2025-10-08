@@ -397,7 +397,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                             title={recognition.description}
                           >
                             {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gradient-to-br from-slate-800 to-slate-900 text-white text-xs rounded-lg shadow-xl border border-[#00F6FF]/30 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[100] max-w-64 text-center whitespace-normal backdrop-blur-sm">
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gradient-to-br from-slate-800 to-slate-900 text-white text-xs rounded-lg shadow-xl border border-[#00F6FF]/30 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[100] w-[66.66%] min-w-48 max-w-sm text-center whitespace-normal backdrop-blur-sm">
                               <div className="font-semibold mb-1 text-[#00F6FF]">{recognition.name}</div>
                               <div className="text-white/90 leading-relaxed">{recognition.description}</div>
                               <div className="text-xs text-[#00F6FF] mt-1 font-medium">{recognition.trustValue} trust units</div>
