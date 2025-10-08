@@ -101,7 +101,7 @@ export default function TabsLayout({
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <HeaderModeChips />
+              {/* HeaderModeChips moved to bottom nav */}
             </div>
           </div>
         </div>
@@ -115,6 +115,11 @@ export default function TabsLayout({
       {/* Bottom navigation - Glass morphism */}
       <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-black/30 border-t border-white/10 z-40">
         <div className="max-w-2xl mx-auto px-4">
+          {/* HeaderModeChips at top of bottom nav */}
+          <div className="flex justify-center py-1 border-b border-white/5">
+            <HeaderModeChips />
+          </div>
+          
           <div className="flex">
             {tabs.map((tab) => {
               const Icon = tab.icon
@@ -132,7 +137,7 @@ export default function TabsLayout({
                 >
                   <div className="relative">
                     <Icon className={`w-5 h-5 mb-1 transition-all duration-300 ${
-                      isActive ? "text-[#00F6FF] scale-110" : ""
+                      isActive ? "text-[#00F6FF] scale-110" : "
                     }`} />
                     {tab.badge && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#00F6FF] rounded-full pulse-accent" />
@@ -142,7 +147,7 @@ export default function TabsLayout({
                     )}
                   </div>
                   <span className={`transition-all duration-300 text-xs ${
-                    isActive ? "text-[#00F6FF] font-medium" : ""
+                    isActive ? "text-[#00F6FF] font-medium" : "
                   }`}>
                     {tab.label}
                   </span>
