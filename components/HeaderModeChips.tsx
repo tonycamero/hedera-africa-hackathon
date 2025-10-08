@@ -14,7 +14,7 @@ import { resetStorageAdapter } from "@/lib/store/storage"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { clearCache, beginCacheSession, configureCacheBackend } from "@/lib/cache/sessionCache"
 import { assertDemoAllowed } from "@/lib/demo/guard"
-import { RefreshCw, Eye, EyeOff, Globe, User, RotateCcw } from "lucide-react"
+import { RefreshCw, Eye, EyeOff, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 
 export function HeaderModeChips() {
@@ -33,13 +33,6 @@ export function HeaderModeChips() {
 
   // Seed functionality removed in Step 5: Demo removal
 
-  const toggleScope = () => {
-    const newScope = flags.scope === 'global' ? 'my' : 'global'
-    updateRuntimeFlags({ scope: newScope })
-    toast.success(`Scope: ${newScope}`, { 
-      description: newScope === 'global' ? "Showing all activity" : "Showing only your activity" 
-    })
-  }
 
   // Demo reset functionality removed in Step 5: Demo removal
 
@@ -73,17 +66,6 @@ export function HeaderModeChips() {
 
       {/* Seed toggle removed in Step 5 */}
 
-      {/* Scope toggle */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={toggleScope}
-        className="h-6 px-2 text-xs"
-        title="Switch between global and personal activity view"
-      >
-        {flags.scope === 'global' ? <Globe className="w-3 h-3 mr-1" /> : <User className="w-3 h-3 mr-1" />}
-        {flags.scope === 'global' ? 'Global' : 'My'}
-      </Button>
 
       {/* Reset button removed in Step 5 */}
     </div>
