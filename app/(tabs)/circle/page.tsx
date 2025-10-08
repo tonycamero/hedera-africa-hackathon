@@ -95,28 +95,87 @@ export default function CirclePage() {
         </div>
       </div>
       
-      {/* Main Trust Circle Card */}
+      {/* Compact 1/3 + 2/3 Layout */}
       <Card className="backdrop-blur-md bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/10">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <TrustCircleVisualization 
-              allocatedOut={trustStats.allocatedOut}
-              maxSlots={trustStats.maxSlots}
-              bondedContacts={trustStats.bondedContacts}
-            />
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            {/* 1/3 - Circle Visualization */}
+            <div className="flex-shrink-0">
+              <TrustCircleVisualization 
+                allocatedOut={trustStats.allocatedOut}
+                maxSlots={trustStats.maxSlots}
+                bondedContacts={trustStats.bondedContacts}
+              />
+            </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold text-white">{trustStats.allocatedOut}</span>
-                <span className="text-white/60">members</span>
-                <span className="text-white/40">•</span>
-                <span className="text-[#00F6FF]">{availableSlots} slots left</span>
+            {/* 2/3 - Content & CTA */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl font-bold text-white">{trustStats.allocatedOut}</span>
+                  <span className="text-white/60 text-sm">of {trustStats.maxSlots}</span>
+                  <span className="text-[#00F6FF] text-sm font-medium">({availableSlots} open)</span>
+                </div>
+                <p className="text-xs text-white/70">Your professional trust circle</p>
               </div>
-              <p className="text-sm text-white/60">Fill {Math.min(2, availableSlots)} more slots for network boost!</p>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-white/10 rounded-full h-1.5">
+                <div 
+                  className="bg-gradient-to-r from-green-400 to-green-500 h-1.5 rounded-full transition-all" 
+                  style={{ width: `${(trustStats.allocatedOut / trustStats.maxSlots) * 100}%` }}
+                />
+              </div>
+              
+              {/* Completion Status */}
+              <div className="text-xs text-white/60">
+                {availableSlots === 0 ? (
+                  <span className="text-green-400">🎉 Circle Complete!</span>
+                ) : (
+                  <span>Fill {availableSlots} more to unlock premium features</span>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
+      
+      {/* Compelling Completion CTA */}
+      {availableSlots > 0 && (
+        <Card className="backdrop-blur-md bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 hover:border-green-400/50 cursor-pointer transition-all duration-300 hover:scale-[1.02]" onClick={() => {
+          console.log('🚀 Complete Circle clicked')
+          toast.success('Let\'s complete your circle!', {
+            description: `Add ${availableSlots} more trusted connections`,
+            duration: 3000
+          })
+        }}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-400/20 flex items-center justify-center border border-green-400/30">
+                <span className="text-lg">🎯</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  Complete Your Circle
+                  <Badge className="bg-green-400/20 text-green-400 text-xs px-2 py-0.5">
+                    {availableSlots} left
+                  </Badge>
+                </h3>
+                <p className="text-sm text-white/80 mb-2">Unlock exclusive network benefits & premium features</p>
+                <div className="flex items-center gap-4 text-xs text-white/60">
+                  <span>✨ Priority support</span>
+                  <span>🔗 Advanced networking</span>
+                  <span>📊 Analytics dashboard</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-green-400 font-medium mb-1">Next Level</div>
+                <div className="text-2xl font-bold text-white">{Math.round((trustStats.allocatedOut / trustStats.maxSlots) * 100)}%</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Cards */}
       <div className="grid grid-cols-2 gap-3">
