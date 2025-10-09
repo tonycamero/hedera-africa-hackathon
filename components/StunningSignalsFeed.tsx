@@ -597,14 +597,14 @@ export default function StunningSignalsFeed({ className = "" }: StunningSignalsF
               placeholder="Search signals..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white/5 border-white/20 text-white placeholder-white/40 focus:border-[#00F6FF]/50"
+              className="pl-10 bg-slate-800 border-white/20 text-white placeholder-white/40 focus:border-[#00F6FF]/50"
             />
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex items-center justify-between px-6 pb-4">
-          <div className="flex bg-white/5 backdrop-blur-xl rounded-xl p-1">
+          <div className="flex bg-slate-800/80 backdrop-blur-xl rounded-xl p-1">
             {[
               { key: 'signals', label: 'Signals', icon: Zap },
               { key: 'recognition', label: 'Recognition', icon: Trophy }
@@ -674,7 +674,7 @@ export default function StunningSignalsFeed({ className = "" }: StunningSignalsF
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
                     filter === key
                       ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
-                      : 'bg-white/5 text-white/60 hover:text-white/80 hover:bg-white/10 border border-white/10'
+                      : 'bg-slate-800 text-white/60 hover:text-white/80 hover:bg-slate-700 border border-white/10'
                   }`}
                 >
                   <Icon className="w-3 h-3" />
@@ -688,7 +688,7 @@ export default function StunningSignalsFeed({ className = "" }: StunningSignalsF
               {filteredSignals.length === 0 ? (
                 <div className="flex items-center justify-center h-96">
                   <div className="text-center space-y-4">
-                    <div className="w-16 h-16 mx-auto rounded-full bg-white/5 flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-slate-800 flex items-center justify-center">
                       <Activity className="w-8 h-8 text-white/30" />
                     </div>
                     <div className="space-y-2">

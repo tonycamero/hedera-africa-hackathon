@@ -312,19 +312,19 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
             <Label className="text-sm font-medium text-white">Pick from your trusted contacts list:</Label>
             {(bondedContacts.length > 0 || enhancedContacts.length > 0) ? (
               <Select value={selectedContactId} onValueChange={handleContactSelection}>
-                <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-[#00F6FF]">
+                <SelectTrigger className="bg-slate-800 border-white/20 text-white focus:border-[#00F6FF]">
                   <SelectValue placeholder={loadingContacts ? "Loading..." : "Select contact"} />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/20">
                   {/* Bonded contacts first */}
                   {bondedContacts.map((contact) => (
-                    <SelectItem key={contact.id || contact.peerId} value={contact.id || contact.peerId} className="text-white hover:bg-white/10">
+                    <SelectItem key={contact.id || contact.peerId} value={contact.id || contact.peerId} className="text-white hover:bg-slate-700">
                       {contact.handle || `User ${(contact.id || contact.peerId).slice(-6)}`}
                     </SelectItem>
                   ))}
                   {/* Enhanced contacts */}
                   {enhancedContacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-white/10">
+                    <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-slate-700">
                       {contact.name} - {contact.role}
                     </SelectItem>
                   ))}
@@ -335,7 +335,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                 placeholder="Enter recipient name"
                 value={peerName}
                 onChange={(e) => setPeerName(e.target.value)}
-                className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-[#00F6FF]"
+                className="bg-slate-800 border-white/20 text-white placeholder:text-white/40 focus:border-[#00F6FF]"
               />
             )}
           </div>
@@ -384,7 +384,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                     className={`cursor-pointer p-2 rounded border transition-all ${
                       isSelected 
                         ? `${recognition.bgColor} ${recognition.borderColor}` 
-                        : 'bg-white/5 border-white/10 hover:border-white/30'
+                        : 'bg-slate-800 border-white/10 hover:border-white/30'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -419,7 +419,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
               placeholder="Why are you recognizing them?"
               value={personalMessage}
               onChange={(e) => setPersonalMessage(e.target.value)}
-              className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-[#00F6FF] resize-none"
+              className="bg-slate-800 border-white/20 text-white placeholder:text-white/40 focus:border-[#00F6FF] resize-none"
               rows={2}
             />
           </div>

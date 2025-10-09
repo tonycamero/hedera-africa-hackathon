@@ -92,7 +92,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 1: Send Token */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-[#00F6FF]/10 to-cyan-500/5 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 flex items-center justify-center border border-[#00F6FF]/30">
@@ -116,7 +116,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 2: QR Contact Exchange - Network Growth Engine */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/30 to-green-500/20 flex items-center justify-center border border-emerald-500/30">
@@ -148,7 +148,7 @@ export default function ContactsPage() {
       </div>
 
       {/* All Contacts with Trust Levels */}
-      <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/10 rounded-lg p-4 shadow-lg backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-white">All Contacts</h3>
           <div className="relative">
