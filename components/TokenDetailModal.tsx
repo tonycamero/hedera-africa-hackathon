@@ -119,13 +119,8 @@ export function TokenDetailModal({
                       token.category === 'knowledge' ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' :
                       token.category === 'execution' ? 'bg-purple-400/20 text-purple-300 border border-purple-400/30' : 'bg-[#00F6FF]/20 text-cyan-300 border border-[#00F6FF]/30'
                     }`}>
-                      {token.category.toUpperCase()}
+                      {token.category.toUpperCase()} SIGNAL
                     </div>
-                    {isSelected && (
-                      <div className="px-2 py-1 rounded-full text-xs font-medium bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30">
-                        ✓ SELECTED
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-white/60">
                     <div className="flex items-center gap-1">
@@ -176,7 +171,7 @@ export function TokenDetailModal({
                       Sending...
                     </>
                   ) : (
-                    <>Send this Signal!</>
+                    <>Send this Token!</>
                   )}
                 </Button>
               </div>
