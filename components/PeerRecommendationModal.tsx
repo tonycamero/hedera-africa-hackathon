@@ -297,7 +297,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         {children}
       </DialogTrigger>
       
-        <DialogContent className="max-w-md mx-auto bg-gradient-to-br from-slate-900/95 to-slate-800/90 backdrop-blur-xl border border-[#00F6FF]/30 shadow-2xl rounded-lg p-0">
+        <DialogContent className="w-80 max-w-[20rem] mx-auto bg-gradient-to-br from-slate-900/85 to-slate-800/80 backdrop-blur-xl border-2 border-[#00F6FF]/40 shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
         {/* Compact Header */}
         <div className="p-4 pb-3 border-b border-[#00F6FF]/20">
           <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
@@ -381,26 +381,26 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                   <div
                     key={recognition.id}
                     onClick={() => handleTokenDetail(recognition)}
-                    className={`cursor-pointer p-2 rounded border transition-all ${
+                    className={`cursor-pointer p-1.5 rounded border transition-all ${
                       isSelected 
                         ? `${recognition.bgColor} ${recognition.borderColor}` 
                         : 'bg-slate-800 border-white/10 hover:border-white/30'
                     }`}
                   >
-                    <div className="flex flex-col items-center gap-1">
-                      <div className={`p-1 rounded border-2 ${
-                        recognition.category === 'leadership' ? 'border-orange-400 bg-orange-400/10' :
-                        recognition.category === 'knowledge' ? 'border-emerald-400 bg-emerald-400/10' :
-                        recognition.category === 'execution' ? 'border-purple-400 bg-purple-400/10' : 'border-[#00F6FF] bg-[#00F6FF]/10'
+                    <div className="flex flex-col items-center gap-0.5">
+                      <div className={`p-1 rounded border ${
+                        recognition.category === 'leadership' ? 'border-orange-400/50 bg-orange-400/10' :
+                        recognition.category === 'knowledge' ? 'border-emerald-400/50 bg-emerald-400/10' :
+                        recognition.category === 'execution' ? 'border-purple-400/50 bg-purple-400/10' : 'border-[#00F6FF]/50 bg-[#00F6FF]/10'
                       }`}>
-                        <Icon className={`w-3 h-3 ${
+                        <Icon className={`w-2.5 h-2.5 ${
                           recognition.category === 'leadership' ? 'text-orange-400' :
                           recognition.category === 'knowledge' ? 'text-emerald-400' :
                           recognition.category === 'execution' ? 'text-purple-400' : 'text-[#00F6FF]'
                         }`} />
                       </div>
-                      <div className="text-xs text-white text-center truncate w-full">{recognition.name}</div>
-                      <div className={`text-xs font-medium ${
+                      <div className="text-[10px] text-white text-center truncate w-full leading-tight">{recognition.name}</div>
+                      <div className={`text-[10px] font-medium ${
                         recognition.category === 'leadership' ? 'text-orange-400' :
                         recognition.category === 'knowledge' ? 'text-emerald-400' :
                         recognition.category === 'execution' ? 'text-purple-400' : 'text-[#00F6FF]'

@@ -81,41 +81,8 @@ export default function ContactsPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-4 space-y-6">
-      {/* Unified Top Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button size="sm" className="bg-[#00F6FF]/20 hover:bg-[#00F6FF]/30 text-[#00F6FF] border border-[#00F6FF]/30">
-            <Search className="w-4 h-4" />
-          </Button>
-          <span className="text-sm text-white/70">{bondedContacts.length} Total Contacts</span>
-        </div>
-      </div>
 
-      {/* Card 1: Send Token */}
-      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 flex items-center justify-center border border-[#00F6FF]/30">
-              <Trophy className="w-5 h-5 text-[#00F6FF]" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Send Recognition Signals to Peers</h3>
-              <div className="text-xs text-[#00F6FF] font-medium">Increases their trust score!</div>
-            </div>
-          </div>
-        </div>
-        <div className="text-xs text-white/60 mb-3">
-          {bondedContacts.length} contacts • Recognition signals available
-        </div>
-        <PeerRecommendationModal>
-          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium">
-            <Award className="w-4 h-4 mr-2" />
-            Send Signal
-          </Button>
-        </PeerRecommendationModal>
-      </div>
-
-      {/* Card 2: QR Contact Exchange - Network Growth Engine */}
+      {/* Card 1: QR Contact Exchange - Network Growth Engine (MAIN LOOP) */}
       <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -147,10 +114,37 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Card 2: Send Token */}
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 flex items-center justify-center border border-[#00F6FF]/30">
+              <Trophy className="w-5 h-5 text-[#00F6FF]" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Send Recognition Signals to Peers</h3>
+              <div className="text-xs text-[#00F6FF] font-medium">Increases their trust score!</div>
+            </div>
+          </div>
+        </div>
+        <div className="text-xs text-white/60 mb-3">
+          {bondedContacts.length} contacts • Recognition signals available
+        </div>
+        <PeerRecommendationModal>
+          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium">
+            <Award className="w-4 h-4 mr-2" />
+            Send Signal
+          </Button>
+        </PeerRecommendationModal>
+      </div>
+
       {/* All Contacts with Trust Levels */}
       <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/10 rounded-lg p-4 shadow-lg backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">All Contacts</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-white">All Contacts</h3>
+            <span className="text-sm text-white/60">({bondedContacts.length})</span>
+          </div>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />
             <Input
