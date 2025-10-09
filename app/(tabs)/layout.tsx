@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
 import { 
-  Circle, 
-  Activity, 
-  Users
+  Network, 
+  Brain, 
+  BarChart3
 } from "lucide-react"
 
 export default function TabsLayout({
@@ -44,24 +44,24 @@ export default function TabsLayout({
 
   const tabs = [
     {
-      id: "circle",
-      label: "Topology",
-      path: "/circle",
-      icon: Circle,
+      id: "clusters",
+      label: "Clusters",
+      path: "/clusters",
+      icon: Network,
       badge: null
     },
     {
-      id: "signals", 
+      id: "intelligence", 
       label: "Intelligence",
-      path: "/signals",
-      icon: Activity,
+      path: "/intelligence",
+      icon: Brain,
       badge: hasUnseen ? "•" : null
     },
     {
-      id: "contacts",
-      label: "Analytics", 
-      path: "/contacts",
-      icon: Users,
+      id: "operations",
+      label: "Operations", 
+      path: "/operations",
+      icon: BarChart3,
       badge: null
     }
   ]
@@ -92,7 +92,7 @@ export default function TabsLayout({
               <div>
                 <h1 className="font-bold text-lg text-white">TrustMesh</h1>
                 <p className="text-xs text-muted-foreground">
-                  Community Builder Edition
+                  Municipal Trust Dashboard
                 </p>
               </div>
             </div>
