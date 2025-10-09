@@ -96,7 +96,7 @@ export default function TabsLayout({
               <div>
                 <h1 className="font-bold text-xl text-white tracking-tight">TrustMesh</h1>
                 <p className="text-xs text-white/50 font-light">
-                  Professional Network
+                  A New Kind of Professional Network
                 </p>
               </div>
             </div>

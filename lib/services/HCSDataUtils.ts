@@ -51,9 +51,34 @@ const T = (e: any) => e?.target ?? e?.actors?.to ?? e?.to ?? e?.payload?.to ?? e
 const U = (t?: string) => (t || '').toUpperCase()
 const k = (a: string, b: string) => [a, b].sort().join('|')
 
+// Known user ID to name mappings from hackathon seed data
+const USER_NAME_MAPPINGS: Record<string, string> = {
+  'tm-alex-chen': 'Alex Chen',
+  'tm-amara-okafor': 'Amara Okafor',
+  'tm-kofi-asante': 'Kofi Asante',
+  'tm-zara-mwangi': 'Zara Mwangi',
+  'tm-fatima-alrashid': 'Fatima Al-Rashid',
+  'tm-kwame-nkomo': 'Kwame Nkomo',
+  'tm-aisha-diallo': 'Aisha Diallo',
+  'tm-boma-nwachukwu': 'Boma Nwachukwu',
+  'tm-sekai-mandela': 'Sekai Mandela',
+  'tm-omar-hassan': 'Omar Hassan',
+  // Additional fallback patterns
+  'tm-sam-rivera': 'Sam Rivera',
+  'tm-jordan-kim': 'Jordan Kim',
+  'tm-maya-patel': 'Maya Patel',
+  'tm-riley-santos': 'Riley Santos',
+  'tm-casey-wright': 'Casey Wright'
+}
+
 // Generate a proper display handle from user ID
 function generateUserHandle(id: string): string {
   if (!id) return 'Unknown User'
+  
+  // Check if we have a known mapping first
+  if (USER_NAME_MAPPINGS[id]) {
+    return USER_NAME_MAPPINGS[id]
+  }
   
   // Remove common prefixes and clean up the ID
   let cleanId = id
@@ -70,13 +95,16 @@ function generateUserHandle(id: string): string {
     return `User ${suffix || 'Unknown'}`
   }
   
-  // Take the last meaningful part (usually the name)
-  const lastName = parts[parts.length - 1]
+  // If we have multiple parts, try to construct first and last name
+  if (parts.length >= 2) {
+    const firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+    const lastName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1)
+    return `${firstName} ${lastName}`
+  }
   
-  // Capitalize first letter
-  const displayName = lastName.charAt(0).toUpperCase() + lastName.slice(1)
-  
-  return displayName
+  // Single part - capitalize first letter
+  const singleName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+  return singleName
 }
 
 // Ultra-simple bonded contacts extraction - works with ANY event shape and never counts Alex
@@ -119,11 +147,24 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   }
   
   const bonded = new Set<string>()
+  console.log('🔍 [HCSDataUtils] Filtering bonded pairs for session ID:', me)
+  console.log('🔍 [HCSDataUtils] Total pairs found:', pairs.size)
+  
   for (const key of pairs.keys()) {
     const [a, b] = key.split('|')
-    if (a === me && b !== me) bonded.add(b)
-    if (b === me && a !== me) bonded.add(a)
+    console.log('🔍 [HCSDataUtils] Checking pair:', a, '<->', b)
+    if (a === me && b !== me) {
+      bonded.add(b)
+      console.log('🔍 [HCSDataUtils] Added bonded contact:', b)
+    }
+    if (b === me && a !== me) {
+      bonded.add(a)
+      console.log('🔍 [HCSDataUtils] Added bonded contact:', a)
+    }
   }
+  
+  console.log('🔍 [HCSDataUtils] Final bonded set size:', bonded.size)
+  console.log('🔍 [HCSDataUtils] Final bonded contacts:', [...bonded])
   
   return [...bonded].map(id => {
     const info = contactData.get(id) || {}
@@ -261,6 +302,112 @@ export function getPersonalMetricsFromHCS(
     trustCapacity: trustStats.cap,
     recognitionOwned: recognitionCount
   }
+}
+
+// Get trust levels for each contact
+export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: string): Map<string, { allocatedTo: number, receivedFrom: number }> {
+  const trustLevels = new Map<string, { allocatedTo: number, receivedFrom: number }>()
+  
+  // Initialize trust levels for all contacts
+  const initializeTrustLevel = (contactId: string) => {
+    if (!trustLevels.has(contactId)) {
+      trustLevels.set(contactId, { allocatedTo: 0, receivedFrom: 0 })
+    }
+  }
+  
+  // Get all trust-related events
+  const trustEvents = events.filter(e => 
+    e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE' || 
+    e.type === 'TRUST_ACCEPT' || e.type === 'TRUST_DECLINE'
+  ).sort((a, b) => a.ts - b.ts)
+  
+  // Track outbound and inbound trust per peer
+  const outboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
+  const inboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
+  
+  // Process all trust events
+  for (const event of trustEvents) {
+    const actor = event.actor || (event as any).actors?.from
+    const target = event.target || (event as any).actors?.to
+    const weight = event.metadata?.weight || 1
+    
+    if (!actor || !target) continue
+    
+    // Initialize trust levels for both parties
+    initializeTrustLevel(actor)
+    initializeTrustLevel(target)
+    
+    if (event.type === 'TRUST_ALLOCATE') {
+      if (actor === sessionId) {
+        // Outbound trust allocation
+        outboundTrustByPeer.set(target, { weight, status: 'pending' })
+      } else if (target === sessionId) {
+        // Inbound trust allocation
+        inboundTrustByPeer.set(actor, { weight, status: 'pending' })
+      }
+    } else if (event.type === 'TRUST_ACCEPT') {
+      if (actor === sessionId) {
+        // We accepted someone's trust
+        const existing = inboundTrustByPeer.get(target)
+        if (existing && existing.status === 'pending') {
+          existing.status = 'bonded'
+        }
+      } else if (target === sessionId) {
+        // Someone accepted our trust
+        const existing = outboundTrustByPeer.get(actor)
+        if (existing && existing.status === 'pending') {
+          existing.status = 'bonded'
+        }
+      }
+    } else if (event.type === 'TRUST_DECLINE') {
+      if (actor === sessionId) {
+        // We declined someone's trust
+        const existing = inboundTrustByPeer.get(target)
+        if (existing && existing.status === 'pending') {
+          existing.status = 'declined'
+        }
+      } else if (target === sessionId) {
+        // Someone declined our trust
+        const existing = outboundTrustByPeer.get(actor)
+        if (existing && existing.status === 'pending') {
+          existing.status = 'declined'
+        }
+      }
+    } else if (event.type === 'TRUST_REVOKE') {
+      if (actor === sessionId) {
+        // We revoked trust to someone
+        const existing = outboundTrustByPeer.get(target)
+        if (existing) {
+          existing.status = 'revoked'
+        }
+      } else if (target === sessionId) {
+        // Someone revoked trust from us
+        const existing = inboundTrustByPeer.get(actor)
+        if (existing) {
+          existing.status = 'revoked'
+        }
+      }
+    }
+  }
+  
+  // Calculate final trust levels
+  for (const [contactId, data] of outboundTrustByPeer.entries()) {
+    if (data.status === 'bonded') {
+      const current = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
+      current.allocatedTo = data.weight
+      trustLevels.set(contactId, current)
+    }
+  }
+  
+  for (const [contactId, data] of inboundTrustByPeer.entries()) {
+    if (data.status === 'bonded') {
+      const current = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
+      current.receivedFrom = data.weight
+      trustLevels.set(contactId, current)
+    }
+  }
+  
+  return trustLevels
 }
 
 // Get recent contact and trust events for mini feed

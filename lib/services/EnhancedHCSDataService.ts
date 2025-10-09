@@ -136,10 +136,14 @@ export class EnhancedHCSDataService {
     // Add suggested contacts from HCS contact requests that aren't bonded yet
     const suggestedContacts = this.getSuggestedContactsFromHCS(sessionId, allEvents, contactStates)
     
-    this.cachedContacts = [...enhancedBonded, ...suggestedContacts]
+    // Ensure current session user is never included in any contact list
+    const allContacts = [...enhancedBonded, ...suggestedContacts]
+      .filter(contact => contact.id !== sessionId)
+    
+    this.cachedContacts = allContacts
     this.lastUpdate = Date.now()
     
-    console.log(`[EnhancedHCSDataService] Loaded ${this.cachedContacts.length} enhanced contacts from HCS`)
+    console.log(`[EnhancedHCSDataService] Loaded ${this.cachedContacts.length} enhanced contacts from HCS (session user filtered)`)
     return this.cachedContacts
   }
 
@@ -309,61 +313,68 @@ export class EnhancedHCSDataService {
   }
 
   private generateDisplayName(peerId: string): string {
-    // African personas for Hedera Africa Hackathon demo
-    const africanPersonas = [
-      { name: 'Amara Okafor', story: 'Lagos Market Trader', country: 'Nigeria' },
-      { name: 'Kofi Asante', story: 'Ghana Cocoa Farmer', country: 'Ghana' },
-      { name: 'Zara Mwangi', story: 'Nairobi Fintech Founder', country: 'Kenya' },
-      { name: 'Fatima Al-Rashid', story: 'Moroccan Student Leader', country: 'Morocco' },
-      { name: 'Kwame Nkomo', story: 'Cape Town Developer', country: 'South Africa' },
-      { name: 'Aisha Diallo', story: 'Senegalese Mobile Money Agent', country: 'Senegal' },
-      { name: 'Boma Nwachukwu', story: 'Port Harcourt Entrepreneur', country: 'Nigeria' },
-      { name: 'Sekai Mandela', story: 'Harare University Professor', country: 'Zimbabwe' },
-      { name: 'Abena Owusu', story: 'Accra Tech Hub Manager', country: 'Ghana' },
-      { name: 'Omar Hassan', story: 'Cairo Blockchain Developer', country: 'Egypt' }
-    ]
+    // Import the same USER_NAME_MAPPINGS used by HCSDataUtils to ensure consistency
+    const USER_NAME_MAPPINGS: Record<string, string> = {
+      'tm-alex-chen': 'Alex Chen',
+      'tm-amara-okafor': 'Amara Okafor',
+      'tm-kofi-asante': 'Kofi Asante',
+      'tm-zara-mwangi': 'Zara Mwangi',
+      'tm-fatima-alrashid': 'Fatima Al-Rashid',
+      'tm-kwame-nkomo': 'Kwame Nkomo',
+      'tm-aisha-diallo': 'Aisha Diallo',
+      'tm-boma-nwachukwu': 'Boma Nwachukwu',
+      'tm-sekai-mandela': 'Sekai Mandela',
+      'tm-omar-hassan': 'Omar Hassan',
+      // Additional fallback patterns
+      'tm-sam-rivera': 'Sam Rivera',
+      'tm-jordan-kim': 'Jordan Kim',
+      'tm-maya-patel': 'Maya Patel',
+      'tm-riley-santos': 'Riley Santos',
+      'tm-casey-wright': 'Casey Wright'
+    }
     
-    // Enhanced name generation from peer ID
+    // Check if we have a known mapping first (same as HCSDataUtils)
+    if (USER_NAME_MAPPINGS[peerId]) {
+      return USER_NAME_MAPPINGS[peerId]
+    }
+    
+    // Enhanced name generation from peer ID - same logic as HCSDataUtils
     const cleanId = peerId.replace(/^(tm-|user-|0\.0\.)/, '')
     const parts = cleanId.split(/[-_]+/).filter(p => p.length > 0)
     
-    if (parts.length > 1) {
-      return parts.map(part => 
-        part.charAt(0).toUpperCase() + part.slice(1)
-      ).join(' ')
+    if (parts.length >= 2) {
+      const firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+      const lastName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1)
+      return `${firstName} ${lastName}`
     }
     
-    // Use African personas for demo
-    const hash = peerId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
-    const persona = africanPersonas[hash % africanPersonas.length]
-    return persona.name
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+    }
+    
+    // Fallback to last 6 characters if no meaningful parts
+    const suffix = peerId.slice(-6).replace(/^[-_]+/, '')
+    return `User ${suffix || 'Unknown'}`
   }
 
   private inferRole(peerId: string, events: SignalEvent[]): string {
-    // Infer professional role from HCS event patterns with African context
+    // Infer professional role from HCS event patterns
     const userEvents = events.filter(e => e.actor === peerId || e.target === peerId)
     
     if (userEvents.some(e => e.payload?.role)) {
       return userEvents.find(e => e.payload?.role)?.payload?.role || 'Community Member'
     }
     
-    // African business roles from recognition patterns
+    // Infer from recognition patterns
     const recognitions = userEvents.filter(e => e.class === 'recognition')
     if (recognitions.some(r => r.payload?.label?.includes('Lead'))) return 'Community Leader'
-    if (recognitions.some(r => r.payload?.label?.includes('Mentor'))) return 'Ubuntu Mentor' 
-    if (recognitions.some(r => r.payload?.label?.includes('Developer'))) return 'Tech Builder'
-    if (recognitions.some(r => r.payload?.label?.includes('Trader'))) return 'Market Trader'
+    if (recognitions.some(r => r.payload?.label?.includes('Mentor'))) return 'Mentor' 
+    if (recognitions.some(r => r.payload?.label?.includes('Developer'))) return 'Developer'
+    if (recognitions.some(r => r.payload?.label?.includes('Trader'))) return 'Trader'
     if (recognitions.some(r => r.payload?.label?.includes('Farmer'))) return 'Agricultural Entrepreneur'
     
-    // Default African business context roles
-    const africanRoles = [
-      'Market Trader', 'Mobile Money Agent', 'Community Organizer',
-      'Agricultural Entrepreneur', 'Tech Hub Member', 'University Student',
-      'Cooperative Leader', 'Fintech Innovator', 'Social Entrepreneur'
-    ]
-    
-    const hash = peerId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
-    return africanRoles[hash % africanRoles.length]
+    // Default to generic role - no geographic theming
+    return 'Community Member'
   }
 
   private inferCompany(peerId: string, events: SignalEvent[]): string {
@@ -441,21 +452,23 @@ export class EnhancedHCSDataService {
       c.status === 'pending' && (c.actor === sessionId || c.subject === sessionId)
     )
     
-    return pendingRequests.map(contact => {
-      const otherParty = contact.actor === sessionId ? contact.subject : contact.actor
-      return {
-        id: otherParty,
-        name: this.generateDisplayName(otherParty),
-        role: this.inferRole(otherParty, events),
-        company: this.inferCompany(otherParty, events),
-        status: 'pending' as const,
-        trustScore: this.calculateTrustScore(otherParty, events),
-        lastInteraction: new Date(contact.createdAt),
-        mutualConnections: this.calculateMutualConnections(sessionId, otherParty, contactStates),
-        hcsTimestamp: this.getConsensusTimestamp(otherParty, events),
-        provenance: 'hcs'
-      }
-    })
+    return pendingRequests
+      .map(contact => {
+        const otherParty = contact.actor === sessionId ? contact.subject : contact.actor
+        return {
+          id: otherParty,
+          name: this.generateDisplayName(otherParty),
+          role: this.inferRole(otherParty, events),
+          company: this.inferCompany(otherParty, events),
+          status: 'pending' as const,
+          trustScore: this.calculateTrustScore(otherParty, events),
+          lastInteraction: new Date(contact.createdAt),
+          mutualConnections: this.calculateMutualConnections(sessionId, otherParty, contactStates),
+          hcsTimestamp: this.getConsensusTimestamp(otherParty, events),
+          provenance: 'hcs'
+        }
+      })
+      .filter(contact => contact.id !== sessionId) // Never include the current user
   }
 
   private getEmojiForCategory(category: string): string {
