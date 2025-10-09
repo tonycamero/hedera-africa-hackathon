@@ -74,6 +74,7 @@ export default function CirclePage() {
   const [trustLevels, setTrustLevels] = useState<Map<string, { allocatedTo: number, receivedFrom: number }>>(new Map())
   const [sessionId, setSessionId] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [showContactSelection, setShowContactSelection] = useState(false)
 
   // Load real data from HCS
   useEffect(() => {
@@ -156,34 +157,42 @@ export default function CirclePage() {
     })
   }
 
-  const handleAddMember = (type: string) => {
-    toast.success(`Adding ${type}...`, {
-      description: 'Choose wisely - slots are scarce'
+  // Get contacts that are bonded but not yet in the circle (no trust allocated)
+  const availableContacts = bondedContacts.filter(contact => {
+    const trustData = trustLevels.get(contact.peerId || '') || { allocatedTo: 0, receivedFrom: 0 }
+    return trustData.allocatedTo === 0 // Not in circle yet
+  })
+
+  const handleAddMember = () => {
+    if (availableContacts.length === 0) {
+      toast.error('No available contacts', {
+        description: 'Connect with more people first'
+      })
+      return
+    }
+    setShowContactSelection(true)
+  }
+
+  const handleSelectContact = (contactId: string, contactName: string) => {
+    // This would trigger trust allocation in real implementation
+    toast.success(`Added ${contactName} to circle!`, {
+      description: 'Trust allocated successfully'
     })
+    setShowContactSelection(false)
+    // In real implementation, this would call trust allocation service
   }
 
   const availableSlots = trustStats.maxSlots - trustStats.allocatedOut
 
   return (
     <div className="max-w-md mx-auto px-4 py-4 space-y-6">
-      {/* Stoic Builder Header */}
+      {/* Streamlined Header */}
       <div className="text-center mb-6">
         <h1 className="text-xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
           <Circle className="w-5 h-5 text-[#00F6FF]" />
           Circle of Trust
         </h1>
         <p className="text-sm text-white/70 mt-1">Your Inner Circle Dashboard</p>
-        <div className="mt-2 text-xs">
-          {isLoading ? (
-            <span className="text-white/60 animate-pulse">Loading circle data...</span>
-          ) : (
-            <>
-              <span className="text-[#00F6FF] font-medium">{trustStats.allocatedOut}/{trustStats.maxSlots} Slots</span>
-              <span className="text-white/60 ml-2">Choose Wisely</span>
-              <span className="text-amber-400 ml-2">(Scarce Trust)</span>
-            </>
-          )}
-        </div>
       </div>
       
       {/* Inner Circle Campfire - Visual Centerpiece */}
@@ -191,7 +200,19 @@ export default function CirclePage() {
         <CardContent className="p-6">
           <div className="text-center mb-4">
             <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
-            <p className="text-xs text-white/60">Your network of trust - each connection represents shared commitment</p>
+            <div className="text-xs">
+              {isLoading ? (
+                <span className="text-white/60 animate-pulse">Loading circle data...</span>
+              ) : (
+                <>
+                  <span className="text-[#00F6FF] font-medium">{trustStats.allocatedOut}/{trustStats.maxSlots} Slots</span>
+                  <span className="text-white/60 mx-2">•</span>
+                  <span className="text-white/60">Choose Wisely</span>
+                  <span className="text-white/60 mx-2">•</span>
+                  <span className="text-amber-400">(Scarce Trust)</span>
+                </>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center justify-center gap-6">
@@ -206,16 +227,19 @@ export default function CirclePage() {
             
             {/* Circle Stats */}
             <div className="text-center">
-              <div className="flex items-baseline gap-1 justify-center mb-1">
+              <div className="flex items-baseline gap-1 justify-center mb-2">
                 <span className="text-2xl font-bold text-white">{trustStats.allocatedOut}</span>
-                <span className="text-white/60 text-sm">of 9 members</span>
+                <span className="text-white/60 text-sm">active</span>
               </div>
-              <p className="text-xs text-white/60 mb-2">in your circle</p>
               
-              <div className="text-xs">
-                <span className="text-[#00F6FF] font-medium">{availableSlots} open slots</span>
-                <br />
-                <span className="text-white/50">Prioritize Strength</span>
+              <div className="text-xs space-y-1">
+                <div className="text-[#00F6FF] font-medium">{availableSlots} open slots</div>
+                <div className="text-white/50">Prioritize Strength</div>
+                <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
+                  <div className="text-[#00F6FF] hover:text-cyan-400 transition-colors cursor-pointer font-medium mt-1">
+                    who should i add?
+                  </div>
+                </StoicGuideModal>
               </div>
             </div>
           </div>
@@ -229,9 +253,6 @@ export default function CirclePage() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#00F6FF]" />
               <span>Current Circle Members</span>
-              <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
-                <span className="text-xs text-[#00F6FF] hover:text-cyan-400 transition-colors cursor-pointer font-normal">who should i add?</span>
-              </StoicGuideModal>
             </div>
             <span className="text-xs text-white/60">{circleMembers.length} members</span>
           </h3>
@@ -282,31 +303,116 @@ export default function CirclePage() {
               ))
             )}
             
-            {/* Empty Slots */}
-            {Array.from({ length: availableSlots }, (_, i) => (
-              <div key={`empty-${i}`} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border-2 border-dashed border-white/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
-                    <Plus className="w-4 h-4 text-white/40" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-white/50">Empty Slot</div>
-                    <div className="text-xs text-white/40">Add a trusted member</div>
-                  </div>
+            {/* Add 3 Challenge - Show only 3 empty slots */}
+            {availableSlots > 0 && (
+              <>
+                {/* Challenge Header */}
+                <div className="text-center py-2 border-t border-white/10 mt-2">
+                  <div className="text-xs text-[#00F6FF] font-medium">Sprint Challenge</div>
+                  <div className="text-xs text-white/60 mt-1">Add 3 trusted members to strengthen your circle</div>
                 </div>
                 
-                <Button 
-                  size="sm"
-                  className="h-7 px-3 text-xs bg-[#00F6FF]/20 hover:bg-[#00F6FF]/30 text-[#00F6FF] border border-[#00F6FF]/30"
-                  onClick={() => handleAddMember('member')}
-                >
-                  Add
-                </Button>
-              </div>
-            ))}
+                {/* Show up to 3 empty slots */}
+                {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
+                  <div key={`empty-${i}`} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border-2 border-dashed border-[#00F6FF]/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#00F6FF]/10 border border-[#00F6FF]/30 flex items-center justify-center">
+                        <Plus className="w-4 h-4 text-[#00F6FF]/60" />
+                      </div>
+                      <div>
+                        <div className="text-sm text-white/60">Slot {i + 1}</div>
+                        <div className="text-xs text-[#00F6FF]/60">Add trusted contact</div>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      size="sm"
+                      className="h-7 px-3 text-xs bg-[#00F6FF]/20 hover:bg-[#00F6FF]/30 text-[#00F6FF] border border-[#00F6FF]/30"
+                      onClick={handleAddMember}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+                
+                {/* Progress indicator if more than 3 slots available */}
+                {availableSlots > 3 && (
+                  <div className="text-center py-2">
+                    <div className="text-xs text-white/40">
+                      +{availableSlots - 3} more slots available after completing this sprint
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Contact Selection Modal */}
+      {showContactSelection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowContactSelection(false)}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#00F6FF]/30 rounded-xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Add to Circle</h3>
+              <button 
+                onClick={() => setShowContactSelection(false)}
+                className="text-white/60 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-white/70 mb-4">
+              Choose from your bonded contacts to add to your circle of trust
+            </p>
+            
+            <div className="space-y-2">
+              {availableContacts.length === 0 ? (
+                <div className="text-center py-8 text-white/60">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm mb-1">No available contacts</p>
+                  <p className="text-xs text-white/40">Connect with more people first</p>
+                </div>
+              ) : (
+                availableContacts.map((contact) => {
+                  const displayName = contact.handle || `User ${contact.peerId?.slice(-6) || 'Unknown'}`
+                  return (
+                    <div 
+                      key={contact.peerId}
+                      className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-colors border border-white/10 hover:border-[#00F6FF]/30"
+                      onClick={() => handleSelectContact(contact.peerId || '', displayName)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00F6FF]/20 to-cyan-500/20 border border-[#00F6FF]/30 flex items-center justify-center">
+                          <User className="w-4 h-4 text-[#00F6FF]" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-white">{displayName}</div>
+                          <div className="text-xs text-white/60">Bonded Contact</div>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm"
+                        className="h-7 px-3 text-xs bg-[#00F6FF]/20 hover:bg-[#00F6FF]/30 text-[#00F6FF] border border-[#00F6FF]/30"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

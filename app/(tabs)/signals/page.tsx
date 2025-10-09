@@ -14,19 +14,7 @@ import {
   Users, 
   Shield, 
   Trophy,
-  UserPlus,
-  MessageCircle,
-  Send,
-  DollarSign,
-  Zap,
-  Heart,
-  Share,
-  MoreHorizontal,
-  Search,
-  Filter,
-  Sparkles,
-  Award,
-  TrendingUp
+  Search
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -34,15 +22,58 @@ interface EnhancedSignal extends SignalEvent {
   firstName: string
   onlineStatus: 'online' | 'offline' | 'idle'
   eventDescription: string
-  likes: number
-  comments: number
 }
+
+// Mock user recognition token collection - would come from HCS later
+const getUserTokenCollection = () => [
+  {
+    id: 'token-leadership-1',
+    category: 'leadership',
+    name: 'Strategic Vision',
+    description: 'Recognized for exceptional strategic thinking and long-term planning capabilities',
+    trustValue: 25,
+    receivedFrom: 'Sarah Chen',
+    receivedAt: Date.now() - 86400000 * 2, // 2 days ago
+    icon: 'telescope'
+  },
+  {
+    id: 'token-execution-1', 
+    category: 'execution',
+    name: 'Project Delivery',
+    description: 'Outstanding project management and delivery excellence under pressure',
+    trustValue: 20,
+    receivedFrom: 'Michael Rodriguez',
+    receivedAt: Date.now() - 86400000 * 5, // 5 days ago
+    icon: 'truck'
+  },
+  {
+    id: 'token-knowledge-1',
+    category: 'knowledge',
+    name: 'Technical Expertise',
+    description: 'Deep technical knowledge and ability to solve complex problems',
+    trustValue: 30,
+    receivedFrom: 'David Kim',
+    receivedAt: Date.now() - 86400000 * 7, // 7 days ago
+    icon: 'cpu'
+  },
+  {
+    id: 'token-leadership-2',
+    category: 'leadership',
+    name: 'Team Inspiration',
+    description: 'Exceptional ability to motivate and inspire team members',
+    trustValue: 22,
+    receivedFrom: 'Emily Johnson',
+    receivedAt: Date.now() - 86400000 * 10, // 10 days ago
+    icon: 'users'
+  }
+]
 
 export default function SignalsPage() {
   const [signals, setSignals] = useState<EnhancedSignal[]>([])
-  const [selectedTab, setSelectedTab] = useState<'signals' | 'recognition'>('signals')
+  const [selectedTab, setSelectedTab] = useState<'feed' | 'tokens'>('feed')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [userTokens] = useState(getUserTokenCollection())
 
   const getFirstName = (actorId: string): string => {
     // Smart name extraction
@@ -54,54 +85,58 @@ export default function SignalsPage() {
     return actorId.length > 10 ? actorId.slice(0, 6) : actorId
   }
 
-  const getOnlineStatus = (): 'online' | 'offline' | 'idle' => {
+  const getOnlineStatus = (signalId: string): 'online' | 'offline' | 'idle' => {
+    // Deterministic status based on signal ID for stability
+    const hash = signalId.split('').reduce((a, b) => (a + b.charCodeAt(0)) % 3, 0)
     const statuses: ('online' | 'offline' | 'idle')[] = ['online', 'offline', 'idle']
-    return statuses[Math.floor(Math.random() * statuses.length)]
+    return statuses[hash]
   }
 
   const getEventDescription = (signal: SignalEvent): string => {
     const firstName = getFirstName(signal.actor)
+    // Use signal ID for deterministic description selection
+    const hash = signal.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
     
-    const funDescriptions = {
+    const professionalDescriptions = {
       'CONTACT_REQUEST': [
-        `👀 ${firstName} is sliding into your network!`,
-        `✨ ${firstName} thinks you have main character energy`,
-        `🎯 ${firstName} wants to be in your inner circle`,
-        `🔥 ${firstName} is trying to level up their connections`
+        `🤝 ${firstName} sent a professional connection request`,
+        `📬 ${firstName} wants to expand their trusted network`,
+        `🔗 ${firstName} is building professional relationships`,
+        `🌐 ${firstName} reached out to grow their network`
       ],
       'CONTACT_ACCEPT': [
-        `🎉 ${firstName} just accepted your rizz!`,
-        `⚡ ${firstName} said YES to your vibe!`,
-        `🤝 ${firstName} officially locked in with you`,
-        `💯 ${firstName} is now in your professional crew!`
+        `✅ ${firstName} accepted your connection request`,
+        `🤝 ${firstName} confirmed your professional bond`,
+        `🔗 ${firstName} is now part of your trusted network`,
+        `🌟 ${firstName} validated your professional relationship`
       ],
       'TRUST_ALLOCATE': [
-        `💎 ${firstName} just gave you their trust - that's rare!`,
-        `🌟 ${firstName} sees your potential and backed it up`,
-        `🚀 ${firstName} believes you're going places`,
-        `⭐ ${firstName} put some respect on your name!`
+        `⭐ ${firstName} allocated trust tokens to recognize excellence`,
+        `🏆 ${firstName} sent professional recognition signals`,
+        `💎 ${firstName} endorsed someone's professional capabilities`,
+        `🎯 ${firstName} distributed trust to acknowledge achievements`
       ],
       'RECOGNITION_MINT': [
-        `🏆 ${firstName} just flex on everyone with a new achievement!`,
-        `🎯 ${firstName} unlocked something legendary!`,
-        `🔥 ${firstName} is absolutely crushing it right now`,
-        `💫 ${firstName} just dropped their latest W`
+        `🏆 ${firstName} earned a Leadership Signal recognition`,
+        `🎖️ ${firstName} received an Execution Signal token`,
+        `🧠 ${firstName} was awarded a Knowledge Signal`,
+        `⚡ ${firstName} unlocked professional recognition tokens`
       ],
       'PROFILE_UPDATE': [
-        `✨ ${firstName} just had a glow up and it shows!`,
-        `🎨 ${firstName} refreshed their whole aesthetic`,
-        `🔄 ${firstName} is reinventing themselves`,
-        `📈 ${firstName} upgraded their entire brand game`
+        `📋 ${firstName} updated their professional profile`,
+        `🔄 ${firstName} refreshed their network credentials`,
+        `📈 ${firstName} enhanced their professional presence`,
+        `✨ ${firstName} optimized their trust network profile`
       ]
     }
     
-    const descriptions = funDescriptions[signal.type as keyof typeof funDescriptions] || [
-      `🌟 ${firstName} made moves in the network!`,
-      `⚡ ${firstName} is actively building connections`,
-      `🚀 ${firstName} is making things happen`
+    const descriptions = professionalDescriptions[signal.type as keyof typeof professionalDescriptions] || [
+      `🔄 ${firstName} engaged in network activity`,
+      `⚡ ${firstName} participated in professional networking`,
+      `🌐 ${firstName} contributed to the trust network`
     ]
     
-    return descriptions[Math.floor(Math.random() * descriptions.length)]
+    return descriptions[hash % descriptions.length]
   }
 
   useEffect(() => {
@@ -109,14 +144,14 @@ export default function SignalsPage() {
       try {
         const allEvents = signalsStore.getAll()
         
-        const enhancedSignals: EnhancedSignal[] = allEvents.map(signal => ({
-          ...signal,
-          firstName: getFirstName(signal.actor),
-          onlineStatus: getOnlineStatus(),
-          eventDescription: getEventDescription(signal),
-          likes: Math.floor(Math.random() * 25) + 2,
-          comments: Math.floor(Math.random() * 8) + 1
-        }))
+        const enhancedSignals: EnhancedSignal[] = allEvents.map(signal => {
+          return {
+            ...signal,
+            firstName: getFirstName(signal.actor),
+            onlineStatus: getOnlineStatus(signal.id),
+            eventDescription: getEventDescription(signal)
+          }
+        })
         
         setSignals(enhancedSignals)
         setLoading(false)
@@ -172,60 +207,15 @@ export default function SignalsPage() {
     }
   }
 
-  const filteredSignals = signals.filter(signal => {
+  const filteredSignals = selectedTab === 'feed' ? signals.filter(signal => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return signal.firstName.toLowerCase().includes(query) || 
              signal.eventDescription.toLowerCase().includes(query)
     }
-    
-    if (selectedTab === 'recognition') {
-      return signal.type.includes('RECOGNITION') || signal.type.includes('TRUST')
-    }
-    
     return true
-  })
+  }) : []
 
-  const handleSendSignal = (targetUser: string) => {
-    const reactions = [
-      { emoji: '⚡', text: 'Zapped', desc: `You sent lightning vibes to ${targetUser}!` },
-      { emoji: '🔥', text: 'Fired up', desc: `${targetUser} just got your fire signal!` },
-      { emoji: '💫', text: 'Sparked', desc: `You lit up ${targetUser}'s network!` },
-      { emoji: '🚀', text: 'Boosted', desc: `${targetUser} got your rocket boost!` }
-    ]
-    const reaction = reactions[Math.floor(Math.random() * reactions.length)]
-    toast.success(`${reaction.emoji} ${reaction.text}!`, {
-      description: reaction.desc,
-    })
-  }
-
-  const handleSendTrust = (targetUser: string) => {
-    const amounts = [5, 10, 15, 25, 50]
-    const amount = amounts[Math.floor(Math.random() * amounts.length)]
-    toast.success(`💰 ${amount} $TRST sent to ${targetUser}!`, {
-      description: `Trust tokens locked and loaded! 🔒✨`,
-    })
-  }
-
-  const handleSendMessage = (targetUser: string) => {
-    const messageTypes = [
-      { emoji: '💬', text: 'Slid into their DMs', desc: 'Message delivered with style!' },
-      { emoji: '📩', text: 'Sent encrypted message', desc: 'Secure comms established!' },
-      { emoji: '✉️', text: 'Dropped a line', desc: 'Your message is on its way!' }
-    ]
-    const msgType = messageTypes[Math.floor(Math.random() * messageTypes.length)]
-    toast.success(`${msgType.emoji} ${msgType.text}!`, {
-      description: msgType.desc,
-    })
-  }
-
-  const handleReact = (signalId: string, targetUser: string) => {
-    const reactions = ['❤️', '🔥', '💯', '⚡', '🚀', '👏', '💪', '🎯']
-    const reaction = reactions[Math.floor(Math.random() * reactions.length)]
-    toast.success(`${reaction} Reacted to ${targetUser}'s signal!`, {
-      description: "Your reaction has been sent to the network",
-    })
-  }
 
   return (
     <div className="max-w-md mx-auto px-4 py-4 space-y-6">
@@ -253,125 +243,147 @@ export default function SignalsPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setSelectedTab('signals')}
+          onClick={() => setSelectedTab('feed')}
           className={`py-3 rounded-md transition-all duration-300 text-sm ${
-            selectedTab === 'signals'
+            selectedTab === 'feed'
               ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
               : 'text-white/60 hover:text-white/90'
           }`}
         >
           <Activity className="w-4 h-4 mr-1" />
-          Signals
+          Feed
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setSelectedTab('recognition')}
+          onClick={() => setSelectedTab('tokens')}
           className={`py-3 rounded-md transition-all duration-300 text-sm ${
-            selectedTab === 'recognition'
+            selectedTab === 'tokens'
               ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
               : 'text-white/60 hover:text-white/90'
           }`}
         >
           <Trophy className="w-4 h-4 mr-1" />
-          Recognition
+          My Tokens
         </Button>
       </div>
 
-      {/* Mobile Signals Feed */}
+      {/* Content Area */}
       <div className="space-y-3">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-[#00F6FF]"></div>
-              <p className="text-white/60">Loading network activity...</p>
+        {selectedTab === 'feed' ? (
+          // Feed View
+          loading ? (
+            <div className="flex justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-[#00F6FF]"></div>
+                <p className="text-white/60">Loading network activity...</p>
+              </div>
             </div>
-          </div>
-        ) : filteredSignals.length === 0 ? (
-          <div className="text-center py-12">
-            <Activity className="w-16 h-16 mx-auto mb-4 text-white/30" />
-            <h3 className="text-white/80 text-xl font-medium mb-2">No signals found</h3>
-            <p className="text-white/50">Try adjusting your search or check back later</p>
-          </div>
-        ) : (
-          filteredSignals.map((signal) => (
-            <Card key={signal.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300">
-              <CardContent className="p-3">
-                {/* Mobile-First Layout */}
-                <div className="space-y-3">
-                  {/* Top: User Info & Signal */}
-                  <div className="flex items-center gap-3">
-                    {/* Avatar with status */}
-                    <div className="relative">
-                      <Avatar className="w-10 h-10 ring-2 ring-white/20">
-                        <AvatarFallback className={`bg-gradient-to-br ${getSignalColor(signal.type)} text-white font-medium text-sm`}>
-                          {signal.firstName.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
-                    </div>
+          ) : filteredSignals.length === 0 ? (
+            <div className="text-center py-12">
+              <Activity className="w-16 h-16 mx-auto mb-4 text-white/30" />
+              <h3 className="text-white/80 text-xl font-medium mb-2">No signals found</h3>
+              <p className="text-white/50">Try adjusting your search or check back later</p>
+            </div>
+          ) : (
+            filteredSignals.map((signal) => (
+              <div key={signal.id} className="bg-white/5 border border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300 rounded-lg p-2">
+                {/* Compact Feed Item */}
+                <div className="flex items-center gap-2">
+                  {/* Small Avatar with status */}
+                  <div className="relative">
+                    <Avatar className="w-7 h-7">
+                      <AvatarFallback className={`bg-gradient-to-br ${getSignalColor(signal.type)} text-white font-medium text-xs`}>
+                        {signal.firstName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
+                  </div>
 
-                    {/* Signal Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-white text-sm truncate">{signal.firstName}</h3>
-                        <div className={`p-1 rounded-full bg-gradient-to-br ${getSignalColor(signal.type)}`}>
-                          {getSignalIcon(signal.type)}
-                        </div>
+                  {/* Signal Info - Compact */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-white text-xs truncate">{signal.firstName}</span>
+                      <div className={`p-0.5 rounded-full bg-gradient-to-br ${getSignalColor(signal.type)}`}>
+                        {getSignalIcon(signal.type)}
                       </div>
-                      <p className="text-white/80 text-sm line-clamp-2">{signal.eventDescription}</p>
                     </div>
-                    
-                    <span className="text-white/50 text-xs flex-shrink-0">
-                      {new Date(signal.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
+                    <p className="text-white/70 text-xs truncate">{signal.eventDescription}</p>
                   </div>
                   
-                  {/* Bottom: Engagement & Actions */}
-                  <div className="flex items-center justify-between">
-                    {/* Engagement Stats */}
-                    <div className="flex items-center gap-3 text-xs text-white/50">
-                      <div className="flex items-center gap-1">
-                        <Heart className="w-3 h-3" />
-                        <span>{signal.likes}</span>
+                  <span className="text-white/40 text-xs flex-shrink-0">
+                    {new Date(signal.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+            ))
+          )
+        ) : (
+          // My Tokens View - NFT Style Wallet
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold text-white mb-1">My Recognition Collection</h3>
+              <p className="text-white/60 text-sm">{userTokens.length} professional tokens earned</p>
+            </div>
+            
+            {userTokens.map((token) => {
+              const getCategoryColor = (category: string) => {
+                switch (category) {
+                  case 'leadership': return { bg: 'from-orange-500/20 to-orange-600/10', border: 'border-orange-400/30', text: 'text-orange-400' }
+                  case 'knowledge': return { bg: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-400/30', text: 'text-emerald-400' }
+                  case 'execution': return { bg: 'from-purple-500/20 to-purple-600/10', border: 'border-purple-400/30', text: 'text-purple-400' }
+                  default: return { bg: 'from-[#00F6FF]/20 to-cyan-500/10', border: 'border-[#00F6FF]/30', text: 'text-[#00F6FF]' }
+                }
+              }
+              
+              const colors = getCategoryColor(token.category)
+              
+              return (
+                <div key={token.id} className={`bg-gradient-to-r ${colors.bg} border ${colors.border} rounded-xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 shadow-lg`}>
+                  <div className="flex items-center gap-4">
+                    {/* Left 2/3: Token Info */}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium bg-white/10 ${colors.text} border ${colors.border}`}>
+                          {token.category.toUpperCase()} SIGNAL
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MessageCircle className="w-3 h-3" />
-                        <span>{signal.comments}</span>
+                      
+                      <h4 className="font-bold text-white text-sm">{token.name}</h4>
+                      <p className="text-white/70 text-xs line-clamp-2">{token.description}</p>
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-white/50">From {token.receivedFrom}</span>
+                        <span className={`font-semibold ${colors.text}`}>{token.trustValue} trust</span>
                       </div>
                     </div>
                     
-                    {/* Compact Action Buttons */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        onClick={() => handleSendSignal(signal.firstName)}
-                        className="bg-blue-500/20 text-blue-400 border-blue-400/30 hover:bg-blue-500/30 text-xs px-2 py-1 h-7"
-                      >
-                        <Zap className="w-3 h-3" />
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        onClick={() => handleSendTrust(signal.firstName)}
-                        className="bg-green-500/20 text-green-400 border-green-400/30 hover:bg-green-500/30 text-xs px-2 py-1 h-7"
-                      >
-                        <DollarSign className="w-3 h-3" />
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        onClick={() => handleSendMessage(signal.firstName)}
-                        className="bg-purple-500/20 text-purple-400 border-purple-400/30 hover:bg-purple-500/30 text-xs px-2 py-1 h-7"
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                      </Button>
+                    {/* Right 1/3: NFT Badge */}
+                    <div className="flex-shrink-0">
+                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${colors.bg} border-2 ${colors.border} flex items-center justify-center shadow-lg`}>
+                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center`}>
+                          <Trophy className={`w-6 h-6 ${colors.text}`} />
+                        </div>
+                      </div>
+                      <div className="text-center mt-1">
+                        <span className="text-white/40 text-xs">
+                          {new Date(token.receivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
+              )
+            })}
+            
+            {userTokens.length === 0 && (
+              <div className="text-center py-12">
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-white/30" />
+                <h3 className="text-white/80 text-xl font-medium mb-2">No tokens yet</h3>
+                <p className="text-white/50">Earn recognition from your network to build your collection</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
