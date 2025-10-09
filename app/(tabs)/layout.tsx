@@ -93,7 +93,7 @@ export default function TabsLayout({
               <div>
                 <h1 className="font-bold text-lg text-white">TrustMesh</h1>
                 <p className="text-xs text-orange-300">
-                  Social Network
+                  Social Network Lens
                 </p>
               </div>
             </div>
