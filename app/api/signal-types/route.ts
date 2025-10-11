@@ -17,6 +17,8 @@ export async function GET() {
         ...item,
         base_id,
         version: parseInt(versionStr, 10),
+        example_labels: item.labels, // Map labels to example_labels for UI
+        description: `Create collectible ${item.category.toLowerCase()} recognition tokens`,
         created_at: new Date().toISOString() // Mock timestamp
       }
     })

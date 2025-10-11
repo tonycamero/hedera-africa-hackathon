@@ -28,7 +28,7 @@ export function SignalTypeSelector({ onSelect, selectedType }: SignalTypeSelecto
       const response = await fetch('/api/signal-types')
       if (response.ok) {
         const data = await response.json()
-        setSignalTypes(data.types || [])
+        setSignalTypes(data.items || [])
       }
     } catch (error) {
       console.error('Failed to load signal types:', error)
