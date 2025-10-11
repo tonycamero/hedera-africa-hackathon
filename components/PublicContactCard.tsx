@@ -22,20 +22,18 @@ export function PublicContactCard({ accountId, handle }: PublicContactCardProps)
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        if (handle) {
-          // Try to fetch from public API first
-          const response = await fetch(`/u/${handle}`)
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success) {
-              setProfile({
-                handle: data.profile.handle,
-                displayName: data.profile.displayName,
-                avatar: data.profile.avatar,
-                verified: data.profile.verified
-              })
-              return
-            }
+        // Try to fetch from public API using accountId
+        const response = await fetch(`/api/u/${accountId}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setProfile({
+              handle: data.profile.handle,
+              displayName: data.profile.displayName,
+              avatar: data.profile.avatar,
+              verified: data.profile.verified
+            })
+            return
           }
         }
         

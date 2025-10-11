@@ -9,6 +9,8 @@ import { toast } from 'sonner'
 import { shareSignal } from "@/lib/utils/shareUtils"
 import { trackSignalSent } from '@/lib/services/GenZTelemetryService'
 import { GenZAddFriendModal } from '@/components/GenZAddFriendModal'
+import { AllocateTrustModal } from '@/components/AllocateTrustModal'
+import { trustAllocationService } from '@/lib/services/TrustAllocationService'
 import { GenZButton, GenZCard, GenZChip, GenZHeading, GenZText, GenZInput, genZClassNames } from '@/components/ui/genz-design-system'
 import { 
   Users, 
@@ -57,8 +59,9 @@ interface CampusConnection {
 }
 
 // CrewSection - Your closest friends (inner circle members)
-function CrewSection({ friends, onSignalClick, setActiveTab, onAddFriend }: { friends: Friend[], onSignalClick: (friend: Friend) => void, setActiveTab: (tab: 'crew' | 'campus' | 'discover') => void, onAddFriend: () => void }) {
+function CrewSection({ friends, onSignalClick, onAllocateTrust, setActiveTab, onAddFriend }: { friends: Friend[], onSignalClick: (friend: Friend) => void, onAllocateTrust?: (friend: Friend) => void, setActiveTab: (tab: 'crew' | 'campus' | 'discover') => void, onAddFriend: () => void }) {
   const closeFriends = friends.filter(friend => friend.isClose)
+  const availableToTrust = friends.filter(friend => !friend.isClose)
   
   if (closeFriends.length === 0) {
     return (
@@ -134,11 +137,82 @@ function CrewSection({ friends, onSignalClick, setActiveTab, onAddFriend }: { fr
   }
   
   return (
-    <div className="space-y-3">
-      {closeFriends.map((friend) => (
-        <FriendCard key={friend.id} friend={friend} onSignalClick={onSignalClick} showActivity />
-      ))}
+    <div className="space-y-4">
+      {/* Inner Circle Members */}
+      {closeFriends.length > 0 && (
+        <div className="space-y-3">
+          <GenZHeading level={4}>Inner Circle ({closeFriends.length}/9)</GenZHeading>
+          {closeFriends.map((friend) => (
+            <FriendCard key={friend.id} friend={friend} onSignalClick={onSignalClick} showActivity />
+          ))}
+        </div>
+      )}
+      
+      {/* Available to Trust */}
+      {availableToTrust.length > 0 && (
+        <div className="space-y-3">
+          <GenZHeading level={4}>Your Contacts</GenZHeading>
+          <GenZText size="sm" dim>Add to Circle to build deeper trust</GenZText>
+          {availableToTrust.map((friend) => (
+            <FriendCard 
+              key={friend.id} 
+              friend={friend} 
+              onSignalClick={onSignalClick} 
+              onAllocateTrust={onAllocateTrust}
+            />
+          ))}
+        </div>
+      )}
     </div>
+  )
+}
+
+// Viral Share Section - Simple profile sharing and invite
+function ViralShareSection({ sessionId, onAddFriend, counters }: { sessionId: string, onAddFriend: () => void, counters: { friends: number, sent: number, boosts: number } }) {
+  const handleShareProfile = async () => {
+    const profileUrl = `${window.location.origin}/u/${sessionId}`
+    const shareText = `Connect with me on TrustMesh! I've got ${counters.friends} connections and sent ${counters.sent} props ⚡`
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Join my TrustMesh crew',
+          text: shareText,
+          url: profileUrl
+        })
+      } else {
+        await navigator.clipboard.writeText(`${shareText} ${profileUrl}`)
+        toast('Profile link copied! Send it to add friends ⚡')
+      }
+    } catch (error) {
+      console.warn('Share failed:', error)
+    }
+  }
+  
+  return (
+    <GenZCard variant="glass" className="p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-boost-500/10 to-pri-500/10" />
+      <div className="relative flex items-center justify-between">
+        <div className="flex-1">
+          <GenZText className="font-semibold text-boost-400 mb-1">
+            Grow Your Crew ⚡
+          </GenZText>
+          <GenZText size="sm" dim>
+            Share your profile • Scan QR codes • Build trust
+          </GenZText>
+        </div>
+        <div className="flex gap-2">
+          <GenZButton size="sm" variant="boost" glow onClick={handleShareProfile}>
+            <Share2 className="w-3 h-3 mr-1" />
+            Share
+          </GenZButton>
+          <GenZButton size="sm" variant="primary" onClick={onAddFriend}>
+            <UserPlus className="w-3 h-3 mr-1" />
+            Add
+          </GenZButton>
+        </div>
+      </div>
+    </GenZCard>
   )
 }
 
@@ -387,7 +461,7 @@ function RecentScanCard({ scan }: { scan: any }) {
 }
 
 // FriendCard - For close crew members
-function FriendCard({ friend, onSignalClick, showActivity = false }: { friend: Friend, onSignalClick: (friend: Friend) => void, showActivity?: boolean }) {
+function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = false }: { friend: Friend, onSignalClick: (friend: Friend) => void, onAllocateTrust?: (friend: Friend) => void, showActivity?: boolean }) {
   return (
     <GenZCard variant="glass" className={`p-4 ${genZClassNames.hoverScale} cursor-pointer`}>
       <div className="flex items-center gap-3">
@@ -431,6 +505,21 @@ function FriendCard({ friend, onSignalClick, showActivity = false }: { friend: F
         
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
+          {/* Show Allocate Trust button if not in circle yet and handler provided */}
+          {!friend.isClose && onAllocateTrust && (
+            <GenZButton
+              size="sm"
+              variant="primary"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAllocateTrust(friend)
+              }}
+            >
+              <Users className="w-3 h-3 mr-1" />
+              Trust
+            </GenZButton>
+          )}
+          
           <GenZButton
             size="sm"
             variant="boost"
@@ -789,6 +878,8 @@ export default function YourCrewPage() {
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
   const [activeTab, setActiveTab] = useState<'crew' | 'campus' | 'discover'>('discover')
+  const [allocateTrustModalOpen, setAllocateTrustModalOpen] = useState(false)
+  const [selectedContactForTrust, setSelectedContactForTrust] = useState<Friend | null>(null)
   
   // Load data
   useEffect(() => {
@@ -851,27 +942,29 @@ export default function YourCrewPage() {
     setAddFriendOpen(true)
   }
 
-  const handleShareProfile = async () => {
-    const profileUrl = `${window.location.origin}/u/${sessionId}`
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Check out my TrustMesh profile',
-          text: 'Connect with me on TrustMesh - the blockchain social network',
-          url: profileUrl
-        })
-      } else {
-        await navigator.clipboard.writeText(profileUrl)
-        toast('Profile link copied to clipboard!')
-      }
-    } catch (error) {
-      console.warn('Share failed:', error)
-    }
-  }
 
   const handleSignalClick = (friend: Friend) => {
     setSelectedFriend(friend)
     setSendSignalModalOpen(true)
+  }
+
+  const handleAllocateTrustClick = (friend: Friend) => {
+    setSelectedContactForTrust(friend)
+    setAllocateTrustModalOpen(true)
+  }
+
+  const handleTrustAllocation = async (contactId: string, level: number) => {
+    const result = await trustAllocationService.submitTrustAllocation(contactId, level)
+    
+    if (result.success) {
+      // Optimistic update - the actual data will be updated when HCS events are ingested
+      const updatedTrustLevels = new Map(trustLevels)
+      const currentTrust = updatedTrustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
+      updatedTrustLevels.set(contactId, { ...currentTrust, allocatedTo: level })
+      setTrustLevels(updatedTrustLevels)
+    } else {
+      throw new Error(result.error || 'Trust allocation failed')
+    }
   }
 
   return (
@@ -897,6 +990,9 @@ export default function YourCrewPage() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Viral Share Section */}
+              <ViralShareSection sessionId={sessionId} onAddFriend={handleAddFriend} counters={counters} />
+              
               {/* Trust Agent */}
               <AICrewNudge onAddFriend={handleAddFriend} />
               
@@ -925,7 +1021,7 @@ export default function YourCrewPage() {
               </div>
               
               {activeTab === 'crew' && (
-                <CrewSection friends={friends} onSignalClick={handleSignalClick} setActiveTab={setActiveTab} onAddFriend={handleAddFriend} />
+                <CrewSection friends={friends} onSignalClick={handleSignalClick} onAllocateTrust={handleAllocateTrustClick} setActiveTab={setActiveTab} onAddFriend={handleAddFriend} />
               )}
               
               {activeTab === 'campus' && (
@@ -961,6 +1057,24 @@ export default function YourCrewPage() {
         isOpen={addFriendOpen}
         onClose={() => setAddFriendOpen(false)}
       />
+      
+      {/* Allocate Trust Modal */}
+      {selectedContactForTrust && (
+        <AllocateTrustModal
+          isOpen={allocateTrustModalOpen}
+          onClose={() => {
+            setAllocateTrustModalOpen(false)
+            setSelectedContactForTrust(null)
+          }}
+          contact={{
+            id: selectedContactForTrust.id,
+            name: selectedContactForTrust.name,
+            handle: selectedContactForTrust.handle
+          }}
+          currentCapacity={trustAllocationService.getCurrentCapacity()}
+          onAllocate={handleTrustAllocation}
+        />
+      )}
     </div>
   )
 }

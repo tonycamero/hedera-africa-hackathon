@@ -5,6 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
+import { DemoModeToggle } from "@/components/DemoModeToggle"
+import { WalletFloatingButton } from "@/components/WalletFloatingButton"
 import { 
   Circle, 
   Activity, 
@@ -75,15 +77,20 @@ export default function TabsLayout({
       {/* Header - Minimal Professional */}
       <header className="bg-black/20 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-center">
-            {/* TrustMesh Logo - Centered and 50% larger */}
+          <div className="flex items-center justify-between">
+            {/* Demo Mode Toggle - Left */}
+            <div className="flex-1">
+              <DemoModeToggle />
+            </div>
+            
+            {/* TrustMesh Logo - Centered */}
             <div className="w-14 h-14 flex items-center justify-center opacity-90">
               <svg 
                 width="36" 
                 height="36"
                 viewBox="0 0 24 24" 
                 fill="none"
-                className="animate-spin-slow-ccw"
+                className="animate-spin-slow-cw"
               >
                 <circle cx="6" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
                 <circle cx="18" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
@@ -92,9 +99,15 @@ export default function TabsLayout({
                 <path d="M6 18L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
               </svg>
             </div>
+            
+            {/* Spacer for balance - Right */}
+            <div className="flex-1"></div>
           </div>
         </div>
       </header>
+      
+      {/* Floating Wallet Button */}
+      <WalletFloatingButton />
 
       {/* Main content - Add bottom padding for fixed navigation */}
       <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">
@@ -170,8 +183,21 @@ export default function TabsLayout({
           }
         }
         
+        .animate-spin-slow-cw {
+          animation: spin-slow-cw 27s linear infinite;
+        }
+        
         .animate-spin-slow-ccw {
           animation: spin-slow-ccw 27s linear infinite;
+        }
+        
+        @keyframes spin-slow-cw {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
         
         @keyframes spin-slow-ccw {
