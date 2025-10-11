@@ -119,19 +119,6 @@ function CrewSection({ friends, onSignalClick, onAllocateTrust, setActiveTab, on
             </div>
           </div>
         </GenZCard>
-        
-        {/* Quick tips */}
-        <GenZCard variant="glass" className="p-4">
-          <GenZText className="font-semibold mb-2 flex items-center gap-2">
-            🎯 How it works
-          </GenZText>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <GenZText size="sm" dim>• Share QR code</GenZText>
-            <GenZText size="sm" dim>• Scan others</GenZText>
-            <GenZText size="sm" dim>• Send Signals</GenZText>
-            <GenZText size="sm" dim>• Build trust</GenZText>
-          </div>
-        </GenZCard>
       </div>
     )
   }
@@ -195,10 +182,10 @@ function ViralShareSection({ sessionId, onAddFriend, counters }: { sessionId: st
       <div className="relative flex items-center justify-between">
         <div className="flex-1">
           <GenZText className="font-semibold text-boost-400 mb-1">
-            Grow Your Crew ⚡
+            Grow your crew
           </GenZText>
           <GenZText size="sm" dim>
-            Share your profile • Scan QR codes • Build trust
+            Share profile · Scan QR
           </GenZText>
         </div>
         <div className="flex gap-2">
@@ -207,8 +194,8 @@ function ViralShareSection({ sessionId, onAddFriend, counters }: { sessionId: st
             Share
           </GenZButton>
           <GenZButton size="sm" variant="primary" onClick={onAddFriend}>
-            <UserPlus className="w-3 h-3 mr-1" />
-            Add
+            <Camera className="w-3 h-3 mr-1" />
+            Scan
           </GenZButton>
         </div>
       </div>
@@ -237,10 +224,10 @@ function AICrewNudge({ onAddFriend }: { onAddFriend: () => void }) {
         <PurpleFlame size="md" active={true} />
         <div className="flex-1">
           <GenZText className="font-medium mb-1 text-pri-500">
-            Hello, I'm Trust Agent
+            Trust Agent
           </GenZText>
           <GenZText size="sm">
-            {currentNudge}
+            Find people nearby and connect.
           </GenZText>
         </div>
         <GenZButton size="sm" variant="boost" glow onClick={onAddFriend}>
@@ -972,11 +959,10 @@ export default function YourCrewPage() {
       <div className="max-w-md mx-auto px-4 py-4 space-y-6">
         {/* Header */}
         <div className="text-center">
-          <GenZHeading level={1} className="flex items-center justify-center gap-2 mb-2">
+          <GenZHeading level={1} className="flex items-center justify-center gap-2">
             <Users className="w-6 h-6 text-pri-500 animate-breathe-glow" />
-            Build My Crew
+            Crew
           </GenZHeading>
-          <GenZText dim>Contacts, campus, and discovery</GenZText>
         </div>
 
 

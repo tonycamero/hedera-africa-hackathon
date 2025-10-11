@@ -162,10 +162,11 @@ export function SignalTypeSelector({ onSelect, selectedType }: SignalTypeSelecto
       </div>
       
       {filteredTypes.length === 0 && (
-        <GenZCard variant="glass" className="p-8 text-center">
-          <div className="text-4xl mb-3">🔍</div>
-          <GenZText className="mb-2">No signal types found</GenZText>
-          <GenZText size="sm" dim>Try selecting a different category</GenZText>
+        <GenZCard variant="glass" className="p-6 text-center">
+          <GenZText className="mb-4">No types yet.</GenZText>
+          <Button className="bg-pri-500 hover:bg-pri-600 text-white">
+            New Signal Type
+          </Button>
         </GenZCard>
       )}
     </div>

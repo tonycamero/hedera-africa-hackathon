@@ -220,11 +220,10 @@ export default function InnerCirclePage() {
       <div className="max-w-md mx-auto px-4 py-4 space-y-6">
         {/* GenZ Header */}
         <div className="text-center mb-6">
-            <GenZHeading level={1} className="flex items-center justify-center gap-2 mb-1">
+            <GenZHeading level={1} className="flex items-center justify-center gap-2">
               <Flame className="w-5 h-5 text-pri-500 animate-breathe-glow" />
               Inner Circle
             </GenZHeading>
-              <GenZText dim>Keep your most trusted people one tap away</GenZText>
         </div>
       
         {/* Inner Circle - Visual Centerpiece */}
@@ -246,21 +245,11 @@ export default function InnerCirclePage() {
               />
             </div>
             
-            {/* Inner Circle Stats */}
+            {/* Compact Stats */}
             <div className="text-center">
-              <div className="flex items-baseline gap-1 justify-center mb-2">
-                <span className="text-2xl font-bold text-genz-text font-mono">{trustStats.allocatedOut}</span>
-                <GenZText size="sm" dim>in the circle</GenZText>
-              </div>
-              
-              <div className="text-xs space-y-1">
-                <div className="text-pri-500 font-medium">{trustStats.allocatedOut} of {trustStats.maxSlots} spots</div>
-                <GenZText size="sm" dim>Quality over quantity</GenZText>
-                <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
-                  <div className="text-pri-500 hover:text-pri-glow transition-colors cursor-pointer font-medium mt-1 animate-breathe-glow">
-                    who should I add?
-                  </div>
-                </StoicGuideModal>
+              <div className="flex items-center gap-1 justify-center mb-2">
+                <span className="text-xl font-bold text-genz-text font-mono">{trustStats.allocatedOut}/{trustStats.maxSlots}</span>
+                <GenZText size="sm" dim>slots used</GenZText>
               </div>
             </div>
           </div>
@@ -270,19 +259,18 @@ export default function InnerCirclePage() {
         <GenZCard variant="glass" className="p-4">
             {innerCircleMembers.length === 0 ? (
             <div className="text-center py-6">
-              <GenZHeading level={4} className="mb-4">Start Building Your Inner Circle</GenZHeading>
+              <GenZHeading level={4} className="mb-4">Add to Circle</GenZHeading>
               
               {/* Action buttons for building circle */}
-              <div className="space-y-3">
+              <div className="flex gap-3 justify-center">
                 {/* Add from existing contacts */}
                 {availableContacts.length > 0 && (
                   <GenZButton 
                     onClick={() => setShowContactSelection(true)}
                     variant="boost"
-                    className="w-full"
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Add from Friends ({availableContacts.length})
+                    From Friends ({availableContacts.length})
                   </GenZButton>
                 )}
                 
@@ -290,21 +278,11 @@ export default function InnerCirclePage() {
                 <GenZButton 
                   onClick={() => setShowInviteActions(true)}
                   variant="outline"
-                  className="w-full border-pri-500/30 text-pri-500 hover:bg-pri-500/10"
+                  className="border-pri-500/30 text-pri-500 hover:bg-pri-500/10"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Invite New People
+                  Invite
                 </GenZButton>
-                
-                {/* Helper text */}
-                <div className="mt-4 text-center">
-                  <GenZText size="sm" dim>
-                    {availableContacts.length > 0 
-                      ? "Add friends you already know or invite new people"
-                      : "Start by inviting trusted friends and family"
-                    }
-                  </GenZText>
-                </div>
               </div>
             </div>
           ) : (

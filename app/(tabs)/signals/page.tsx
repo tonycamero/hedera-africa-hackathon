@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { DevRibbon } from '@/components/DevRibbon'
 
 export default function SignalsPage() {
   const [currentView, setCurrentView] = useState<'selector' | 'minting'>('selector')
@@ -42,20 +43,14 @@ export default function SignalsPage() {
 
   return (
     <div className="min-h-screen bg-ink">
+      <DevRibbon />
       <div className="max-w-md mx-auto px-4 py-4 space-y-6">
         {/* Header */}
         <div className="text-center">
           <GenZHeading level={1} className="flex items-center justify-center gap-2 mb-2">
             <Sparkles className="w-6 h-6 text-pri-500 animate-breathe-glow" />
-            {currentView === 'selector' ? 'Mint Signals' : 'Create Signal'}
+            {currentView === 'selector' ? 'Signals' : 'Create Signal'}
           </GenZHeading>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <GenZText dim>Create collectible recognition tokens</GenZText>
-            <Badge className={`text-xs ${getDataSourceBadgeColor('signals')} flex items-center gap-1`}>
-              {getDataSourceLabel('signals') === 'Mock Data' ? <Database className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-              {getDataSourceLabel('signals')}
-            </Badge>
-          </div>
           
           {/* Collection View Button */}
           {currentView === 'selector' && (
