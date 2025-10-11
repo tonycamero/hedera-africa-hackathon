@@ -75,33 +75,22 @@ export default function TabsLayout({
       {/* Header - Minimal Professional */}
       <header className="bg-black/20 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {/* TrustMesh Logo - Enhanced */}
-              <div className="w-9 h-9 flex items-center justify-center opacity-90">
-                <svg 
-                  width="24" 
-                  height="24"
-                  viewBox="0 0 24 24" 
-                  fill="none"
-                  className="animate-spin-slow-ccw"
-                >
-                  <circle cx="6" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
-                  <circle cx="18" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
-                  <circle cx="12" cy="6" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
-                  <path d="M6 18L12 6L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
-                  <path d="M6 18L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
-                </svg>
-              </div>
-              <div>
-                <h1 className="font-bold text-xl text-white tracking-tight">TrustMesh</h1>
-                <p className="text-xs text-white/50 font-light">
-                  Professional Network Lens
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Right side of header - empty for now */}
+          <div className="flex items-center justify-center">
+            {/* TrustMesh Logo - Centered and 50% larger */}
+            <div className="w-14 h-14 flex items-center justify-center opacity-90">
+              <svg 
+                width="36" 
+                height="36"
+                viewBox="0 0 24 24" 
+                fill="none"
+                className="animate-spin-slow-ccw"
+              >
+                <circle cx="6" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
+                <circle cx="18" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
+                <circle cx="12" cy="6" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
+                <path d="M6 18L12 6L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
+                <path d="M6 18L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
+              </svg>
             </div>
           </div>
         </div>

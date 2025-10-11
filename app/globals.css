@@ -167,6 +167,78 @@ html.theme-mesh-dark * {
 
 /*
 =============================================================================
+  GENZ LENS THEME - Neon Dark GenZ Social Gaming
+  
+  Ultra-dark with electric neon accents for viral GenZ appeal
+  Copy of mesh-dark with enhanced neon values and social gaming aesthetics
+=============================================================================
+*/
+
+:root.theme-genz-dark,
+.theme-genz-dark,
+html.theme-genz-dark,
+html.theme-genz-dark *,
+body[data-genz="true"] {
+  /* ==> BACKGROUND SURFACES - Deeper blacks for GenZ aesthetic */
+  --background: #0a0a0a !important;           /* Ultra-dark background */
+  --card: #111111 !important;                 /* Dark card backgrounds */
+  --popover: #111111 !important;              /* Popovers/dropdowns */
+  --muted: #1a1a1a !important;                /* Muted backgrounds */
+  --secondary: #1a1a1a !important;            /* Secondary backgrounds */
+  --input: #222222 !important;                /* Input field backgrounds */
+  
+  /* ==> TEXT HIERARCHY - High contrast for GenZ readability */
+  --foreground: #ffffff !important;           /* Pure white text */
+  --card-foreground: #ffffff !important;      /* Pure white card text */
+  --popover-foreground: #ffffff !important;   /* Pure white popover text */
+  
+  /* GenZ text hierarchy */
+  --text-primary: #ffffff !important;         /* Pure white headings */
+  --text-secondary: #f0f0f0 !important;       /* Near-white body text */
+  --text-muted: #cccccc !important;           /* Light gray labels */
+  --text-subtle: #999999 !important;          /* Medium gray helper text */
+  --text-placeholder: #666666 !important;     /* Dark gray placeholders */
+  
+  /* Legacy compatibility */
+  --muted-foreground: #cccccc !important;     /* Maps to text-muted */
+  --secondary-foreground: #f0f0f0 !important; /* Maps to text-secondary */
+  
+  /* ==> INTERACTIVE ELEMENTS - Electric neon primary */
+  --primary: #00F6FF !important;              /* Signature neon cyan */
+  --primary-foreground: #0a0a0a !important;   /* Dark text on neon buttons */
+  --accent: #00FF7F !important;               /* Electric spring green */
+  --accent-foreground: #0a0a0a !important;    /* Dark text on accent elements */
+  
+  /* ==> BORDERS & OUTLINES - Neon glow focus */
+  --border: #333333 !important;               /* Subtle dark borders */
+  --ring: #00F6FF !important;                 /* Neon cyan focus rings */
+  
+  /* GenZ card borders - electric and glowing */
+  --card-border: #00F6FF !important;          /* Signature neon cyan border */
+  
+  /* ==> SYSTEM COLORS */
+  --destructive: #ff3366 !important;          /* Hot pink error */
+  --destructive-foreground: #ffffff !important;
+  
+  /* ==> GENZ NEON PALETTE - Ultra-bright for social gaming */
+  --genz-cyan: #00F6FF !important;            /* Signature neon cyan */
+  --genz-pink: #ff0099 !important;            /* Hot viral pink */
+  --genz-green: #00ff88 !important;           /* Electric success green */
+  --genz-purple: #9d00ff !important;          /* Electric purple */
+  --genz-yellow: #ffff00 !important;          /* Electric yellow */
+  --genz-orange: #ff6600 !important;          /* Electric orange */
+  --genz-blue: #0066ff !important;            /* Electric blue */
+  --genz-red: #ff3366 !important;             /* Hot pink red */
+  
+  /* ==> SOCIAL GAMING COLORS */
+  --boost: #00F6FF !important;                /* Boost actions - signature cyan */
+  --share: #ff0099 !important;                /* Share actions - viral pink */
+  --signal: #00ff88 !important;               /* Signal success - electric green */
+  --suggest: #9d00ff !important;              /* Suggestions - electric purple */
+}
+
+/*
+=============================================================================
   UNIVERSAL ELEMENT OVERRIDES - Forces theme on all components
 =============================================================================
 */
@@ -555,6 +627,31 @@ html.theme-mesh-dark .text-amber-500 {
 
 .led-glow-cyan {
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.8), 0 0 40px rgba(34, 211, 238, 0.4);
+}
+
+/*
+=============================================================================
+  TRUST AGENT FLAME ANIMATION - Organic, living presence
+=============================================================================
+*/
+
+/* Flame animation keyframes */
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1, 0.9) rotate(-1deg); }
+  50% { transform: scale(0.9, 1.1) rotate(1deg); }
+  75% { transform: scale(1.05, 0.95) rotate(-1deg); }
+}
+
+@keyframes flame-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.2) saturate(1.1); }
+}
+
+@keyframes flame-core-pop {
+  0%, 34%, 100% { opacity: 0; transform: translateX(-50%) scale(0.85); }
+  35% { opacity: 1; transform: translateX(-50%) scale(1.35); }
+  42% { opacity: 0; transform: translateX(-50%) scale(0.9); }
 }
 
 /*

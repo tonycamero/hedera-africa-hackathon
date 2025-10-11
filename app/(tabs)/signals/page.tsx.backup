@@ -1,0 +1,450 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { Zap, Heart, Send, TrendingUp, Users, User, Star } from 'lucide-react'
+import { SendSignalModal } from '@/components/SendSignalModal'
+import { signalsStore, type BondedContact } from '@/lib/stores/signalsStore'
+import { getBondedContactsFromHCS, getTrustLevelsPerContact } from '@/lib/services/HCSDataUtils'
+import { getSessionId } from '@/lib/session'
+import { GenZButton, GenZCard, GenZHeading, GenZText, genZClassNames } from '@/components/ui/genz-design-system'
+import { toast } from 'sonner'
+
+// RecognitionSignal interface for boost feed
+interface RecognitionSignal {
+  id: string
+  senderName: string
+  recipientName: string
+  signalText: string
+  timestamp: number
+  boostCount: number
+  isBoosted: boolean
+  isFromMyNetwork: boolean
+}
+
+export default function PropsFeedPage() {
+  const [propCards, setPropCards] = useState<PropCard[]>([])
+  const [selectedFeed, setSelectedFeed] = useState<'all' | 'friends' | 'campus' | 'trending'>('friends')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [sendModalOpen, setSendModalOpen] = useState(false)
+
+  const getFirstName = (actorId: string): string => {
+    // Smart name extraction
+    if (actorId.startsWith('tm-') && actorId.length > 3) {
+      const namepart = actorId.slice(3).replace(/-/g, ' ')
+      const words = namepart.split(' ')
+      return words[0].charAt(0).toUpperCase() + words[0].slice(1)
+    }
+    return actorId.length > 10 ? actorId.slice(0, 6) : actorId
+  }
+
+  const getOnlineStatus = (signalId: string): 'online' | 'offline' | 'idle' => {
+    // Deterministic status based on signal ID for stability
+    const hash = signalId.split('').reduce((a, b) => (a + b.charCodeAt(0)) % 3, 0)
+    const statuses: ('online' | 'offline' | 'idle')[] = ['online', 'offline', 'idle']
+    return statuses[hash]
+  }
+
+  const getPropDescription = (signal: SignalEvent): { sender: string, recipient: string, templateText: string } => {
+    const senderName = getFirstName(signal.actor)
+    const hash = signal.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+    
+    // Mock recipient names for demo
+    const recipients = ['Sarah', 'Alex', 'Jordan', 'Casey', 'Taylor', 'Morgan', 'Jamie', 'Riley']
+    const recipientName = recipients[hash % recipients.length]
+    
+    // GenZ prop templates based on signal type
+    const propTemplates = {
+      'CONTACT_REQUEST': [
+        `sent props for "making the first move"`,
+        `gave props for "being brave enough to reach out"`, 
+        `sent love for "putting themselves out there"`,
+        `props for "sliding into the DMs respectfully"`
+      ],
+      'CONTACT_ACCEPT': [
+        `props for "being welcoming to new people"`,
+        `sent love for "growing the squad"`,
+        `gave props for "accepting good vibes"`,
+        `props for "making new friends"`
+      ],
+      'TRUST_ALLOCATE': [
+        `sent props for "absolutely crushing it"`,
+        `gave massive props for "being incredible"`,
+        `sent love for "going above and beyond"`,
+        `props for "being an actual legend"`
+      ],
+      'RECOGNITION_MINT': [
+        `earned props for "leadership energy"`,
+        `got recognized for "main character energy"`,
+        `received props for "being that person"`,
+        `earned love for "inspiring the squad"`
+      ],
+      'PROFILE_UPDATE': [
+        `got props for "leveling up their profile"`,
+        `sent love for "keeping it fresh"`,
+        `props for "staying authentic"`,
+        `gave props for "showing growth"`
+      ]
+    }
+    
+    const templates = propTemplates[signal.type as keyof typeof propTemplates] || [
+      `sent props for "being amazing"`,
+      `gave love for "good vibes only"`,
+      `props for "being a real one"`
+    ]
+    
+    return {
+      sender: senderName,
+      recipient: recipientName, 
+      templateText: templates[hash % templates.length]
+    }
+  }
+
+  useEffect(() => {
+    const loadPropCards = () => {
+      try {
+        const allEvents = signalsStore.getAll()
+        
+        const propCards: PropCard[] = allEvents.map(signal => {
+          const propData = getPropDescription(signal)
+          const metrics = getMockPropMetrics(signal.id)
+          
+          return {
+            ...signal,
+            firstName: propData.sender,
+            recipientName: propData.recipient,
+            templateText: propData.templateText,
+            propDescription: `${propData.sender} ${propData.templateText}`,
+            onlineStatus: getOnlineStatus(signal.id),
+            ...metrics
+          }
+        })
+        
+        setPropCards(propCards)
+        setLoading(false)
+        
+        console.log(`[PropsFeed] Loaded ${propCards.length} prop cards`)
+      } catch (error) {
+        console.error('[PropsFeed] Failed to load prop cards:', error)
+        setLoading(false)
+      }
+    }
+
+    // Ensure signals poller is running for serverless environments
+    signalsPoller.start()
+    
+    loadPropCards()
+    const unsubscribe = signalsStore.subscribe(loadPropCards)
+    return unsubscribe
+  }, [])
+
+  // GenZ interaction handlers
+  const handleBoost = async (propCard: PropCard) => {
+    // Optimistic UI update
+    setPropCards(cards => 
+      cards.map(card => 
+        card.id === propCard.id 
+          ? { ...card, isBoosted: !card.isBoosted, boostCount: card.isBoosted ? card.boostCount - 1 : card.boostCount + 1 }
+          : card
+      )
+    )
+    
+    // Show toast with GenZ language
+    toast(propCard.isBoosted ? 'Unboosted ⚡' : 'Boosted! ⚡', {
+      description: propCard.isBoosted ? 'Removed boost' : 'Spreading the hype!'
+    })
+  }
+
+  const handleReact = async (propCard: PropCard) => {
+    // Optimistic UI update
+    setPropCards(cards => 
+      cards.map(card => 
+        card.id === propCard.id 
+          ? { ...card, isReacted: !card.isReacted, reactions: card.isReacted ? card.reactions - 1 : card.reactions + 1 }
+          : card
+      )
+    )
+    
+    // Show toast
+    toast(propCard.isReacted ? 'Unreacted ❤️' : 'Reacted! ❤️')
+  }
+
+  const handleShare = async (propCard: PropCard) => {
+    if (propCard.metadata?.boostId) {
+      const result = await shareSignal({
+        boostId: propCard.metadata.boostId,
+        templateText: propCard.metadata.template,
+        fill: propCard.metadata.fill,
+        recipient: propCard.metadata.recipientHandle,
+        source: 'feed'
+      })
+      
+      trackShareEvent({
+        boostId: propCard.metadata.boostId,
+        source: 'feed',
+        method: result.method
+      })
+      
+      toast(result.success ? (result.method === 'native' ? 'Shared! 📤' : 'Link copied! 📋') : 'Share failed 😞')
+    } else {
+      // Fallback for props without boost links
+      const shareText = `${propCard.firstName} ${propCard.templateText} 🔥 Check it out on TrustMesh!`
+      if (navigator.share) {
+        try {
+          await navigator.share({ text: shareText })
+          toast('Shared! 📤')
+        } catch (error) {
+          await navigator.clipboard.writeText(shareText)
+          toast('Copied to clipboard! 📋')
+        }
+      } else {
+        await navigator.clipboard.writeText(shareText)
+        toast('Copied to clipboard! 📋')
+      }
+    }
+  }
+
+  const getStatusColor = (status: 'online' | 'offline' | 'idle') => {
+    switch (status) {
+      case 'online': return 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+      case 'idle': return 'bg-yellow-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+      case 'offline': return 'bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+    }
+  }
+
+  const getSignalIcon = (type: string) => {
+    switch (type) {
+      case 'CONTACT_REQUEST':
+      case 'CONTACT_ACCEPT':
+        return <Users className="w-4 h-4" />
+      case 'TRUST_ALLOCATE':
+        return <Shield className="w-4 h-4" />
+      case 'RECOGNITION_MINT':
+        return <Trophy className="w-4 h-4" />
+      default:
+        return <Activity className="w-4 h-4" />
+    }
+  }
+
+  const getSignalColor = (type: string) => {
+    switch (type) {
+      case 'CONTACT_REQUEST':
+      case 'CONTACT_ACCEPT':
+        return 'from-blue-500 to-cyan-500'
+      case 'TRUST_ALLOCATE':
+        return 'from-purple-500 to-pink-500'
+      case 'RECOGNITION_MINT':
+        return 'from-yellow-500 to-orange-500'
+      default:
+        return 'from-slate-500 to-gray-500'
+    }
+  }
+
+  const filteredPropCards = propCards.filter(card => {
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      return card.firstName.toLowerCase().includes(query) || 
+             card.recipientName.toLowerCase().includes(query) ||
+             card.templateText.toLowerCase().includes(query)
+    }
+    
+    // Apply feed filter (mock logic - would use real friend data)
+    switch (selectedFeed) {
+      case 'friends':
+        return true // Mock: show all as friends for demo
+      case 'campus':
+        return Math.random() > 0.3 // Mock: ~70% campus content
+      case 'trending':
+        return card.boostCount >= 5 // Mock: trending = 5+ boosts
+      case 'all':
+      default:
+        return true
+    }
+  })
+
+  return (
+    <div className="min-h-screen bg-ink">
+      <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+        {/* GenZ Feed Header */}
+        <div className="text-center space-y-3">
+          <GenZHeading level={1} className="flex items-center justify-center gap-2">
+            <Sparkles className="w-6 h-6 text-pri-500 animate-breathe-glow" />
+            Feed
+          </GenZHeading>
+          <GenZText dim>Where props fly • Real friends, real hype</GenZText>
+        </div>
+
+        {/* Send Props CTA */}
+        <SendSignalModal 
+          isOpen={sendModalOpen}
+          onClose={() => setSendModalOpen(false)}
+        />
+        <div className="flex justify-center">
+          <GenZButton
+            onClick={() => setSendModalOpen(true)}
+            variant="signal"
+            size="lg"
+            glow
+            className="px-8"
+          >
+            <Heart className="w-5 h-5 mr-2" />
+            Send Props
+          </GenZButton>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-genz-text-dim" />
+          <GenZInput
+            placeholder="Search props..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Feed Filter Chips */}
+        <div className="flex justify-center gap-2 flex-wrap">
+          {(['friends', 'all', 'campus', 'trending'] as const).map((feed) => {
+            const isSelected = selectedFeed === feed
+            const chipVariant = isSelected ? 'boost' : 'neutral'
+            const icons = {
+              friends: <Heart className="w-3 h-3" />,
+              all: <Eye className="w-3 h-3" />, 
+              campus: <Users className="w-3 h-3" />,
+              trending: <TrendingUp className="w-3 h-3" />
+            }
+            
+            return (
+              <GenZChip
+                key={feed}
+                variant={chipVariant}
+                className={`cursor-pointer ${genZClassNames.hoverScale} ${isSelected ? 'shadow-glow' : ''}`}
+                onClick={() => setSelectedFeed(feed)}
+              >
+                {icons[feed]}
+                {feed.charAt(0).toUpperCase() + feed.slice(1)}
+              </GenZChip>
+            )
+          })}
+        </div>
+
+        {/* Props Feed */}
+        <div className="space-y-4">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="text-5xl mb-4 animate-float">⚡</div>
+                <GenZText dim>Loading the hype...</GenZText>
+              </div>
+            </div>
+          ) : filteredPropCards.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-6 animate-float">🙏</div>
+              <GenZHeading level={3} className="mb-3">My feed is quiet</GenZHeading>
+              <GenZText dim className="mb-6">Send 1 prop to light it up 🔥</GenZText>
+              <GenZButton onClick={() => setSendModalOpen(true)} variant="signal" glow>
+                <Heart className="w-4 h-4 mr-2" />
+                Send My First Prop
+              </GenZButton>
+            </div>
+          ) : (
+            filteredPropCards.map((propCard) => (
+              <GenZCard key={propCard.id} variant="glass" className="p-4 space-y-3">
+                {/* Prop Header: Sender -> Recipient */}
+                <div className="flex items-center gap-3">
+                  {/* Sender Avatar */}
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pri-500/30 to-sec-500/20 border border-pri-500/30 flex items-center justify-center">
+                      <span className="text-genz-text font-semibold text-sm">
+                        {propCard.firstName.slice(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-panel ${getStatusColor(propCard.onlineStatus)}`} />
+                  </div>
+
+                  {/* Prop Flow */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <GenZText className="font-semibold truncate">{propCard.firstName}</GenZText>
+                      <div className="text-pri-500">→</div>
+                      <GenZText className="font-semibold truncate">{propCard.recipientName}</GenZText>
+                    </div>
+                    <GenZText size="sm" dim>
+                      {new Date(propCard.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    </GenZText>
+                  </div>
+                </div>
+
+                {/* Template Text - Main Prop */}
+                <div className="bg-pri-500/10 border border-pri-500/20 rounded-xl p-3">
+                  <GenZText className="font-medium">{propCard.templateText}</GenZText>
+                </div>
+
+                {/* Hype Bar - Metrics */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <Zap className={`w-4 h-4 ${propCard.boostCount > 5 ? 'text-pri-500' : 'text-genz-text-dim'}`} />
+                    <span className={`font-mono ${propCard.boostCount > 5 ? 'text-pri-500 font-bold' : 'text-genz-text-dim'}`}>
+                      {propCard.boostCount}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Heart className={`w-4 h-4 ${propCard.reactions > 6 ? 'text-sec-500' : 'text-genz-text-dim'}`} />
+                    <span className={`font-mono ${propCard.reactions > 6 ? 'text-sec-500 font-bold' : 'text-genz-text-dim'}`}>
+                      {propCard.reactions}
+                    </span>
+                  </div>
+                  <GenZText size="sm" dim className="ml-auto">
+                    HCS verified
+                  </GenZText>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 pt-2 border-t border-genz-border">
+                  <GenZButton
+                    size="sm"
+                    variant={propCard.isBoosted ? 'boost' : 'ghost'}
+                    onClick={() => handleBoost(propCard)}
+                    className={propCard.isBoosted ? 'shadow-glow' : ''}
+                  >
+                    <Zap className="w-3 h-3 mr-1" />
+                    Boost
+                  </GenZButton>
+                  
+                  <GenZButton
+                    size="sm"
+                    variant={propCard.isReacted ? 'signal' : 'ghost'}
+                    onClick={() => handleReact(propCard)}
+                  >
+                    <Heart className="w-3 h-3 mr-1" />
+                    {propCard.isReacted ? 'Loved' : 'Love'}
+                  </GenZButton>
+                  
+                  <GenZButton
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleShare(propCard)}
+                  >
+                    <Share2 className="w-3 h-3 mr-1" />
+                    Share
+                  </GenZButton>
+                  
+                  <GenZButton
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto"
+                  >
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    Comment
+                  </GenZButton>
+                </div>
+              </GenZCard>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

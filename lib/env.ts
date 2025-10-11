@@ -46,6 +46,9 @@ export const HCS_ENABLED =
 export const DEMO_SEED = cleanBool(process.env.NEXT_PUBLIC_DEMO_SEED);
 export const DEMO_MODE = cleanBool(process.env.NEXT_PUBLIC_DEMO_MODE);
 
+// GenZ Lens Feature Flag
+export const GENZ_LENS = cleanBool(process.env.GENZ_LENS) || cleanBool(process.env.NEXT_PUBLIC_GENZ_LENS);
+
 // Session ID (cleaned)
 export const SESSION_ID = clean(process.env.NEXT_PUBLIC_SESSION_ID) || "tm-alex-chen";
 

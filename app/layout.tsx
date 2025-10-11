@@ -4,6 +4,7 @@ import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import BootHCSClient from "@/app/providers/BootHCSClient"
 import { BootRegistryClient } from "@/lib/registry/BootRegistryClient"
+import { isGenZ } from "@/lib/ui/theme"
 import "./globals.css"
 
 const playfair = Playfair_Display({
@@ -22,7 +23,7 @@ const sourceSans = Source_Sans_3({
 
 export const metadata: Metadata = {
   title: "TrustMesh - Build Your Circle",
-  description: "Decentralized trust architecture with three-layer token system",
+  description: "GenZ Lens - Real connections, real trust. Send props, discover IRL events, build your crew with Trust Agent.",
   generator: "v0.app",
 }
 
@@ -36,9 +37,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const themeClass = isGenZ() ? 'theme-genz-dark' : 'theme-mesh-dark'
+  
   return (
-    <html lang="en" className={`${playfair.variable} ${sourceSans.variable} theme-mesh-dark`} suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground font-sans antialiased">
+    <html lang="en" className={`${playfair.variable} ${sourceSans.variable} ${themeClass}`} suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground font-sans antialiased" data-genz={isGenZ() ? 'true' : 'false'}>
         <BootRegistryClient />
         <BootHCSClient />
         {children}

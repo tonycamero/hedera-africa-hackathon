@@ -94,6 +94,9 @@ class SignalsStore {
   private readonly HARD_CAP = 200
   private recognitionDefinitions: Record<string, any> = {}
   private listeners: (() => void)[] = []
+  
+  // TODO: T3 - Boost counts for GenZ viral sharing
+  private boostCounts: Map<string, number> = new Map()
 
   // --- Core API ---
   add(event: SignalEvent): void {
@@ -218,11 +221,25 @@ class SignalsStore {
     console.log('[SignalsStore] Marked seen:', items.length, 'items')
   }
 
+  // TODO: T3 - Boost count management
+  getBoostCount(signalId: string): number {
+    return this.boostCounts.get(signalId) || 0
+  }
+
+  incrementBoostCount(signalId: string): void {
+    const current = this.boostCounts.get(signalId) || 0
+    this.boostCounts.set(signalId, current + 1)
+    console.log('[SignalsStore] Boosted signal:', signalId, 'count:', current + 1)
+    this.persistToStorage()
+    this.notifyListeners()
+  }
+
   // --- Debug Summary ---
   getSummary(): {
     countsByType: Record<string, number>,
     countsBySource: Record<'hcs' | 'hcs-cached', number>,
     total: number,
+    totalBoosts: number,
     lastTs?: number
   } {
     const countsByType: Record<string, number> = {}
@@ -242,10 +259,13 @@ class SignalsStore {
       }
     }
 
+    const totalBoosts = Array.from(this.boostCounts.values()).reduce((sum, count) => sum + count, 0)
+
     return {
       countsByType,
       countsBySource,
       total: this.signals.length,
+      totalBoosts,
       lastTs
     }
   }
@@ -270,6 +290,7 @@ class SignalsStore {
   clear(): void {
     this.signals = []
     this.recognitionDefinitions = {}
+    this.boostCounts.clear()
     console.log('[SignalsStore] Cleared all signals')
     this.notifyListeners()
   }
@@ -280,7 +301,8 @@ class SignalsStore {
       if (typeof window !== 'undefined') {
         const data = {
           signals: this.signals,
-          recognitionDefinitions: this.recognitionDefinitions
+          recognitionDefinitions: this.recognitionDefinitions,
+          boostCounts: Array.from(this.boostCounts.entries())
         }
         localStorage.setItem('trustmesh_signals', JSON.stringify(data))
       }
@@ -297,6 +319,7 @@ class SignalsStore {
           const data = JSON.parse(stored)
           this.signals = data.signals || []
           this.recognitionDefinitions = data.recognitionDefinitions || {}
+          this.boostCounts = new Map(data.boostCounts || [])
           console.log('[SignalsStore] Loaded', this.signals.length, 'signals from storage')
         }
       }
