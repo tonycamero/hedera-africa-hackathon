@@ -53,12 +53,12 @@ export default function TabsLayout({
       description: "Build connections"
     },
     {
-      id: "circle",
+      id: "inner-circle",
       label: "Circle",
-      path: "/circle",
+      path: "/inner-circle",
       icon: Circle,
       badge: null,
-      description: "Trust allocation"
+      description: "Inner Circle"
     },
     {
       id: "signals", 
