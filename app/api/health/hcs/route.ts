@@ -59,12 +59,8 @@ export async function GET() {
       }
     }
 
-    const isHealthy = (
-      registry.flags.HCS_ENABLED && 
-      hederaClient.isReady() && 
-      mirrorHealthy &&
-      Object.values(topics).every(topic => topic && topic !== 'not configured')
-    )
+    const readOnlyOK = mirrorHealthy && registry.flags.HCS_ENABLED && Object.values(topics).every(topic => topic && topic !== 'not configured');
+    const isHealthy = readOnlyOK;
 
     console.log(`[Health Check] Registry-based health: ${isHealthy ? 'healthy' : 'degraded'}`, {
       source: registrySource,

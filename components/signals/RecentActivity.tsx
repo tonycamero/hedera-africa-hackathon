@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useHcsEvents } from '@/hooks/useHcsEvents'
+import { recognitionItemsToActivity } from './transform'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,11 +30,23 @@ interface RecentActivityProps {
 export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
+  const recognition = useHcsEvents('recognition', 2500)
   const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
 
   useEffect(() => {
-    generateActivityData()
-  }, [recentMints])
+    const live = recognitionItemsToActivity(recognition.items) as any as ActivityItem[]
+    const mine = (recentMints || []).map((signal, idx) => ({
+      id: `recent_${idx}`,
+      type: 'mint' as const,
+      signal,
+      actor: 'You',
+      timestamp: new Date(signal.issued_at),
+      isFromNetwork: true
+    }))
+    const all = [...live, ...mine].sort((a,b)=>b.timestamp.getTime()-a.timestamp.getTime()).slice(0,8)
+    setActivities(all)
+    setLoading(false)
+  }, [recognition.watermark, recentMints])
 
   const generateActivityData = () => {
     // Mock recent activity data

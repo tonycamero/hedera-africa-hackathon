@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus, Heart, Flame, Mail, Smartphone, Send, Copy } from "lucide-react"
-import { signalsStore, type BondedContact } from "@/lib/stores/signalsStore"
+import type { BondedContact } from "@/lib/stores/signalsStore" // type only
+import { useHcsEvents } from "@/hooks/useHcsEvents"
+import { toLegacyEventArray } from "@/lib/services/HCSDataAdapter"
 import { getBondedContactsFromHCS, getTrustStatsFromHCS, getTrustLevelsPerContact } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { StoicGuideModal } from "@/components/StoicGuideModal"
@@ -66,6 +68,8 @@ function InnerCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: {
 
 export default function InnerCirclePage() {
   const router = useRouter()
+  const trustFeed = useHcsEvents('trust', 2500)
+  const contactFeed = useHcsEvents('contact', 2500) // optional if your utils look at contacts too
   const [selectedMember, setSelectedMember] = useState<string | null>(null)
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
   const [trustStats, setTrustStats] = useState({ allocatedOut: 0, maxSlots: 9, bondedContacts: 0 })
@@ -84,8 +88,11 @@ export default function InnerCirclePage() {
         const effectiveSessionId = currentSessionId || 'tm-alex-chen'
         setSessionId(effectiveSessionId)
         
-        // Load all events from signals store
-        const allEvents = signalsStore.getAll()
+        // Merge feeds you need (trust + contact) to match previous utils' assumptions
+        const allEvents = toLegacyEventArray([
+          ...trustFeed.items,
+          ...contactFeed.items,
+        ] as any)
         console.log('🔥 [InnerCirclePage] Effective session ID:', effectiveSessionId)
         console.log('🔥 [InnerCirclePage] Total events from signals store:', allEvents.length)
         
@@ -118,10 +125,10 @@ export default function InnerCirclePage() {
 
     loadCircleData()
     
-    // Subscribe to updates from signals store
-    const unsubscribe = signalsStore.subscribe(loadCircleData)
-    return unsubscribe
-  }, [])
+    // Re-run when feeds advance (watermarks change)
+    // (No subscription object needed—SWR revalidates)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trustFeed.watermark, contactFeed.watermark])
   
   // Inner circle members are only those bonded contacts who we've allocated trust to
   const innerCircleMembers = bondedContacts
