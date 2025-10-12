@@ -1,45 +1,44 @@
 'use client';
 
-import { useEffect } from 'react';
-import { bootIngestionOnce, addShutdownHandler } from '@/lib/boot/bootIngestion';
+import { useEffect, useState } from 'react';
 import { signalsStore } from '@/lib/stores/signalsStore';
-import { HCS_ENABLED, DEMO_SEED, MIRROR_REST, MIRROR_WS, TOPICS } from '@/lib/env';
 
 /**
  * Global HCS ingestion initialization component.
- * Uses the new Step 3 ingestion architecture with resilient backfill + streaming.
+ * Uses server-driven robust boot system instead of client-side environment checks.
  */
 export default function BootHCSClient() {
+  const [status, setStatus] = useState<'idle' | 'starting' | 'ok' | 'error'>('idle')
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     const initializeServices = async () => {
       try {
-        console.log('🚀 [BootHCSClient] Starting HCS ingestion with Step 3 architecture...');
-        console.log('🚀 [BootHCSClient] Environment check:', {
-          HCS_ENABLED,
-          DEMO_SEED,
-          NODE_ENV: process.env.NODE_ENV,
-          MIRROR_REST,
-          MIRROR_WS,
-          TOPICS,
-          raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
-          raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
-        });
+        console.log('🚀 [BootHCSClient] Starting HCS ingestion with server-driven robust boot...');
+        setStatus('starting')
+        setError(null)
         
-        // Only initialize if HCS is enabled
-        if (!HCS_ENABLED) {
-          console.warn('🚫 [BootHCSClient] HCS_ENABLED=false, skipping ingestion initialization');
-          console.warn('🚫 [BootHCSClient] Raw env value:', process.env.NEXT_PUBLIC_HCS_ENABLED);
-          console.warn('🚫 [BootHCSClient] To enable: Set NEXT_PUBLIC_HCS_ENABLED=true in environment');
-          return;
+        // Trigger server-side boot via API (idempotent, with retries)
+        const response = await fetch('/api/admin/start-ingestion', {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          console.log('✅ [BootHCSClient] Server-driven ingestion started successfully:', result.state)
+          setStatus('ok')
+        } else {
+          console.error('❌ [BootHCSClient] Server-driven boot failed:', result.error)
+          setStatus('error')
+          setError(result.error || 'Unknown server boot failure')
         }
-
-        // Start the new Step 3 ingestion system
-        console.log('📡 [BootHCSClient] Booting HCS ingestion (backfill + streaming + recognition two-phase)...');
-        await bootIngestionOnce();
         
-        console.log('🎉 [BootHCSClient] HCS ingestion system started successfully');
-        
-        // Add to global scope for debugging
+        // Set up debug helpers regardless of boot success/failure
         if (typeof window !== 'undefined') {
           (window as any).signalsStore = signalsStore;
           (window as any).debugStore = {
@@ -59,47 +58,44 @@ export default function BootHCSClient() {
             
             // Debug and stats
             storeSummary: () => signalsStore.getSummary(),
+            
+            // Boot control (development)
+            bootStatus: status,
+            bootError: error,
+            retryBoot: initializeServices
           };
           
           console.log('🔧 [BootHCSClient] Debug helpers added to window.signalsStore and window.debugStore');
-          console.log('🔧 [BootHCSClient] New methods: getScoped(), getSummary(), getByType(), etc.');
-          console.log('🔧 [BootHCSClient] Ingestion stats: window.trustmeshIngest.stats()');
-          console.log('🔧 [BootHCSClient] Recognition cache: window.trustmeshIngest.recognitionCache()');
+          console.log('🔧 [BootHCSClient] Boot status:', status);
+          if (error) {
+            console.log('🔧 [BootHCSClient] Boot error:', error);
+            console.log('🔧 [BootHCSClient] Retry with: window.debugStore.retryBoot()');
+          }
         }
         
-      } catch (error) {
-        console.error('❌ [BootHCSClient] HCS ingestion initialization failed:', error);
-        console.error('❌ [BootHCSClient] Error details:', {
-          message: error.message,
-          stack: error.stack,
-          HCS_ENABLED,
-          DEMO_SEED
-        });
-        // Don't throw - let the app continue with empty state
+      } catch (networkError: any) {
+        console.error('❌ [BootHCSClient] Network/fetch error during server-driven boot:', networkError);
+        setStatus('error')
+        setError(`Network error: ${networkError.message}`)
+        
+        // Still set up debug helpers for troubleshooting
+        if (typeof window !== 'undefined') {
+          (window as any).signalsStore = signalsStore;
+          (window as any).debugStore = {
+            getSignals: () => signalsStore.getAll(),
+            getSummary: () => signalsStore.getSummary(),
+            bootStatus: 'error',
+            bootError: networkError.message,
+            retryBoot: initializeServices
+          };
+        }
       }
     };
 
-    // Initialize services on mount
+    // Start initialization on mount
     initializeServices();
-
-    // Always set up debug helpers, even if initialization fails
-    if (typeof window !== 'undefined') {
-      (window as any).signalsStore = signalsStore;
-      (window as any).debugStore = {
-        getSignals: () => signalsStore.getAll(),
-        getSummary: () => signalsStore.getSummary(),
-        getScoped: (sessionId: string, scope: 'my' | 'global') => 
-          signalsStore.getScoped(sessionId, scope)
-      };
-      console.log('🔧 [BootHCSClient] Debug helpers setup (fallback)');
-    }
-
-    // No cleanup function needed - bootIngestionOnce handles its own lifecycle
-    return () => {
-      // Cleanup is handled by the ingestion boot system
-    };
   }, []);
 
-  // This component renders nothing
+  // This component renders nothing (invisible)
   return null;
 }

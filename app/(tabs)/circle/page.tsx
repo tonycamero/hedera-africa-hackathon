@@ -7,8 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus } from "lucide-react"
-import { signalsStore, type BondedContact } from "@/lib/stores/signalsStore"
-import { getBondedContactsFromHCS, getTrustStatsFromHCS, getTrustLevelsPerContact } from "@/lib/services/HCSDataUtils"
+import { type BondedContact } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
 import { StoicGuideModal } from "@/components/StoicGuideModal"
 
@@ -76,7 +75,7 @@ export default function CirclePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showContactSelection, setShowContactSelection] = useState(false)
 
-  // Load real data from HCS
+  // Load real data from server-side API
   useEffect(() => {
     const loadCircleData = async () => {
       try {
@@ -85,33 +84,31 @@ export default function CirclePage() {
         const effectiveSessionId = currentSessionId || 'tm-alex-chen'
         setSessionId(effectiveSessionId)
         
-        // Load all events from signals store
-        const allEvents = signalsStore.getAll()
-        console.log('🔥 [CirclePage] Effective session ID:', effectiveSessionId)
-        console.log('🔥 [CirclePage] Total events from signals store:', allEvents.length)
+        console.log('🔥 [CirclePage] Loading circle data from server API for:', effectiveSessionId)
         
-        // Get bonded contacts
-        const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
-        console.log('🔥 [CirclePage] Bonded contacts:', contacts)
-        setBondedContacts(contacts)
+        // Load circle data from server-side API
+        const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
+        const data = await response.json()
         
-        // Get trust statistics
-        const hcsTrustStats = getTrustStatsFromHCS(allEvents, effectiveSessionId)
-        console.log('🔥 [CirclePage] Trust stats:', hcsTrustStats)
-        setTrustStats({
-          allocatedOut: hcsTrustStats.allocatedOut,
-          maxSlots: hcsTrustStats.cap, // This is always 9 from HCS
-          bondedContacts: contacts.length
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load circle data')
+        }
+        
+        console.log('🔥 [CirclePage] Received circle data from API:', data)
+        setBondedContacts(data.bondedContacts)
+        setTrustStats(data.trustStats)
+        
+        // Convert trust levels object back to Map
+        const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
+        Object.entries(data.trustLevels).forEach(([key, value]) => {
+          trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
         })
+        setTrustLevels(trustLevelsMap)
         
-        // Get trust levels per contact
-        const trustData = getTrustLevelsPerContact(allEvents, effectiveSessionId)
-        console.log('🔥 [CirclePage] Trust levels:', trustData)
-        setTrustLevels(trustData)
-        
-        console.log(`[CirclePage] Loaded ${contacts.length} bonded contacts with ${hcsTrustStats.allocatedOut}/${hcsTrustStats.cap} trust allocated`)
+        console.log(`[CirclePage] Loaded ${data.bondedContacts.length} bonded contacts with ${data.trustStats.allocatedOut}/${data.trustStats.maxSlots} trust allocated from server API`)
       } catch (error) {
         console.error('[CirclePage] Failed to load circle data:', error)
+        toast.error('Failed to load circle data')
       } finally {
         setIsLoading(false)
       }
@@ -119,9 +116,9 @@ export default function CirclePage() {
 
     loadCircleData()
     
-    // Subscribe to updates from signals store
-    const unsubscribe = signalsStore.subscribe(loadCircleData)
-    return unsubscribe
+    // Refresh every 30 seconds
+    const interval = setInterval(loadCircleData, 30000)
+    return () => clearInterval(interval)
   }, [])
   
   // Circle members are only those bonded contacts who we've allocated trust to
@@ -197,7 +194,7 @@ export default function CirclePage() {
       
       {/* Inner Circle Campfire - Visual Centerpiece */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/10">
-        <CardContent className="p-6">
+        <CardContent className="p-6 relative">
           <div className="text-center mb-4">
             <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
             <div className="text-xs">
@@ -235,14 +232,17 @@ export default function CirclePage() {
               <div className="text-xs space-y-1">
                 <div className="text-[#00F6FF] font-medium">{availableSlots} open slots</div>
                 <div className="text-white/50">Prioritize Strength</div>
-                <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
-                  <div className="text-[#00F6FF] hover:text-cyan-400 transition-colors cursor-pointer font-medium mt-1">
-                    who should i add?
-                  </div>
-                </StoicGuideModal>
               </div>
             </div>
           </div>
+          
+          {/* Tooltip-style hint positioned in bottom right of card */}
+          <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
+            <div className="absolute -bottom-1 right-3 text-xs text-[#00F6FF]/80 hover:text-[#00F6FF] transition-all duration-300 cursor-pointer font-medium flex items-center gap-1 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] hover:scale-105">
+              <span className="text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]">→</span>
+              <span className="drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] hover:drop-shadow-[0_0_12px_rgba(255,255,255,1.0)]">Who should I add?</span>
+            </div>
+          </StoicGuideModal>
         </CardContent>
       </Card>
       

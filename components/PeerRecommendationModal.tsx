@@ -40,11 +40,8 @@ import {
 import { toast } from 'sonner'
 import { professionalRecognitionService, type RecognitionRequest } from '@/lib/professionalRecognitionService'
 import { getSessionId } from '@/lib/session'
-import { getBondedContactsAdapter } from '@/lib/adapters/hcsContactsAdapter'
-// Removed EnhancedHCSDataService - using pure HCS data flow
-import { signalsStore } from '@/lib/stores/signalsStore'
-import { getBondedContactsFromHCS } from '@/lib/services/HCSDataUtils'
 import { TokenDetailModal } from './TokenDetailModal'
+import { fetchContactsForSession, type BondedContact } from '@/lib/utils/contactApi'
 
 interface PeerRecommendationModalProps {
   children: React.ReactNode
@@ -116,11 +113,7 @@ const getProfessionalRecognitions = () => {
   }))
 }
 
-interface BondedContact {
-  id: string
-  handle: string
-  bondedAt?: number
-}
+// BondedContact type is now imported from centralized helper
 
 export function PeerRecommendationModal({ children }: PeerRecommendationModalProps) {
   const [open, setOpen] = useState(false)
@@ -131,7 +124,6 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
   const [personalMessage, setPersonalMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
-  const [enhancedContacts, setEnhancedContacts] = useState<any[]>([])
   const [loadingContacts, setLoadingContacts] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('leadership')
   const [detailToken, setDetailToken] = useState<any | null>(null)
@@ -162,19 +154,13 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
       setLoadingContacts(true)
       const sessionId = getSessionId()
       const effectiveSessionId = sessionId || 'tm-alex-chen'
-      console.log('[PeerRecommendationModal] Loading contacts for session:', effectiveSessionId)
-      
-      // Load bonded contacts from HCS (same as contacts page)
-      const allEvents = signalsStore.getAll()
-      const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
+      console.log('[PeerRecommendationModal] Loading contacts for:', effectiveSessionId)
+      const { contacts } = await fetchContactsForSession(effectiveSessionId)
       setBondedContacts(contacts)
-      
-      // Pure HCS data flow - no enhanced contacts needed
-      setEnhancedContacts([])
-      
-      console.log(`[PeerRecommendationModal] Loaded ${contacts.length} bonded contacts (pure HCS data)`)
-    } catch (error) {
+      console.log(`[PeerRecommendationModal] Loaded ${contacts.length} bonded contacts`)
+    } catch (error: any) {
       console.error('Failed to load contacts:', error)
+      toast.error(error?.message || 'Failed to load contacts')
     } finally {
       setLoadingContacts(false)
     }
@@ -194,18 +180,12 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
   
   const handleContactSelection = (contactId: string) => {
     setSelectedContactId(contactId)
-    // Check bonded contacts first
-    const bondedContact = bondedContacts.find(c => (c.id || c.peerId) === contactId)
+    // Use normalized contacts list
+    const bondedContact = bondedContacts.find(c => c.id === contactId)
     if (bondedContact) {
-      setPeerName(bondedContact.handle || bondedContact.id || bondedContact.peerId)
-      setPeerEmail('') // Clear email since we have wallet address
-      return
-    }
-    // Check enhanced contacts
-    const enhancedContact = enhancedContacts.find(c => c.id === contactId)
-    if (enhancedContact) {
-      setPeerName(enhancedContact.name)
-      setPeerEmail('') // Clear email
+      setPeerName(bondedContact.handle || bondedContact.id)
+      // If you later add emails to /api/contacts, populate here
+      // setPeerEmail(bondedContact.email || '')
     }
   }
 
@@ -310,22 +290,16 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
           {/* Quick Recipient Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-white">Pick from your trusted contacts list:</Label>
-            {(bondedContacts.length > 0 || enhancedContacts.length > 0) ? (
+            {bondedContacts.length > 0 ? (
               <Select value={selectedContactId} onValueChange={handleContactSelection}>
                 <SelectTrigger className="bg-slate-800 border-white/20 text-white focus:border-[#00F6FF]">
                   <SelectValue placeholder={loadingContacts ? "Loading..." : "Select contact"} />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/20">
-                  {/* Bonded contacts first */}
+                  {/* Bonded contacts from server API */}
                   {bondedContacts.map((contact) => (
-                    <SelectItem key={contact.id || contact.peerId} value={contact.id || contact.peerId} className="text-white hover:bg-slate-700">
-                      {contact.handle || `User ${(contact.id || contact.peerId).slice(-6)}`}
-                    </SelectItem>
-                  ))}
-                  {/* Enhanced contacts */}
-                  {enhancedContacts.map((contact) => (
                     <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-slate-700">
-                      {contact.name} - {contact.role}
+                      {contact.handle || `User ${contact.id.slice(-6)}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

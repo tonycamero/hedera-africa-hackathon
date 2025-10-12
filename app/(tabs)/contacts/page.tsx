@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { signalsStore, type BondedContact } from '@/lib/stores/signalsStore'
-import { getBondedContactsFromHCS, getTrustLevelsPerContact } from '@/lib/services/HCSDataUtils'
-// Removed EnhancedHCSDataService - using pure HCS data flow
+import { type BondedContact, fetchContactsForSession } from '@/lib/utils/contactApi'
 import { getSessionId } from '@/lib/session'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { AddContactModal } from '@/components/AddContactModal'
@@ -43,22 +41,15 @@ export default function ContactsPage() {
         const effectiveSessionId = currentSessionId || 'tm-alex-chen'
         setSessionId(effectiveSessionId)
         
-        // Load bonded contacts from HCS
-        const allEvents = signalsStore.getAll()
-        console.log('🔍 [ContactsPage] Effective session ID:', effectiveSessionId)
-        console.log('🔍 [ContactsPage] Total events from signals store:', allEvents.length)
-        const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
-        console.log('🔍 [ContactsPage] Bonded contacts returned:', contacts)
+        console.log('🔍 [ContactsPage] Loading contacts for:', effectiveSessionId)
+        const { contacts, trustLevels } = await fetchContactsForSession(effectiveSessionId)
         setBondedContacts(contacts)
+        setTrustLevels(trustLevels)
         
-        // Get trust levels for all contacts
-        const trustData = getTrustLevelsPerContact(allEvents, effectiveSessionId)
-        console.log('🔍 [ContactsPage] Trust levels calculated:', trustData)
-        setTrustLevels(trustData)
-        
-        console.log(`[ContactsPage] Loaded ${contacts.length} bonded contacts from pure HCS data`)
+        console.log(`[ContactsPage] Loaded ${contacts.length} bonded contacts from server API`)
       } catch (error) {
         console.error('[ContactsPage] Failed to load contacts:', error)
+        toast.error('Failed to load contacts data')
       } finally {
         setIsLoading(false)
       }
@@ -66,9 +57,9 @@ export default function ContactsPage() {
 
     loadContacts()
     
-    // Subscribe to updates
-    const unsubscribe = signalsStore.subscribe(loadContacts)
-    return unsubscribe
+    // Refresh every 30 seconds
+    const interval = setInterval(loadContacts, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   // Pure HCS data - no mock contact addition needed

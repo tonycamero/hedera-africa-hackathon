@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
+import { type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
-import { signalsPoller } from "@/lib/services/SignalsPoller"
 import { 
   Activity, 
   Users, 
@@ -140,15 +139,21 @@ export default function SignalsPage() {
   }
 
   useEffect(() => {
-    const loadSignals = () => {
+    const loadSignals = async () => {
       try {
-        const allEvents = signalsStore.getAll()
+        console.log('[SignalsPage] Loading signals from server-side API...')
+        const response = await fetch('/api/signals')
+        const data = await response.json()
         
-        const enhancedSignals: EnhancedSignal[] = allEvents.map(signal => {
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load signals')
+        }
+        
+        const enhancedSignals: EnhancedSignal[] = data.signals.map((signal: SignalEvent) => {
           return {
             ...signal,
             firstName: getFirstName(signal.actor),
-            onlineStatus: getOnlineStatus(signal.id),
+            onlineStatus: getOnlineStatus(signal.id || ''),
             eventDescription: getEventDescription(signal)
           }
         })
@@ -156,19 +161,19 @@ export default function SignalsPage() {
         setSignals(enhancedSignals)
         setLoading(false)
         
-        console.log(`[SignalsPage] Loaded ${enhancedSignals.length} enhanced signals`)
+        console.log(`[SignalsPage] Loaded ${enhancedSignals.length} enhanced signals from server API`)
       } catch (error) {
         console.error('[SignalsPage] Failed to load signals:', error)
         setLoading(false)
+        toast.error('Failed to load signals data')
       }
     }
 
-    // Ensure signals poller is running for serverless environments
-    signalsPoller.start()
-    
     loadSignals()
-    const unsubscribe = signalsStore.subscribe(loadSignals)
-    return unsubscribe
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(loadSignals, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const getStatusColor = (status: 'online' | 'offline' | 'idle') => {
