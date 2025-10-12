@@ -42,14 +42,42 @@ export default function ContactsPage() {
         setSessionId(effectiveSessionId)
         
         console.log('🔍 [ContactsPage] Loading contacts for:', effectiveSessionId)
+        console.log('🔍 [ContactsPage] Environment check - window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
+        
         const { contacts, trustLevels } = await fetchContactsForSession(effectiveSessionId)
+        
+        console.log(`[ContactsPage] API Response - contacts:`, contacts.length, 'trustLevels:', trustLevels.size)
+        console.log(`[ContactsPage] First few contacts:`, contacts.slice(0, 3).map(c => ({ id: c.id, handle: c.handle })))
+        
         setBondedContacts(contacts)
         setTrustLevels(trustLevels)
         
-        console.log(`[ContactsPage] Loaded ${contacts.length} bonded contacts from server API`)
+        console.log(`[ContactsPage] State updated - ${contacts.length} bonded contacts from server API`)
       } catch (error) {
         console.error('[ContactsPage] Failed to load contacts:', error)
-        toast.error('Failed to load contacts data')
+        console.error('[ContactsPage] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          sessionId: effectiveSessionId
+        })
+        toast.error(`Failed to load contacts data: ${error.message || 'Unknown error'}`)
+        
+        // Fallback: try direct API call
+        try {
+          console.log('[ContactsPage] Attempting direct API fallback...')
+          const apiUrl = `/api/contacts?sessionId=${effectiveSessionId}`
+          console.log('[ContactsPage] Fallback API URL:', apiUrl)
+          const response = await fetch(apiUrl)
+          const data = await response.json()
+          console.log('[ContactsPage] Fallback API response:', data)
+          
+          if (data.success && data.contacts) {
+            setBondedContacts(data.contacts)
+            console.log(`[ContactsPage] Fallback successful: ${data.contacts.length} contacts loaded`)
+          }
+        } catch (fallbackError) {
+          console.error('[ContactsPage] Fallback also failed:', fallbackError)
+        }
       } finally {
         setIsLoading(false)
       }
