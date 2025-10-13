@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { PurpleFlame } from '@/components/ui/TrustAgentFlame'
 import { XMTPMessageButton } from '@/components/messaging/XMTPIntegration'
+import { knsService } from '@/lib/services/knsService'
 import { 
   ProfessionalLoading, 
   ProfessionalError, 
