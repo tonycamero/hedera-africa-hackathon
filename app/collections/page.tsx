@@ -1,93 +1,179 @@
 'use client'
 
 import React from 'react'
-import { ArrowLeft, Search, Filter, Sparkles } from 'lucide-react'
+import { ArrowLeft, Search, Filter, Sparkles, Star } from 'lucide-react'
+import { GenZSignalCard } from '@/components/GenZSignalCard'
 
-// Sample signal templates organized by categories
-const SIGNAL_COLLECTIONS = {
-  'Work & Performance': [
-    { template: 'That presentation was ___', examples: ['absolutely killer!', 'pure genius', 'flawless execution'] },
-    { template: 'Your ___ game is unmatched', examples: ['coding', 'problem-solving', 'leadership'] },
-    { template: 'You absolutely ___', examples: ['nailed it', 'crushed that deadline', 'saved the day'] }
-  ],
-  'Social & Networking': [
-    { template: 'That was ___ energy', examples: ['pure main character', 'total boss vibes', 'magnetic'] },
-    { template: 'Your ___ is iconic', examples: ['networking game', 'confidence', 'authenticity'] },
-    { template: 'You just ___', examples: ['owned that room', 'made everyone smile', 'raised the vibe'] }
-  ],
-  'Creative & Innovation': [
-    { template: 'That ___ was revolutionary', examples: ['design', 'idea', 'concept'] },
-    { template: 'Your creativity is ___', examples: ['off the charts', 'mind-blowing', 'inspiring'] },
-    { template: 'You made ___ look effortless', examples: ['innovation', 'art', 'genius'] }
-  ],
-  'Support & Kindness': [
-    { template: 'Thank you for ___', examples: ['being there', 'listening', 'caring so much'] },
-    { template: 'Your support was ___', examples: ['everything', 'life-changing', 'exactly what I needed'] },
-    { template: 'You have a gift for ___', examples: ['making people feel valued', 'bringing out the best', 'healing hearts'] }
-  ]
-}
+// NFT-style signal collections with rarity and visual properties
+const NFT_SIGNAL_COLLECTIONS = [
+  {
+    template: 'That presentation was ___',
+    fill: 'absolutely killer! 🎯',
+    note: 'Seriously dominated that boardroom!',
+    senderHandle: 'alex.mentor',
+    recipientHandle: 'sarah.star',
+    rarity: 'legendary' as const,
+    boostCount: 127,
+    emoji: '🎯',
+    category: 'Professional'
+  },
+  {
+    template: 'Your ___ game is unmatched',
+    fill: 'coding wizardry during the hackathon',
+    note: 'Shipped 3 features while others read docs!',
+    senderHandle: 'maya.codes',
+    recipientHandle: 'alex.dev',
+    rarity: 'epic' as const,
+    boostCount: 89,
+    emoji: '⚡',
+    category: 'Technical'
+  },
+  {
+    template: 'That was ___ energy',
+    fill: 'pure main character vibes',
+    note: 'Walked into that room like you owned it!',
+    senderHandle: 'jordan.social',
+    recipientHandle: 'maya.queen',
+    rarity: 'rare' as const,
+    boostCount: 42,
+    emoji: '✨',
+    category: 'Social'
+  },
+  {
+    template: 'You absolutely ___',
+    fill: 'saved our demo with that clutch fix',
+    note: '1 hour to demo, everything broke. 20 min fix. Legend.',
+    senderHandle: 'sam.hero',
+    recipientHandle: 'jordan.saves',
+    rarity: 'epic' as const,
+    boostCount: 73,
+    emoji: '🛡️',
+    category: 'Heroic'
+  },
+  {
+    template: 'Your creativity is ___',
+    fill: 'absolutely mind-blowing',
+    note: 'That design concept changed everything!',
+    senderHandle: 'artist.vision',
+    recipientHandle: 'creative.mind',
+    rarity: 'rare' as const,
+    boostCount: 35,
+    emoji: '🎨',
+    category: 'Creative'
+  },
+  {
+    template: 'Thank you for ___',
+    fill: 'being there when I needed you most',
+    note: 'Your support means everything to me.',
+    senderHandle: 'grateful.heart',
+    recipientHandle: 'caring.soul',
+    rarity: 'common' as const,
+    boostCount: 8,
+    emoji: '🤗',
+    category: 'Support'
+  },
+  {
+    template: 'You just ___',
+    fill: 'made everyone in the room smile',
+    note: 'Your energy is absolutely infectious!',
+    senderHandle: 'happy.vibes',
+    recipientHandle: 'smile.maker',
+    rarity: 'rare' as const,
+    boostCount: 28,
+    emoji: '😄',
+    category: 'Social'
+  },
+  {
+    template: 'That ___ was revolutionary',
+    fill: 'product launch strategy',
+    note: 'Completely changed how we think about launches!',
+    senderHandle: 'strategy.guru',
+    recipientHandle: 'launch.expert',
+    rarity: 'epic' as const,
+    boostCount: 67,
+    emoji: '🚀',
+    category: 'Innovation'
+  }
+]
 
 export default function CollectionsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+            <h1 className="text-4xl font-bold text-white">NFT Signal Collection</h1>
+            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+          </div>
+          <p className="text-purple-200 text-xl mb-6">Collectible peer recognition cards on the blockchain</p>
+          
+          {/* Collection Stats */}
+          <div className="flex justify-center gap-8 mb-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-cyan-400">{NFT_SIGNAL_COLLECTIONS.length}</div>
+              <div className="text-sm text-purple-300">Total Cards</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length}</div>
+              <div className="text-sm text-purple-300">Legendary</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length}</div>
+              <div className="text-sm text-purple-300">Epic</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length}</div>
+              <div className="text-sm text-purple-300">Rare</div>
+            </div>
+          </div>
+          
           <button 
             onClick={() => window.history.back()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          
-          <div>
-            <h1 className="text-3xl font-bold text-white">Signal Collections</h1>
-            <p className="text-purple-200">Browse templates to inspire your recognition</p>
-          </div>
         </div>
 
-        {/* Search & Filter Bar */}
-        <div className="flex gap-4 mb-8">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search templates..."
-              className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder-purple-300 focus:outline-none focus:border-white/40"
-            />
-          </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
-            <Filter className="h-4 w-4" />
-            Filter
+        {/* Rarity Filter */}
+        <div className="flex justify-center gap-4 mb-12">
+          <button className="px-6 py-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-full text-orange-300 border border-orange-500/30 transition-all">
+            🔥 Legendary ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length})
+          </button>
+          <button className="px-6 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-full text-purple-300 border border-purple-500/30 transition-all">
+            ⚡ Epic ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length})
+          </button>
+          <button className="px-6 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-full text-blue-300 border border-blue-500/30 transition-all">
+            ✨ Rare ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length})
+          </button>
+          <button className="px-6 py-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-full text-slate-300 border border-slate-500/30 transition-all">
+            ⚪ Common ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'common').length})
           </button>
         </div>
 
-        {/* Collections Grid */}
-        <div className="space-y-8">
-          {Object.entries(SIGNAL_COLLECTIONS).map(([category, templates]) => (
-            <div key={category} className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 border border-white/20">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-400" />
-                {category}
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {templates.map((template, idx) => (
-                  <div key={idx} className="bg-white/5 rounded-lg p-4 border border-white/10 hover:border-white/20 transition-all cursor-pointer">
-                    <div className="text-white font-medium mb-3">
-                      "{template.template.replace('___', '___________')}"
-                    </div>
-                    <div className="space-y-2">
-                      {template.examples.map((example, i) => (
-                        <div key={i} className="text-sm text-purple-200 bg-purple-500/20 px-3 py-1 rounded-full">
-                          "{template.template.replace('___', example)}"
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* NFT Cards Gallery */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center">
+          {NFT_SIGNAL_COLLECTIONS.map((signal, idx) => (
+            <div key={idx} className="transform hover:scale-105 transition-all duration-300">
+              <GenZSignalCard
+                title={signal.category}
+                template={signal.template}
+                fill={signal.fill}
+                note={signal.note}
+                senderHandle={signal.senderHandle}
+                recipientHandle={signal.recipientHandle}
+                rarity={signal.rarity}
+                boostCount={signal.boostCount}
+                emoji={signal.emoji}
+                timestamp={new Date().toISOString()}
+                onClick={() => {
+                  // Could open a detail modal or navigate to boost page
+                  console.log('Clicked NFT card:', signal)
+                }}
+              />
             </div>
           ))}
         </div>

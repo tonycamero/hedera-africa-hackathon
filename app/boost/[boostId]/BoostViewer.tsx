@@ -1,14 +1,15 @@
 'use client'
 
 import React from 'react'
-import { Sparkles, ExternalLink, Users } from 'lucide-react'
+import { Sparkles, ExternalLink, Users, Star } from 'lucide-react'
 import { BoostActions } from '@/components/BoostActions'
+import { GenZSignalCard } from '@/components/GenZSignalCard'
 
 interface BoostViewerProps {
   boostId: string
 }
 
-// Demo signals for testing boost mechanism
+// Enhanced demo signals for NFT-style display
 const DEMO_SIGNALS = {
   '60b7e2e023d0ee6d': {
     id: 'demo-boost-1',
@@ -20,7 +21,11 @@ const DEMO_SIGNALS = {
       senderHandle: 'alex.chen',
       recipientHandle: 'sarah.kim'
     },
-    target: 'tm-sarah-kim'
+    target: 'tm-sarah-kim',
+    rarity: 'legendary' as const,
+    boostCount: 127,
+    emoji: '🎯',
+    category: 'Professional'
   },
   '00169e15c6aacfc2': {
     id: 'demo-boost-2', 
@@ -32,7 +37,11 @@ const DEMO_SIGNALS = {
       senderHandle: 'maya.creates',
       recipientHandle: 'alex.chen'
     },
-    target: 'tm-alex-chen'
+    target: 'tm-alex-chen',
+    rarity: 'epic' as const,
+    boostCount: 73,
+    emoji: '⚡',
+    category: 'Technical'
   },
   '26ce4a8ff8eb608f': {
     id: 'demo-boost-3',
@@ -44,7 +53,11 @@ const DEMO_SIGNALS = {
       senderHandle: 'jordan.social',
       recipientHandle: 'maya.creates'
     },
-    target: 'tm-maya-patel'
+    target: 'tm-maya-patel',
+    rarity: 'rare' as const,
+    boostCount: 42,
+    emoji: '✨',
+    category: 'Social'
   },
   'f21a7a683d0934a4': {
     id: 'demo-boost-4',
@@ -56,7 +69,11 @@ const DEMO_SIGNALS = {
       senderHandle: 'sam.builds',
       recipientHandle: 'jordan.social'
     },
-    target: 'tm-jordan-lee'
+    target: 'tm-jordan-lee',
+    rarity: 'epic' as const,
+    boostCount: 89,
+    emoji: '🛡️',
+    category: 'Heroic'
   }
 }
 
@@ -90,83 +107,126 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
   const recipient = recipientHandle || 'someone'
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
-        {/* Main Boost Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-6 border border-white/20">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="text-6xl mb-4 animate-pulse">🔥</div>
-            <h1 className="text-3xl font-bold text-white mb-2">Signal Boost</h1>
-            <div className="text-purple-200 text-sm">
-              Peer Recognition
+    <div className="min-h-screen p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+            <h1 className="text-4xl font-bold text-white">NFT Signal Collection</h1>
+            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+          </div>
+          <p className="text-purple-200 text-lg">
+            Collectible peer recognition on the blockchain
+          </p>
+          
+          {/* Collection Stats */}
+          <div className="flex justify-center gap-6 mt-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-cyan-400">1/∞</div>
+              <div className="text-xs text-purple-300">Collected</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-400">{signal.rarity || 'Epic'}</div>
+              <div className="text-xs text-purple-300">Rarity</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-400">{signal.boostCount || 0}</div>
+              <div className="text-xs text-purple-300">Boosts</div>
             </div>
           </div>
+        </div>
 
-          {/* Signal Content */}
-          <div className="text-center mb-8">
-            <blockquote className="text-xl font-medium text-white mb-4 leading-relaxed">
-              "{praiseText}"
-            </blockquote>
+        {/* Main NFT Card Display */}
+        <div className="flex justify-center mb-8">
+          <div className="relative">
+            {/* Glow effect background */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 to-cyan-500/30 blur-xl rounded-xl opacity-70"></div>
             
-            <div className="text-lg text-cyan-300 mb-2">
-              for @{recipient}
-            </div>
-            
-            {senderHandle && (
-              <div className="text-sm text-purple-200">
-                from @{senderHandle}
-              </div>
-            )}
-
-            {note && (
-              <div className="mt-4 p-4 bg-white/10 rounded-lg text-purple-100 text-sm italic">
-                "{note}"
-              </div>
-            )}
-          </div>
-
-          {/* HCS Verification Badge */}
-          <div className="flex justify-center mb-6">
-            <div className="flex items-center gap-2 px-3 py-2 bg-green-500/20 backdrop-blur rounded-full border border-green-500/30">
-              <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-300 text-sm font-medium">Blockchain Verified</span>
+            {/* The NFT Card */}
+            <div className="relative">
+              <GenZSignalCard
+                title={signal.category || 'GenZ Signal'}
+                template={templateText}
+                fill={fill}
+                note={note}
+                senderHandle={senderHandle}
+                recipientHandle={recipientHandle}
+                rarity={signal.rarity || 'epic'}
+                boostCount={signal.boostCount || 0}
+                emoji={signal.emoji || '🔥'}
+                timestamp={new Date().toISOString()}
+                glowEffect={true}
+              />
             </div>
           </div>
+        </div>
 
-          {/* Active Boost Actions */}
+        {/* HCS Verification Badge */}
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur rounded-full border border-green-500/30">
+            <Sparkles className="h-4 w-4 text-green-400" />
+            <span className="text-green-300 text-sm font-medium">Blockchain Verified NFT</span>
+          </div>
+        </div>
+
+        {/* Interactive Actions */}
+        <div className="max-w-2xl mx-auto">
           <BoostActions 
             boostId={boostId}
-            currentBoostCount={0}
+            currentBoostCount={signal.boostCount || 0}
           />
         </div>
 
-        {/* Secondary Actions */}
-        <div className="flex gap-4 justify-center mb-6">
+        {/* Collection Actions */}
+        <div className="flex gap-4 justify-center mb-8 mt-8">
           <button
             onClick={() => window.open('/collections', '_blank')}
-            className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm font-medium transition-all hover:scale-105"
+            className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-medium transition-all hover:scale-105 border border-white/20"
           >
-            <Users className="h-4 w-4" />
-            Browse Collections
+            <Users className="h-5 w-5" />
+            Browse Collection
           </button>
           
           <button
             onClick={() => window.open('/signup?intent=create_signal', '_blank')}
-            className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 rounded-full text-white text-sm font-medium transition-all hover:scale-105 shadow-lg"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 rounded-full text-white font-medium transition-all hover:scale-105 shadow-lg"
           >
-            <ExternalLink className="h-4 w-4" />
-            Start Sending Signals
+            <ExternalLink className="h-5 w-5" />
+            Start Collecting
           </button>
         </div>
 
+        {/* Rarity Information */}
+        <div className="max-w-2xl mx-auto bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10 mb-8">
+          <h3 className="text-lg font-bold text-white mb-4 text-center">Rarity Guide</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-slate-400 font-bold mb-1">Common</div>
+              <div className="text-xs text-slate-300">0-9 boosts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-blue-400 font-bold mb-1">Rare</div>
+              <div className="text-xs text-blue-300">10-49 boosts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-purple-400 font-bold mb-1">Epic</div>
+              <div className="text-xs text-purple-300">50-99 boosts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-orange-400 font-bold mb-1">Legendary</div>
+              <div className="text-xs text-orange-300">100+ boosts</div>
+            </div>
+          </div>
+        </div>
+
         {/* Footer */}
-        <div className="text-center mt-6">
+        <div className="text-center">
           <a 
             href="/"
             className="text-purple-300 hover:text-white text-sm transition-colors"
           >
-            TrustMesh → Peer Recognition
+            TrustMesh → Collectible Peer Recognition
           </a>
         </div>
       </div>
