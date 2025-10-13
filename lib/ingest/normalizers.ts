@@ -3,8 +3,10 @@
  * Provides defensive parsing and consistent event shape transformation
  */
 
-import { SignalEvent } from '@/lib/stores/signalsStore'
+import { SignalEvent } from '../stores/signalsStore'
 import { toMillis } from './time'
+import { HCS21_TYPE_TO_STRING } from '../hcs21/enums'
+import { isHcs21Message, extractPayload, extractFrom } from '../hcs21/build'
 
 /**
  * Normalize HCS message to SignalEvent format
@@ -14,11 +16,17 @@ import { toMillis } from './time'
  */
 export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): SignalEvent | null {
   try {
-    // Mirror payloads vary: use defensive decoding
-    const payload = decodeBase64Json(raw.message) ?? {}
-    const type = inferSignalType(payload, raw)
-    const actor = extractActor(payload)
-    const target = extractTarget(payload)
+    const decoded = decodeBase64Json(raw.message) ?? {}
+    const isHcs21 = decoded?.hcs === "21" && typeof decoded?.type === 'number'
+    
+    // For HCS-21: metadata = inner payload, actor from envelope
+    // For legacy: metadata = full decoded, actor from payload
+    const metadata = isHcs21 ? (decoded.payload ?? {}) : decoded
+    const type = inferSignalType(decoded, raw)
+    const actor = isHcs21 ? (decoded.from ?? extractActor(metadata)) : extractActor(decoded)
+    const target = isHcs21 ? 
+      (metadata?.target ?? extractTarget(metadata)) : 
+      (extractTarget(decoded) ?? extractTarget(decoded.payload))
     const timestamp = toMillis(raw.consensus_timestamp) ?? Date.now()
     const topicId = raw.topic_id ?? raw.topicId ?? ''
     const id = raw.sequence_number ? `${topicId}/${raw.sequence_number}` : `${topicId}/${Date.now()}-${Math.random()}`
@@ -26,7 +34,7 @@ export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): Sig
     // Validate required fields
     if (!type || !actor) {
       if (process.env.NODE_ENV === 'development') {
-        console.debug('[Normalizer] Skipping message - missing type or actor', { type, actor, payload })
+        console.debug('[Normalizer] Skipping message - missing type or actor', { type, actor, isHcs21, payload: metadata })
       }
       return null
     }
@@ -38,7 +46,7 @@ export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): Sig
       target,
       ts: timestamp,
       topicId,
-      metadata: payload,
+      metadata, // Inner payload for HCS-21, full decoded for legacy
       source,
     }
   } catch (error) {
@@ -86,7 +94,17 @@ function decodeBase64Json(base64String?: string): any | null {
  * @returns Signal type string
  */
 function inferSignalType(payload: any, raw: any): string | undefined {
-  // Explicit type field (preferred)
+  // HCS-21 envelope format - check decoded payload first
+  if (payload?.hcs === "21" && typeof payload?.type === 'number') {
+    return HCS21_TYPE_TO_STRING[payload.type] || 'UNKNOWN'
+  }
+  
+  // HCS-21 envelope format - check raw message second
+  if (raw?.hcs === "21" && typeof raw?.type === 'number') {
+    return HCS21_TYPE_TO_STRING[raw.type] || 'UNKNOWN'
+  }
+  
+  // Explicit type field (preferred for legacy)
   if (payload.type) return payload.type
   if (raw.type) return raw.type
   

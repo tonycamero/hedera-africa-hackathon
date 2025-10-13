@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { submitToTopic } from '@/lib/hedera/serverClient'
 import { getRegistryTopics, type RegistryTopics } from '@/lib/hcs2/registry'
+import { HCS21_TYPE_TO_STRING } from '@/lib/hcs21/enums'
 
 // In-memory nonce store (per from); use Redis in prod
 const nonceStore: Record<string, number> = {}
@@ -33,20 +34,43 @@ export async function POST(req: NextRequest) {
     validateEnvelope(body)
 
     const topics = await getRegistryTopics()
-    const topicId = routeTopic(body.type, topics)
-    if (!topicId) throw new Error(`No topic for type ${body.type}`)
+    const topicId = routeTopicByEnvelope(body, topics)
+    if (!topicId) throw new Error(`No topic for envelope: ${JSON.stringify({hcs: body.hcs, type: body.type})}`)
 
     const message = JSON.stringify(body)
     const result = await submitToTopic(topicId, message)
 
     // Structured log (expand with request ID in prod)
-    console.log(`[HCS Submit] Success: from=${body.from}, type=${body.type}, seq=${result.sequenceNumber}`)
+    const logType = body.hcs === "21" ? `${body.hcs}:${body.type}` : body.type
+    console.log(`[HCS Submit] Success: from=${body.from}, type=${logType}, seq=${result.sequenceNumber}`)
 
     return NextResponse.json({ ok: true, topicId, ...result })
   } catch (e: any) {
     console.error(`[HCS Submit] Error: ${e.message}`)
     return NextResponse.json({ ok: false, error: e.message || 'Submit failed' }, { status: 400 })
   }
+}
+
+function routeTopicByEnvelope(body: any, t: RegistryTopics): string | undefined {
+  // HCS-21 numeric enum format
+  if (body?.hcs === "21" && typeof body?.type === 'number') {
+    const typeName = HCS21_TYPE_TO_STRING[body.type]
+    if (!typeName) return t.feed
+    
+    switch (typeName) {
+      case 'CONTACT_REQUEST':
+      case 'CONTACT_ACCEPT':
+      case 'CONTACT_REVOKE':  return t.contacts
+      case 'TRUST_ALLOCATE':
+      case 'TRUST_REVOKE':    return t.trust
+      case 'RECOGNITION_MINT':
+      case 'RECOGNITION_VALIDATE': return t.recognitionInstances || t.recognition
+      default: return t.feed
+    }
+  }
+  
+  // Legacy string-based types (backward compatibility)
+  return routeTopic(body.type, t)
 }
 
 function routeTopic(type: string, t: RegistryTopics) {

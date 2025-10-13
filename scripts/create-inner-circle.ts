@@ -3,7 +3,10 @@
 /**
  * Create Inner Circle trust allocations on HCS
  * This will send TRUST_ALLOCATE signals from tm-alex-chen to select bonded contacts
+ * Uses HCS-21 enum format for reduced message size
  */
+
+import { buildHcs21 } from '../lib/hcs21/build'
 
 const ALEX_CHEN_ID = 'tm-alex-chen'
 const API_BASE = 'http://localhost:3000'
@@ -97,20 +100,14 @@ async function createInnerCircleAllocations() {
 
   for (const allocation of INNER_CIRCLE_ALLOCATIONS) {
     try {
-      const envelope = {
-        type: 'TRUST_ALLOCATE',
-        from: ALEX_CHEN_ID,
-        nonce: ++nonceCounter, // Monotonic increasing nonce
-        ts: Math.floor(Date.now() / 1000), // Unix timestamp
-        payload: {
-          actor: ALEX_CHEN_ID,
-          target: allocation.to,
-          weight: allocation.weight,
-          category: allocation.category,
-          note: allocation.note,
-          allocatedAt: new Date().toISOString()
-        }
-      }
+      // HCS-21 format with enum (Type 3 = TRUST_ALLOCATE)
+      const envelope = buildHcs21('TRUST_ALLOCATE', ALEX_CHEN_ID, ++nonceCounter, {
+        target: allocation.to,
+        weight: allocation.weight,
+        category: allocation.category,
+        note: allocation.note,
+        allocatedAt: new Date().toISOString()
+      })
 
       console.log(`🎯 Allocating trust to ${allocation.handle} (${allocation.category})...`)
       
