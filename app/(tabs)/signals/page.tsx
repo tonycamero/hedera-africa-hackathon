@@ -140,10 +140,16 @@ export default function SignalsPage() {
           <div className="text-center">
             <GenZHeading level={1} className="flex items-center justify-center gap-2">
               <Sparkles className="w-6 h-6 text-pri-500 animate-breathe-glow" />
-              {currentView === 'dashboard' ? 'Signals' : 
-               currentView === 'selector' ? 'Choose Signal' : 
-               currentView === 'minting' ? 'Create Signal' : 'My Collection'}
+              {currentView === 'dashboard' ? 'Feed' : 
+               currentView === 'selector' ? 'Send Props' : 
+               currentView === 'minting' ? 'Send Props' : 'My Props'}
             </GenZHeading>
+            
+            {currentView === 'dashboard' && (
+              <GenZText className="text-lg text-pri-400 font-medium text-center">
+                Real props between real friends
+              </GenZText>
+            )}
           </div>
 
           {/* First Time Guide */}
@@ -200,12 +206,94 @@ export default function SignalsPage() {
               {/* Dashboard View */}
               {currentView === 'dashboard' && (
                 <div className="space-y-6">
-                  {/* Stats Overview */}
+                  {/* Feed Tabs */}
+                  <GenZCard variant="glass" className="p-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <GenZButton variant="boost" size="sm" className="font-bold" glow>
+                        Friends
+                      </GenZButton>
+                      <GenZButton variant="ghost" size="sm" className="font-bold">
+                        Everyone
+                      </GenZButton>
+                    </div>
+                  </GenZCard>
+                  
+                  {/* Props Feed */}
+                  <div className="space-y-3">
+                    {/* Mock props activity */}
+                    <GenZCard variant="glass" className="p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-boost-500/30 to-pri-500/20 border border-boost-500/30 flex items-center justify-center">
+                          <span className="text-xs font-semibold">A</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <GenZText className="font-semibold">Alex → Sarah</GenZText>
+                            <GenZChip variant="boost" className="text-xs">clutch</GenZChip>
+                          </div>
+                          <GenZText className="mb-3">
+                            clutched <span className="font-bold text-boost-400">"the presentation"</span> under fire
+                          </GenZText>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <GenZButton size="sm" variant="boost" className="flex items-center gap-1">
+                                <Zap className="w-3 h-3" />
+                                <span>Boost</span>
+                                <span className="text-xs">(3)</span>
+                              </GenZButton>
+                              <GenZButton size="sm" variant="ghost" className="flex items-center gap-1">
+                                <Share2 className="w-3 h-3" />
+                                <span>Share</span>
+                              </GenZButton>
+                            </div>
+                            <GenZText size="sm" dim>
+                              HCS verified • 1m ago
+                            </GenZText>
+                          </div>
+                        </div>
+                      </div>
+                    </GenZCard>
+                    
+                    <GenZCard variant="glass" className="p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sec-500/30 to-pri-500/20 border border-sec-500/30 flex items-center justify-center">
+                          <span className="text-xs font-semibold">M</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <GenZText className="font-semibold">Maya → Jordan</GenZText>
+                            <GenZChip variant="signal" className="text-xs">rizz</GenZChip>
+                          </div>
+                          <GenZText className="mb-3">
+                            smooth operator with <span className="font-bold text-pri-400">"that coffee shop convo"</span>
+                          </GenZText>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <GenZButton size="sm" variant="boost" className="flex items-center gap-1">
+                                <Zap className="w-3 h-3" />
+                                <span>Boost</span>
+                                <span className="text-xs">(7)</span>
+                              </GenZButton>
+                              <GenZButton size="sm" variant="ghost" className="flex items-center gap-1">
+                                <Share2 className="w-3 h-3" />
+                                <span>Share</span>
+                              </GenZButton>
+                            </div>
+                            <GenZText size="sm" dim>
+                              HCS verified • 15m ago
+                            </GenZText>
+                          </div>
+                        </div>
+                      </div>
+                    </GenZCard>
+                  </div>
+                  
+                  {/* Stats Overview (moved down) */}
                   <GenZCard variant="glass" className="p-4">
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-boost-400 mb-1">{stats.collected}</div>
-                        <GenZText size="sm" dim>Collected</GenZText>
+                        <GenZText size="sm" dim>My Props</GenZText>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-pri-400 mb-1">{stats.sent}</div>
@@ -236,8 +324,8 @@ export default function SignalsPage() {
                         glow
                         onClick={() => setCurrentView('selector')}
                       >
-                        <Sparkles className="w-6 h-6" />
-                        <span className="text-sm">Create Signal</span>
+                        <Zap className="w-6 h-6" />
+                        <span className="text-sm">Send Props</span>
                       </GenZButton>
                       
                       <GenZButton 
@@ -246,7 +334,7 @@ export default function SignalsPage() {
                         onClick={() => setCurrentView('collection')}
                       >
                         <Wallet className="w-6 h-6" />
-                        <span className="text-sm">My Collection</span>
+                        <span className="text-sm">My Props</span>
                       </GenZButton>
                     </div>
                     
@@ -273,10 +361,10 @@ export default function SignalsPage() {
                         </GenZText>
                         <GenZText size="sm">
                           {contacts.length === 0 
-                            ? "Connect with friends to start sending signals"
+                            ? "Add friends to start sending props"
                             : mySignals.length === 0
-                            ? "Create your first signal to build reputation"
-                            : "Send more signals to grow your network"}
+                            ? "Send your first props to friends"
+                            : "Keep the props flowing with your crew"}
                         </GenZText>
                       </div>
                       <GenZButton size="sm" variant="boost" glow onClick={() => setCurrentView('selector')}>
@@ -335,11 +423,11 @@ export default function SignalsPage() {
                   {mySignals.length === 0 ? (
                     <GenZCard variant="glass" className="p-8 text-center">
                       <div className="text-6xl mb-4 animate-float">📦</div>
-                      <GenZHeading level={3} className="mb-2">No Signals Yet</GenZHeading>
-                      <GenZText className="mb-4">Start creating signals to build your collection!</GenZText>
+                      <GenZHeading level={3} className="mb-2">No activity yet</GenZHeading>
+                      <GenZText className="mb-4">Send your first props to get the feed started!</GenZText>
                       <GenZButton variant="boost" glow onClick={() => setCurrentView('selector')}>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Create First Signal
+                        <Zap className="w-4 h-4 mr-2" />
+                        Send your first props
                       </GenZButton>
                     </GenZCard>
                   ) : (

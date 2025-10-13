@@ -91,11 +91,11 @@ function CrewSection({ friends, onSignalClick, onAllocateTrust, setActiveTab, on
             </div>
             
             <GenZHeading level={2} className="mb-3 bg-gradient-to-r from-boost-400 to-pri-400 bg-clip-text text-transparent">
-              Start Adding People
+              No friends yet
             </GenZHeading>
             
             <GenZText className="mb-6 max-w-xs mx-auto">
-              Share your QR or scan theirs. It's that easy.
+              Share your link to get your first props
             </GenZText>
             
             {/* Main CTA */}
@@ -106,9 +106,22 @@ function CrewSection({ friends, onSignalClick, onAllocateTrust, setActiveTab, on
                   size="lg"
                   className="w-full py-4 text-lg font-bold transform hover:scale-105 transition-all duration-300" 
                   glow
+                  onClick={() => {
+                    const shareUrl = `${window.location.origin}/u/alex`
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'Join me on TrustMesh!',
+                        text: 'Add me as a friend and let\'s start sending props! 🔥',
+                        url: shareUrl
+                      })
+                    } else {
+                      navigator.clipboard.writeText(`Join me on TrustMesh! Add me as a friend and let's start sending props! 🔥 ${shareUrl}`)
+                      toast.success('Link copied! Send it to your friends 🚀')
+                    }
+                  }}
                 >
-                  <Camera className="w-5 h-5 mr-2" />
-                  Add Contact
+                  <Share2 className="w-5 h-5 mr-2" />
+                  Copy your link
                 </GenZButton>
               </AddContactModal>
             </div>
@@ -490,13 +503,9 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
             </GenZText>
           ) : (
             <div className="flex items-center gap-2">
-              <GenZText size="sm" dim>{friend.handle}</GenZText>
-              {friend.vibe && (
-                <>
-                  <span className="text-genz-text-dim">•</span>
-                  <GenZText size="sm" dim>{friend.vibe}</GenZText>
-                </>
-              )}
+              <GenZText size="sm" className="text-boost-400 font-medium">Bonded</GenZText>
+              <span className="text-genz-text-dim">•</span>
+              <GenZText size="sm" dim>{friend.propsReceived || 0} props sent · {Math.floor(Math.random() * 5)} received</GenZText>
             </div>
           )}
         </div>
@@ -525,9 +534,31 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
               e.stopPropagation()
               onSignalClick(friend)
             }}
+            glow
           >
             <Zap className="w-3 h-3 mr-1" />
             Props
+          </GenZButton>
+          
+          <GenZButton
+            size="sm"
+            variant="ghost"
+            className="w-8 h-8 p-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              // Share friend profile
+              const shareText = `Check out ${friend.name} on TrustMesh! 🔥`
+              const shareUrl = `${window.location.origin}/u/${friend.id}`
+              
+              if (navigator.share) {
+                navigator.share({ title: friend.name, text: shareText, url: shareUrl })
+              } else {
+                navigator.clipboard.writeText(`${shareText} ${shareUrl}`)
+                toast.success('Link copied! 🚀')
+              }
+            }}
+          >
+            <Share2 className="w-3 h-3" />
           </GenZButton>
           
           <XMTPMessageButton
@@ -1004,12 +1035,24 @@ export default function YourCrewPage() {
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="max-w-md mx-auto px-4 py-4 space-y-6">
           {/* Header */}
-          <div className="text-center">
+          <div className="text-center mb-4">
             <GenZHeading level={1} className="flex items-center justify-center gap-2">
               <Users className="w-6 h-6 text-pri-500 animate-breathe-glow" />
-              Crew
+              Friends
             </GenZHeading>
+            <GenZText className="text-lg text-pri-400 font-medium">
+              Add people → send props → share the boost
+            </GenZText>
           </div>
+
+          {/* Campus Info */}
+          <GenZCard variant="glass" className="p-3 mb-4">
+            <div className="text-center">
+              <GenZText size="sm" dim>
+                Campus code: TM-UCLA • Your handle: @alex
+              </GenZText>
+            </div>
+          </GenZCard>
 
           {/* First Time Guide */}
           {showFirstTimeGuide && (
@@ -1046,8 +1089,44 @@ export default function YourCrewPage() {
             />
           ) : (
             <div className="space-y-4">
-              {/* Viral Share Section */}
-              <ViralShareSection sessionId={sessionId} onAddFriend={handleAddFriend} counters={counters} />
+              {/* Friend Action CTAs */}
+              <GenZCard variant="glass" className="p-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <GenZButton 
+                    variant="boost" 
+                    className="flex-col h-16 gap-1" 
+                    glow
+                    onClick={handleAddFriend}
+                  >
+                    <Users className="w-5 h-5" />
+                    <span className="text-sm font-bold">Add Friend</span>
+                  </GenZButton>
+                  
+                  <GenZButton 
+                    variant="primary" 
+                    className="flex-col h-16 gap-1"
+                    onClick={() => {
+                      // QR code modal
+                      toast.info('QR code coming soon! 📱')
+                    }}
+                  >
+                    <span className="text-xl">📱</span>
+                    <span className="text-sm font-bold">Your QR</span>
+                  </GenZButton>
+                  
+                  <GenZButton 
+                    variant="signal" 
+                    className="flex-col h-16 gap-1"
+                    onClick={() => {
+                      // Scan QR modal
+                      toast.info('QR scanner coming soon! 📸')
+                    }}
+                  >
+                    <span className="text-xl">📸</span>
+                    <span className="text-sm font-bold">Scan</span>
+                  </GenZButton>
+                </div>
+              </GenZCard>
               
               {/* Trust Agent */}
               <AICrewNudge onAddFriend={handleAddFriend} />

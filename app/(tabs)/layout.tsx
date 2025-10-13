@@ -44,31 +44,31 @@ export default function TabsLayout({
     }
   }, [])
 
-  // Professional navigation order: Contacts → Circle → Signals
+  // GenZ navigation order: Friends → Feed → Profile (Circle optional)
   const tabs = [
     {
       id: "contacts",
-      label: "Network",
+      label: "Friends",
       path: "/contacts",
       icon: Users,
       badge: null,
-      description: "Build connections"
-    },
-    {
-      id: "inner-circle",
-      label: "Circle",
-      path: "/inner-circle",
-      icon: Circle,
-      badge: null,
-      description: "Inner Circle"
+      description: "Add friends"
     },
     {
       id: "signals", 
-      label: "Signals",
+      label: "Feed",
       path: "/signals",
       icon: Activity,
       badge: hasUnseen ? "•" : null,
-      description: "Achievements"
+      description: "Props activity"
+    },
+    {
+      id: "inner-circle",
+      label: "Profile",
+      path: "/inner-circle",
+      icon: Circle,
+      badge: null,
+      description: "Your circle"
     }
   ]
 

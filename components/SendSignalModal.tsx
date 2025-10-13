@@ -133,19 +133,19 @@ export function SendSignalModal({ isOpen, onClose, recipient }: SendSignalModalP
   const maxFill = selectedTemplateObj?.maxFill || 40
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Send Signal">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Send Props">
       <div className="p-6">
         {success ? (
           <div className="text-center py-8">
-            <div className="text-green-600 text-xl mb-2">✅ Signal Sent!</div>
-            <p className="text-gray-600">Your signal is heading to the blockchain...</p>
+            <div className="text-green-600 text-xl mb-2">🔥 Props Sent!</div>
+            <p className="text-gray-600">Your props are heading to the blockchain...</p>
           </div>
         ) : (
           <>
             {/* Template Selection */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-3">
-                Choose your signal:
+                What props are you sending?
               </label>
               <div className="space-y-2">
                 {templates.map((template) => (
@@ -213,16 +213,16 @@ export function SendSignalModal({ isOpen, onClose, recipient }: SendSignalModalP
               </div>
             )}
 
-            {/* Optional Note */}
+            {/* Say Why */}
             <div className="mb-6">
               <label className="block text-sm font-medium mb-2">
-                Add a note (optional, {note.length}/120 chars):
+                Say why (optional, {note.length}/120 chars):
               </label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={120}
-                placeholder="Add some context or a personal message..."
+                placeholder="Tell them why they deserve these props..."
                 rows={3}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -261,7 +261,7 @@ export function SendSignalModal({ isOpen, onClose, recipient }: SendSignalModalP
                 disabled={isSubmitting || !selectedTemplate || !fillText.trim()}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Sending...' : 'Send Signal'}
+                {isSubmitting ? 'Sending Props...' : 'Send Props 🔥'}
               </button>
             </div>
           </>
