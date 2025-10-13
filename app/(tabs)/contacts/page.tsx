@@ -1105,6 +1105,9 @@ export default function YourCrewPage() {
             />
           ) : (
             <div className="space-y-4">
+              {/* Trust Agent - First Priority Action */}
+              <AICrewNudge onAddFriend={handleAddFriend} />
+              
               {/* Friend Action CTAs */}
               <GenZCard variant="glass" className="p-4">
                 <div className="grid grid-cols-3 gap-3">
@@ -1160,9 +1163,6 @@ export default function YourCrewPage() {
                   </GenZButton>
                 </div>
               </GenZCard>
-              
-              {/* Trust Agent */}
-              <AICrewNudge onAddFriend={handleAddFriend} />
               
               {/* Main Crew Section (no tabs) */}
               <CrewSection 
