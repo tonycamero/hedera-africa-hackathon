@@ -9,6 +9,7 @@ import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
 import { PeerRecommendationModal } from '@/components/PeerRecommendationModal'
+import { MobileActionSheet } from '@/components/MobileActionSheet'
 import { 
   Search,
   MessageCircle,
@@ -18,7 +19,8 @@ import {
   Trophy,
   QrCode,
   UserCheck,
-  UserPlus
+  UserPlus,
+  Send
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -32,6 +34,8 @@ export default function ContactsPage() {
   const [sessionId, setSessionId] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetContact, setSheetContact] = useState<BondedContact | null>(null)
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -200,8 +204,11 @@ export default function ContactsPage() {
                 return (
                   <div 
                     key={contactId || index}
-                    className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group"
-                    onClick={() => setSelectedContactId(contactId)}
+                    className="flex items-center justify-between p-4 min-h-[64px] bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group"
+                    onClick={() => {
+                      setSheetContact(contact)
+                      setSheetOpen(true)
+                    }}
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/20 to-cyan-500/20 border border-[#00F6FF]/30 flex items-center justify-center">
@@ -266,6 +273,50 @@ export default function ContactsPage() {
         peerId={selectedContactId} 
         onClose={() => setSelectedContactId(null)} 
       />
+      
+      {/* Mobile Action Sheet */}
+      <MobileActionSheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        {sheetContact && (
+          <div className="space-y-3">
+            <div className="text-center">
+              <div className="text-white font-semibold">{sheetContact.handle || `User ${sheetContact.peerId?.slice(-6)}`}</div>
+              <div className="text-white/50 text-xs">Bonded Contact</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                className="h-12 text-sm bg-[#00F6FF] text-black hover:bg-[#00F6FF]/90"
+                onClick={() => {
+                  setSheetOpen(false)
+                  toast.info(`Opening chat…`)
+                }}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Message
+              </Button>
+              <Button
+                className="h-12 text-sm bg-emerald-500/90 hover:bg-emerald-500 text-white"
+                onClick={() => {
+                  setSheetOpen(false)
+                  toast.info(`Send a recognition signal`)
+                  // Optionally open PeerRecommendationModal trigger programmatically
+                }}
+              >
+                <Award className="w-4 h-4 mr-2" />
+                Send Signal
+              </Button>
+            </div>
+
+            <Button
+              variant="outline"
+              className="h-12 w-full text-sm border-white/20 text-white/80"
+              onClick={() => setSheetOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        )}
+      </MobileActionSheet>
     </div>
   )
 }

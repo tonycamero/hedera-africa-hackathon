@@ -11,58 +11,77 @@ import { type BondedContact } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
 import { StoicGuideModal } from "@/components/StoicGuideModal"
 
-// Circle of Trust LED Visualization Component
-function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: { 
+// Circle of Trust LED Visualization Component - Enhanced for Mobile
+function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts, onPress }: { 
   allocatedOut: number; 
   maxSlots: number; 
   bondedContacts: number;
+  onPress?: () => void;
 }) {
   const totalSlots = maxSlots
   const dots = Array.from({ length: totalSlots }, (_, i) => {
-    // Arrange dots in a circle - using exact original positioning
+    // Arrange dots in a circle - using enhanced mobile-friendly sizing
     const angle = (i * 360) / totalSlots - 90 // Start from top
     const radian = (angle * Math.PI) / 180
-    const radius = 20 // Distance from center - original working value
-    const x = Math.cos(radian) * radius + 32 // 32 is center (64/2) - original working value
-    const y = Math.sin(radian) * radius + 32
+    const radius = 35 // Increased radius for mobile visibility
+    const x = Math.cos(radian) * radius + 48 // 48 is center (96/2) - scaled up
+    const y = Math.sin(radian) * radius + 48
 
-    // Determine LED state: GREEN (trust allocated), gray (available slot)
+    // Determine LED state: CYAN (trust allocated), gray (available slot)
     let ledStyle = ""
     let innerStyle = ""
+    let pulseEffect = ""
     
     if (i < allocatedOut) {
-      // CYAN LEDs for trust allocations - matching theme #00F6FF
-      ledStyle = "bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-lg shadow-cyan-500/50 border-2 border-cyan-300"
+      // CYAN LEDs for trust allocations - enhanced with pulse
+      ledStyle = "bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-lg shadow-cyan-500/60 border-2 border-cyan-300"
       innerStyle = "bg-gradient-to-br from-cyan-300 to-cyan-500"
+      pulseEffect = "animate-pulse"
     } else {
-      // Gray LEDs for available trust slots
-      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200 opacity-40"
+      // Gray LEDs for available trust slots - slightly more visible
+      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/30 border-2 border-gray-200 opacity-50"
       innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
     }
 
     return (
       <div
         key={i}
-        className={`absolute w-4 h-4 rounded-full transform -translate-x-2 -translate-y-2 ${ledStyle}`}
+        className={`absolute w-5 h-5 rounded-full transform -translate-x-2.5 -translate-y-2.5 ${ledStyle} ${pulseEffect}`}
         style={{ left: x, top: y }}
       >
         {/* LED inner glow effect */}
         <div className={`absolute inset-1 rounded-full ${innerStyle}`} />
         {/* LED highlight spot */}
-        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-white opacity-60" />
+        <div className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-white opacity-70" />
       </div>
     )
   })
 
-  return (
-    <div className="relative w-16 h-16 flex-shrink-0">
+  // Make the whole circle tappable if onPress provided
+  const CircleContent = (
+    <div className="relative w-24 h-24 flex-shrink-0">
       {dots}
-      {/* Center fire emoji */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-        <span className="text-base">🔥</span>
+      {/* Center fire emoji - enhanced for mobile */}
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center">
+        <span className="text-xl animate-pulse">🔥</span>
       </div>
     </div>
   )
+
+  if (onPress) {
+    return (
+      <button
+        type="button"
+        onClick={onPress}
+        className="active:scale-95 transition-transform duration-150 focus:outline-none focus:ring-2 focus:ring-[#00F6FF]/50 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-full"
+        aria-label="Manage circle members"
+      >
+        {CircleContent}
+      </button>
+    )
+  }
+
+  return CircleContent
 }
 
 export default function CirclePage() {
@@ -212,17 +231,16 @@ export default function CirclePage() {
             </div>
           </div>
           
-          <div className="flex items-center justify-center gap-6">
-            {/* Campfire LED Visualization */}
-            <div className="flex-shrink-0">
-              <TrustCircleVisualization 
-                allocatedOut={trustStats.allocatedOut}
-                maxSlots={trustStats.maxSlots}
-                bondedContacts={trustStats.bondedContacts}
-              />
-            </div>
+          <div className="flex flex-col items-center gap-6">
+            {/* Campfire LED Visualization - Now tappable */}
+            <TrustCircleVisualization 
+              allocatedOut={trustStats.allocatedOut}
+              maxSlots={trustStats.maxSlots}
+              bondedContacts={trustStats.bondedContacts}
+              onPress={handleAddMember}
+            />
             
-            {/* Circle Stats */}
+            {/* Circle Stats - Centered below */}
             <div className="text-center">
               <div className="flex items-baseline gap-1 justify-center mb-2">
                 <span className="text-2xl font-bold text-white">{trustStats.allocatedOut}</span>
@@ -234,6 +252,15 @@ export default function CirclePage() {
                 <div className="text-white/50">Prioritize Strength</div>
               </div>
             </div>
+            
+            {/* Mobile-optimized CTA Button */}
+            <Button
+              className="w-full h-12 text-base font-medium bg-[#00F6FF] text-black hover:bg-[#00F6FF]/90 active:scale-95 transition-transform"
+              onClick={handleAddMember}
+            >
+              <UserPlus className="w-5 h-5 mr-2" />
+              Add trusted member
+            </Button>
           </div>
           
           {/* Tooltip-style hint positioned in bottom right of card */}

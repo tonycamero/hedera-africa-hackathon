@@ -13,9 +13,11 @@ import {
   Users, 
   Shield, 
   Trophy,
-  Search
+  Search,
+  RotateCw
 } from "lucide-react"
 import { toast } from "sonner"
+import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh"
 
 interface EnhancedSignal extends SignalEvent {
   firstName: string
@@ -138,40 +140,40 @@ export default function SignalsPage() {
     return descriptions[hash % descriptions.length]
   }
 
-  useEffect(() => {
-    const loadSignals = async () => {
-      try {
-        console.log('[SignalsPage] Loading signals from server-side API...')
-        const response = await fetch('/api/signals')
-        const data = await response.json()
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to load signals')
-        }
-        
-        const enhancedSignals: EnhancedSignal[] = data.signals.map((signal: SignalEvent) => {
-          return {
-            ...signal,
-            firstName: getFirstName(signal.actor),
-            onlineStatus: getOnlineStatus(signal.id || ''),
-            eventDescription: getEventDescription(signal)
-          }
-        })
-        
-        setSignals(enhancedSignals)
-        setLoading(false)
-        
-        console.log(`[SignalsPage] Loaded ${enhancedSignals.length} enhanced signals from server API`)
-      } catch (error) {
-        console.error('[SignalsPage] Failed to load signals:', error)
-        setLoading(false)
-        toast.error('Failed to load signals data')
+  const loadSignals = async () => {
+    try {
+      console.log('[SignalsPage] Loading signals from server-side API...')
+      const response = await fetch('/api/signals')
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load signals')
       }
+      
+      const enhancedSignals: EnhancedSignal[] = data.signals.map((signal: SignalEvent) => {
+        return {
+          ...signal,
+          firstName: getFirstName(signal.actor),
+          onlineStatus: getOnlineStatus(signal.id || ''),
+          eventDescription: getEventDescription(signal)
+        }
+      })
+      
+      setSignals(enhancedSignals)
+      setLoading(false)
+      
+      console.log(`[SignalsPage] Loaded ${enhancedSignals.length} enhanced signals from server API`)
+    } catch (err) {
+      console.error(err)
+      setLoading(false)
+      toast.error('Failed to load signals data')
     }
+  }
 
+  const { bind, isPulling, distance } = usePullToRefresh(loadSignals, 70)
+
+  useEffect(() => {
     loadSignals()
-    
-    // Refresh every 30 seconds
     const interval = setInterval(loadSignals, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -223,7 +225,7 @@ export default function SignalsPage() {
 
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-4 space-y-6" {...bind}>
       {/* Mobile Header */}
       <div className="text-center space-y-2">
         <h1 className="text-xl font-medium text-white tracking-tight">
@@ -231,6 +233,14 @@ export default function SignalsPage() {
         </h1>
         <p className="text-white/60 text-sm">Stay connected with your network</p>
       </div>
+
+      {/* Pull indicator */}
+      {isPulling && (
+        <div className="flex items-center justify-center text-xs text-white/60 -mt-2">
+          <RotateCw className="w-3 h-3 mr-1 animate-spin" />
+          Refreshing…
+        </div>
+      )}
 
       {/* Mobile Search */}
       <div className="relative">
@@ -292,7 +302,7 @@ export default function SignalsPage() {
             </div>
           ) : (
             filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-white/5 border border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300 rounded-lg p-2">
+              <div key={signal.id} className="bg-white/5 border border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300 rounded-lg p-2.5">
                 {/* Compact Feed Item */}
                 <div className="flex items-center gap-2">
                   {/* Small Avatar with status */}

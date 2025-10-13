@@ -277,7 +277,25 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         {children}
       </DialogTrigger>
       
-        <DialogContent className="w-80 max-w-[20rem] mx-auto bg-gradient-to-br from-slate-900/85 to-slate-800/80 backdrop-blur-xl border-2 border-[#00F6FF]/40 shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+        <DialogContent
+          className="
+            fixed bottom-0 left-0 right-0 w-full max-w-none p-0
+            rounded-t-2xl border-t border-white/10
+            bg-gradient-to-b from-slate-900/95 to-slate-900/85 backdrop-blur-xl
+            data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8
+            data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom-8
+            translate-x-0 translate-y-0
+          "
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            width: '100%',
+            transform: 'none',
+            margin: 0
+          }}
+        >
         {/* Compact Header */}
         <div className="p-4 pb-3 border-b border-[#00F6FF]/20">
           <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
@@ -355,7 +373,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                   <div
                     key={recognition.id}
                     onClick={() => handleTokenDetail(recognition)}
-                    className={`cursor-pointer p-1.5 rounded border transition-all ${
+                    className={`cursor-pointer p-2 rounded border transition-all min-h-[44px] ${
                       isSelected 
                         ? `${recognition.bgColor} ${recognition.borderColor}` 
                         : 'bg-slate-800 border-white/10 hover:border-white/30'
@@ -402,7 +420,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
           <Button
             onClick={handleSendRecommendation}
             disabled={!peerName || selectedRecognitions.length === 0 || sending}
-            className="w-full bg-gradient-to-r from-[#00F6FF] to-cyan-500 hover:from-[#00F6FF]/90 hover:to-cyan-500/90 text-black font-medium py-3"
+            className="w-full h-12 text-base bg-gradient-to-r from-[#00F6FF] to-cyan-500 hover:from-[#00F6FF]/90 hover:to-cyan-500/90 text-black font-medium"
           >
             {sending ? (
               <>
