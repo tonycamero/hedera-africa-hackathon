@@ -106,7 +106,7 @@ export default function ContactsPage() {
     <div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
       {/* Card 1: QR Contact Exchange - Network Growth Engine (MAIN LOOP) */}
-      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-2 border-emerald-500/40 hover:border-emerald-500/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(52,211,153,0.2),0_0_60px_rgba(52,211,153,0.1)] hover:shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-emerald-400/30 before:via-transparent before:to-emerald-400/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/30 to-green-500/20 flex items-center justify-center border border-emerald-500/30">
@@ -138,7 +138,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 2: Send Token */}
-      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-[#00F6FF]/30 hover:border-[#00F6FF]/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-lg backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-2 border-[#00F6FF]/40 hover:border-[#00F6FF]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(0,246,255,0.2),0_0_60px_rgba(0,246,255,0.1)] hover:shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#00F6FF]/30 before:via-transparent before:to-[#00F6FF]/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 flex items-center justify-center border border-[#00F6FF]/30">
