@@ -81,7 +81,7 @@ export function GenZSignalCard({
         transform hover:scale-105 transition-all duration-300
         ${glowEffect ? "animate-pulse" : ""}
         overflow-hidden cursor-pointer
-        min-h-[280px] max-w-[300px]
+        min-h-[320px] max-w-[300px]
       `}
       onClick={onClick}
     >
@@ -129,28 +129,28 @@ export function GenZSignalCard({
       <div className="p-4 space-y-3 flex-1 flex flex-col">
         {/* Signal content */}
         <div className="flex-1">
-          <blockquote className="font-serif font-bold text-sm text-gray-900 leading-tight mb-2 italic">
+          <blockquote className="font-serif font-bold text-base text-gray-900 leading-tight mb-3 italic">
             "{praiseText}"
           </blockquote>
           
-          <div className="text-xs text-gray-600 space-y-1">
+          <div className="text-xs text-gray-700 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-cyan-600 font-medium">for @{recipientHandle}</span>
-              <span className="text-purple-600 font-medium">from @{senderHandle}</span>
+              <span className="text-blue-800 font-semibold bg-blue-100/80 px-2 py-1 rounded">for @{recipientHandle}</span>
+              <span className="text-purple-800 font-semibold bg-purple-100/80 px-2 py-1 rounded">from @{senderHandle}</span>
             </div>
           </div>
 
           {note && (
-            <div className={`mt-2 p-2 rounded-lg ${config.bgGlow} border ${config.border}/30`}>
-              <p className="text-xs text-gray-700 italic leading-relaxed">"{note}"</p>
+            <div className={`mt-3 p-3 rounded-lg bg-gray-100 border-2 border-gray-200`}>
+              <p className="text-sm text-gray-800 italic leading-relaxed font-medium">"{note}"</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-200">
-          <span className={`font-semibold ${config.text}`}>GenZ Signal</span>
-          {timestamp && <span>{new Date(timestamp).toLocaleDateString()}</span>}
+        <div className="flex items-center justify-between text-xs text-gray-700 pt-3 border-t-2 border-gray-300 mt-2">
+          <span className="font-bold text-gray-800">GenZ Signal</span>
+          {timestamp && <span className="font-medium">{new Date(timestamp).toLocaleDateString()}</span>}
         </div>
       </div>
 
