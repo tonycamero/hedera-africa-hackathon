@@ -76,7 +76,7 @@ export function GenZSignalCard({
   return (
     <div
       className={`
-        relative bg-white/95 backdrop-blur-sm rounded-xl border-2 ${config.border} 
+        relative bg-white rounded-xl border-2 ${config.border} 
         shadow-lg ${config.glow} hover:shadow-xl 
         transform hover:scale-105 transition-all duration-300
         ${glowEffect ? "animate-pulse" : ""}
@@ -129,28 +129,28 @@ export function GenZSignalCard({
       <div className="p-4 space-y-3 flex-1 flex flex-col">
         {/* Signal content */}
         <div className="flex-1">
-          <blockquote className="font-serif font-bold text-base text-gray-900 leading-tight mb-3 italic">
+          <blockquote className="font-serif font-black text-lg text-black leading-tight mb-3 italic">
             "{praiseText}"
           </blockquote>
           
-          <div className="text-xs text-gray-700 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-blue-800 font-semibold bg-blue-100/80 px-2 py-1 rounded">for @{recipientHandle}</span>
-              <span className="text-purple-800 font-semibold bg-purple-100/80 px-2 py-1 rounded">from @{senderHandle}</span>
+          <div className="text-sm space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-white font-bold bg-blue-700 px-3 py-2 rounded-full text-xs">for @{recipientHandle}</span>
+              <span className="text-white font-bold bg-purple-700 px-3 py-2 rounded-full text-xs">from @{senderHandle}</span>
             </div>
           </div>
 
           {note && (
-            <div className={`mt-3 p-3 rounded-lg bg-gray-100 border-2 border-gray-200`}>
-              <p className="text-sm text-gray-800 italic leading-relaxed font-medium">"{note}"</p>
+            <div className="mt-3 p-3 rounded-lg bg-gray-800 border-2 border-gray-700">
+              <p className="text-sm text-white italic leading-relaxed font-medium">"{note}"</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-gray-700 pt-3 border-t-2 border-gray-300 mt-2">
-          <span className="font-bold text-gray-800">GenZ Signal</span>
-          {timestamp && <span className="font-medium">{new Date(timestamp).toLocaleDateString()}</span>}
+        <div className="flex items-center justify-between text-sm pt-3 border-t-2 border-gray-400 mt-2">
+          <span className="font-black text-black">GenZ Signal</span>
+          {timestamp && <span className="font-bold text-black">{new Date(timestamp).toLocaleDateString()}</span>}
         </div>
       </div>
 
