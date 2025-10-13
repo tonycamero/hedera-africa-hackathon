@@ -300,7 +300,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         <div className="p-4 pb-3 border-b border-[#00F6FF]/20">
           <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
             <Award className="w-4 h-4 text-[#00F6FF]" />
-            Send this Signal!
+            Send Recognition
           </DialogTitle>
         </div>
 
