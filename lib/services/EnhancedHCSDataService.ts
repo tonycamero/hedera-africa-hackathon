@@ -82,8 +82,13 @@ export class EnhancedHCSDataService {
 
   constructor() {
     // Subscribe to signalsStore updates to invalidate cache
+    // Throttle cache invalidation to prevent excessive clearing
+    let invalidateTimeout: NodeJS.Timeout | null = null
     signalsStore.subscribe(() => {
-      this.invalidateCache()
+      if (invalidateTimeout) clearTimeout(invalidateTimeout)
+      invalidateTimeout = setTimeout(() => {
+        this.invalidateCache()
+      }, 1000) // Wait 1 second before invalidating cache
     })
   }
 
@@ -105,6 +110,7 @@ export class EnhancedHCSDataService {
     }
 
     const allEvents = signalsStore.getAll()
+    console.log('[EnhancedHCSDataService] Getting bonded contacts - will use cached version if available')
     const bondedContacts = getBondedContactsFromHCS(allEvents, sessionId)
     
     // Convert to canonical events for enhanced processing

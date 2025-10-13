@@ -1,4 +1,9 @@
-const BASE = (process.env.NEXT_PUBLIC_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com/api/v1').replace(/\/+$/, '');
+const BASE = (() => {
+  const rawUrl = process.env.NEXT_PUBLIC_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com';
+  // Strip any existing /api/v1 and add it once to prevent duplication
+  const cleanUrl = rawUrl.replace(/\/+$/, '').replace(/\/api\/v1$/, '');
+  return `${cleanUrl}/api/v1`;
+})();
 const ORIGIN = (() => { try { return new URL(BASE).origin; } catch { return 'https://testnet.mirrornode.hedera.com'; } })();
 
 const mem: Record<string, { at: number; data: any[]; watermark?: string }> = {};

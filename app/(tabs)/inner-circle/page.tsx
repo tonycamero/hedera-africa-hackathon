@@ -257,12 +257,15 @@ export default function InnerCirclePage() {
   return (
     <div className="min-h-screen bg-ink">
       <div className="max-w-md mx-auto px-4 py-4 space-y-6">
-        {/* GenZ Header */}
+        {/* Your Inner Circle Dashboard Header */}
         <div className="text-center mb-6">
-            <GenZHeading level={1} className="flex items-center justify-center gap-2">
-              <Flame className="w-5 h-5 text-pri-500 animate-breathe-glow" />
-              Inner Circle
-            </GenZHeading>
+          <GenZHeading level={1} className="flex items-center justify-center gap-2 mb-2">
+            <Circle className="w-6 h-6 text-pri-500 animate-breathe-glow" />
+            Your Inner Circle Dashboard
+          </GenZHeading>
+          <GenZText className="text-lg text-pri-400 font-medium">
+            Circle of Trust • Choose Wisely • Scarce Trust
+          </GenZText>
         </div>
         
         {/* Error State */}
@@ -292,8 +295,14 @@ export default function InnerCirclePage() {
       
         {/* Inner Circle - Visual Centerpiece */}
         <GenZCard variant="glass" className="p-6">
-          <div className="text-center mb-4">
-            <GenZHeading level={3} className="mb-2">Your Inner Circle 🔥</GenZHeading>
+          <div className="text-center mb-6">
+            <GenZHeading level={2} className="mb-3">Inner Circle Members</GenZHeading>
+            <GenZHeading level={1} className="mb-2 font-mono">
+              {trustStats.allocatedOut}/9 Slots
+            </GenZHeading>
+            <GenZText className="text-pri-400 mb-4">
+              Choose Wisely • Scarce Trust
+            </GenZText>
             {isLoading && (
               <ProfessionalLoading 
                 variant="default"
@@ -303,7 +312,7 @@ export default function InnerCirclePage() {
             )}
           </div>
           
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex items-center justify-center gap-8">
             {/* Inner Circle LED Visualization */}
             <div className="flex-shrink-0">
               <InnerCircleVisualization
@@ -313,44 +322,82 @@ export default function InnerCirclePage() {
               />
             </div>
             
-            {/* Compact Stats */}
-            <div className="text-center">
-              <div className="flex items-center gap-1 justify-center mb-2">
-                <span className="text-xl font-bold text-genz-text font-mono">{trustStats.allocatedOut}/{trustStats.maxSlots}</span>
-                <GenZText size="sm" dim>slots used</GenZText>
+            {/* Stats and Actions */}
+            <div className="text-center space-y-4">
+              <div>
+                <div className="text-4xl font-bold text-boost-400 mb-1">{availableSlots}</div>
+                <GenZText size="sm" dim>open slots</GenZText>
+              </div>
+              
+              <div className="space-y-2">
+                <GenZText className="font-medium text-pri-400">Prioritize Strength</GenZText>
+                <GenZButton 
+                  variant="boost" 
+                  glow 
+                  onClick={handleAddMember}
+                  className="w-full"
+                >
+                  Add trusted member →
+                </GenZButton>
               </div>
             </div>
           </div>
         </GenZCard>
       
+        {/* First Achievement Encouragement */}
+        {trustStats.allocatedOut === 0 && (
+          <GenZCard variant="glass" className="p-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-boost-500/10 to-pri-500/10 opacity-70" />
+            <div className="relative text-center">
+              <div className="text-4xl mb-3 animate-float">🏆</div>
+              <GenZHeading level={3} className="mb-2 text-boost-400">
+                First Achievement
+              </GenZHeading>
+              <GenZText className="mb-4">
+                Add 3 trusted members to unlock your Inner Circle power!
+              </GenZText>
+              <GenZText size="sm" dim className="mb-4">
+                Quality over quantity • These are your ride-or-dies
+              </GenZText>
+              <div className="w-16 h-1 bg-gradient-to-r from-boost-500 to-pri-500 mx-auto rounded-full" />
+            </div>
+          </GenZCard>
+        )}
+        
         {/* Inner Circle Members List */}
         <GenZCard variant="glass" className="p-4">
             {innerCircleMembers.length === 0 ? (
-            <div className="text-center py-6">
-              <GenZHeading level={4} className="mb-4">Add to Circle</GenZHeading>
-              
-              {/* Action buttons for building circle */}
-              <div className="flex gap-3 justify-center">
-                {/* Add from existing contacts */}
-                {availableContacts.length > 0 && (
-                  <GenZButton 
-                    onClick={() => setShowContactSelection(true)}
-                    variant="boost"
-                  >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    From Friends ({availableContacts.length})
-                  </GenZButton>
-                )}
+            <div className="space-y-6">
+              <div className="text-center py-6">
+                <GenZHeading level={4} className="mb-4">Who should I add?</GenZHeading>
                 
-                {/* Invite new people */}
-                <GenZButton 
-                  onClick={() => setShowInviteActions(true)}
-                  variant="outline"
-                  className="border-pri-500/30 text-pri-500 hover:bg-pri-500/10"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Invite
-                </GenZButton>
+                {/* Action buttons for building circle */}
+                <div className="space-y-3">
+                  {/* Add from existing contacts */}
+                  {availableContacts.length > 0 && (
+                    <GenZButton 
+                      onClick={() => setShowContactSelection(true)}
+                      variant="boost"
+                      size="lg"
+                      glow
+                      className="w-full py-4"
+                    >
+                      <UserPlus className="w-5 h-5 mr-2" />
+                      Choose from Friends ({availableContacts.length})
+                    </GenZButton>
+                  )}
+                  
+                  {/* Invite new people */}
+                  <GenZButton 
+                    onClick={() => setShowInviteActions(true)}
+                    variant="outline"
+                    size="lg"
+                    className="w-full py-4 border-pri-500/30 text-pri-500 hover:bg-pri-500/10"
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Invite New People
+                  </GenZButton>
+                </div>
               </div>
             </div>
           ) : (

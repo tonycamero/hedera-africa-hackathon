@@ -1,7 +1,61 @@
 import type { SignalEvent, BondedContact } from "@/lib/stores/signalsStore"
+import { performanceMonitor } from "@/lib/utils/performanceMonitor"
 
 // Utility functions to derive data structures from HCS feed events
 // This replaces the local storage-based data with HCS chain data
+
+// Performance optimization: cache results to avoid excessive recomputation
+interface CacheEntry<T> {
+  data: T
+  eventsHash: string
+  timestamp: number
+}
+
+const CACHE_TTL = 10000 // 10 seconds
+const bondedContactsCache = new Map<string, CacheEntry<BondedContact[]>>()
+const trustStatsCache = new Map<string, CacheEntry<any>>()
+const personalMetricsCache = new Map<string, CacheEntry<any>>()
+
+// Generate a hash of events to detect changes
+function generateEventsHash(events: any[]): string {
+  // Use a subset of properties to create a meaningful hash
+  const relevantData = events
+    .filter(e => {
+      const type = normalizeType(e?.type)
+      return ['CONTACT_REQUEST', 'CONTACT_ACCEPT', 'CONTACT_ACCEPTED', 'CONTACT_BONDED', 'TRUST_ALLOCATE', 'TRUST_REVOKE', 'TRUST_ACCEPT', 'TRUST_DECLINE'].includes(type)
+    })
+    .map(e => `${e.id || ''}:${e.type || ''}:${e.actor || ''}:${e.target || ''}:${e.ts || ''}`)
+    .join('|')
+  
+  // Simple hash function
+  let hash = 0
+  for (let i = 0; i < relevantData.length; i++) {
+    const char = relevantData.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  return hash.toString(36)
+}
+
+// Clear expired cache entries
+function cleanupCache() {
+  const now = Date.now()
+  for (const [key, entry] of bondedContactsCache) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      bondedContactsCache.delete(key)
+    }
+  }
+  for (const [key, entry] of trustStatsCache) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      trustStatsCache.delete(key)
+    }
+  }
+  for (const [key, entry] of personalMetricsCache) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      personalMetricsCache.delete(key)
+    }
+  }
+}
 
 export interface HCSTrustStats {
   allocatedOut: number
@@ -109,6 +163,20 @@ function generateUserHandle(id: string): string {
 
 // Ultra-simple bonded contacts extraction - works with ANY event shape and never counts Alex
 export function getBondedContactsFromHCS(events: any[], me: string): BondedContact[] {
+  return performanceMonitor.track('getBondedContactsFromHCS', () => {
+    // Check cache first
+    cleanupCache()
+    const cacheKey = `${me}:contacts`
+    const eventsHash = generateEventsHash(events)
+    const cached = bondedContactsCache.get(cacheKey)
+  
+  if (cached && cached.eventsHash === eventsHash && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('🔍 [HCSDataUtils] ✅ Using cached bonded contacts for:', me, '(size:', cached.data.length, ')')
+    return cached.data
+  }
+  
+  console.log('🔍 [HCSDataUtils] 🔄 Computing bonded contacts for session ID:', me)
+  
   const pairs = new Map<string, any>()  // Store full event data, not just IDs
   const contactData = new Map<string, { name?: string, handle?: string }>() // Store contact info by ID
   
@@ -166,7 +234,7 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   console.log('🔍 [HCSDataUtils] Final bonded set size:', bonded.size)
   console.log('🔍 [HCSDataUtils] Final bonded contacts:', [...bonded])
   
-  return [...bonded].map(id => {
+  const result = [...bonded].map(id => {
     const info = contactData.get(id) || {}
     const name = info.name || info.handle || generateUserHandle(id)
     const handle = info.handle || info.name || generateUserHandle(id)
@@ -177,10 +245,35 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
       bondedAt: Date.now()
     }
   })
+  
+  // Cache the result
+  bondedContactsCache.set(cacheKey, {
+    data: result,
+    eventsHash,
+    timestamp: Date.now()
+  })
+  
+    console.log('🔍 [HCSDataUtils] ✅ Cached bonded contacts result for:', me)
+    return result
+  })
 }
 
 // Derive trust statistics from HCS trust events
 export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): HCSTrustStats & { pendingOut: number } {
+  return performanceMonitor.track('getTrustStatsFromHCS', () => {
+    // Check cache first
+  cleanupCache()
+  const cacheKey = `${sessionId}:trust`
+  const eventsHash = generateEventsHash(events)
+  const cached = trustStatsCache.get(cacheKey)
+  
+  if (cached && cached.eventsHash === eventsHash && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('🔍 [HCSDataUtils] ✅ Using cached trust stats for:', sessionId)
+    return cached.data
+  }
+  
+  console.log('🔍 [HCSDataUtils] 🔄 Computing trust stats for session ID:', sessionId)
+  
   const trustEvents = events.filter(e => 
     e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE' || 
     e.type === 'TRUST_ACCEPT' || e.type === 'TRUST_DECLINE'
@@ -257,12 +350,23 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
   // Trust capacity is always 9 slots, regardless of bonded contacts
   const cap = 9
   
-  return {
+  const result = {
     allocatedOut: Math.max(0, allocatedOut),
     receivedIn: Math.max(0, receivedIn),
     pendingOut,
     cap
   }
+  
+  // Cache the result
+  trustStatsCache.set(cacheKey, {
+    data: result,
+    eventsHash,
+    timestamp: Date.now()
+  })
+  
+    console.log('🔍 [HCSDataUtils] ✅ Cached trust stats result for:', sessionId)
+    return result
+  })
 }
 
 // Get count of trust allocated to contacts who aren't fully bonded yet
@@ -293,15 +397,40 @@ export function getPersonalMetricsFromHCS(
   sessionId: string,
   recognitionCount: number = 0
 ): HCSMetrics {
+  return performanceMonitor.track('getPersonalMetricsFromHCS', () => {
+    // Check cache first
+  cleanupCache()
+  const cacheKey = `${sessionId}:metrics:${recognitionCount}`
+  const eventsHash = generateEventsHash(events)
+  const cached = personalMetricsCache.get(cacheKey)
+  
+  if (cached && cached.eventsHash === eventsHash && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('🔍 [HCSDataUtils] ✅ Using cached personal metrics for:', sessionId)
+    return cached.data
+  }
+  
+  console.log('🔍 [HCSDataUtils] 🔄 Computing personal metrics for session ID:', sessionId)
+  
   const bonded = getBondedContactsFromHCS(events, sessionId)
   const trustStats = getTrustStatsFromHCS(events, sessionId)
   
-  return {
+  const result = {
     bondedContacts: bonded.length,
     trustAllocated: trustStats.allocatedOut,
     trustCapacity: trustStats.cap,
     recognitionOwned: recognitionCount
   }
+  
+  // Cache the result
+  personalMetricsCache.set(cacheKey, {
+    data: result,
+    eventsHash,
+    timestamp: Date.now()
+  })
+  
+    console.log('🔍 [HCSDataUtils] ✅ Cached personal metrics result for:', sessionId)
+    return result
+  })
 }
 
 // Get trust levels for each contact

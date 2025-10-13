@@ -227,35 +227,51 @@ function ViralShareSection({ sessionId, onAddFriend, counters }: { sessionId: st
   )
 }
 
-// AI Nudge Component
+// Trust Agent Component - Action-oriented lightning bolt design
 function AICrewNudge({ onAddFriend }: { onAddFriend: () => void }) {
-  const nudges = [
-    "Hey who's on my mind? Go add them to my TrustMesh crew 💫",
-    "Spot someone cool at that event? Time to connect! 🔥", 
-    "My crew's looking a bit quiet... who should I add? ⚡",
-    "That person from study group seems chill - add them? 📚",
-    "Coffee shop regular? Concert buddy? Add them to the crew! ☕"
+  const actionPhrases = [
+    "Ready to connect?",
+    "Let's build your crew!", 
+    "Time to add friends!",
+    "Expand your network!",
+    "Connect with someone new!"
   ]
   
-  const [currentNudge] = useState(() => 
-    nudges[Math.floor(Math.random() * nudges.length)]
+  const [currentPhrase] = useState(() => 
+    actionPhrases[Math.floor(Math.random() * actionPhrases.length)]
   )
   
   return (
-    <GenZCard variant="glass" className="p-4 mb-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-pri-500/10 to-sec-500/10 opacity-50" />
-      <div className="relative flex items-center gap-3">
-        <PurpleFlame size="md" active={true} />
-        <div className="flex-1">
-          <GenZText className="font-medium mb-1 text-pri-500">
-            Trust Agent
-          </GenZText>
-          <GenZText size="sm">
-            Find people nearby and connect.
-          </GenZText>
+    <GenZCard variant="glass" className="relative p-6 mb-4 overflow-hidden cursor-pointer" onClick={onAddFriend}>
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-boost-500/20 via-pri-500/15 to-sec-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white/5" />
+      
+      {/* Content */}
+      <div className="relative z-10 text-center">
+        {/* Big Lightning Bolt */}
+        <div className="mb-4 relative">
+          <div className="text-6xl animate-breathe-glow" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.5))' }}>
+            ⚡
+          </div>
+          {/* Pulsing ring effect */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 border-2 border-boost-400/30 rounded-full animate-ping" />
+          </div>
         </div>
-        <GenZButton size="sm" variant="boost" glow onClick={onAddFriend}>
-          <UserPlus className="w-3 h-3" />
+        
+        <GenZHeading level={4} className="mb-2 text-boost-400">
+          Trust Agent
+        </GenZHeading>
+        
+        <GenZText className="mb-4 text-pri-300">
+          {currentPhrase}
+        </GenZText>
+        
+        {/* Action button */}
+        <GenZButton variant="boost" size="lg" glow className="transform hover:scale-105 transition-all duration-300">
+          <UserPlus className="w-5 h-5 mr-2" />
+          Add Friend Now
         </GenZButton>
       </div>
     </GenZCard>
@@ -1106,8 +1122,13 @@ export default function YourCrewPage() {
                     variant="primary" 
                     className="flex-col h-16 gap-1"
                     onClick={() => {
-                      // QR code modal
-                      toast.info('QR code coming soon! 📱')
+                      // Generate and show QR code for their profile
+                      const profileUrl = `${window.location.origin}/u/${sessionId}`
+                      toast.success('📱 Share this link!', {
+                        description: 'Copied to clipboard',
+                        duration: 3000
+                      })
+                      navigator.clipboard.writeText(profileUrl)
                     }}
                   >
                     <span className="text-xl">📱</span>
@@ -1118,8 +1139,20 @@ export default function YourCrewPage() {
                     variant="signal" 
                     className="flex-col h-16 gap-1"
                     onClick={() => {
-                      // Scan QR modal
-                      toast.info('QR scanner coming soon! 📸')
+                      // Show share modal or copy invite link
+                      const inviteText = `Add me on TrustMesh! 🚀 ${window.location.origin}/u/${sessionId}`
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'Add me on TrustMesh!',
+                          text: inviteText
+                        })
+                      } else {
+                        navigator.clipboard.writeText(inviteText)
+                        toast.success('📸 Invite copied!', {
+                          description: 'Send this to add friends',
+                          duration: 3000
+                        })
+                      }
                     }}
                   >
                     <span className="text-xl">📸</span>

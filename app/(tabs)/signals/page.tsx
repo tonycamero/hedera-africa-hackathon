@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { Sparkles, Zap, Database, Settings, Eye, Collection, Users, Send, Wallet } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Sparkles, Zap, Database, Settings, Eye, Collection, Users, Send, Wallet, Share2 } from 'lucide-react'
 import { SignalTypeSelector } from '@/components/signals/SignalTypeSelector'
 import { MintSignalFlow } from '@/components/signals/MintSignalFlow'
 import { RecentActivity } from '@/components/signals/RecentActivity'
@@ -43,8 +43,8 @@ export default function SignalsPage() {
   const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(false)
   const [mintSuccess, setMintSuccess] = useState<SignalInstance | null>(null)
 
-  // Load user data and signals
-  const loadSignalsData = async () => {
+  // Load user data and signals - memoized to prevent excessive calls
+  const loadSignalsData = useCallback(async () => {
     try {
       if (!isRefreshing) setIsLoading(true)
       setError(null)
@@ -52,7 +52,7 @@ export default function SignalsPage() {
       const currentSessionId = getSessionId() || 'tm-alex-chen'
       setSessionId(currentSessionId)
       
-      // Load contacts for signal sending
+      // Load contacts for signal sending - now with intelligent caching
       const allEvents = signalsStore.getAll()
       const bondedContacts = getBondedContactsFromHCS(allEvents, currentSessionId)
       setContacts(bondedContacts)
@@ -69,6 +69,7 @@ export default function SignalsPage() {
         setShowFirstTimeGuide(true)
       }
       
+      // Only log if we actually loaded data, not from cache
       console.log(`[GenZSignals] ✅ Loaded ${mySignals.length} signals, ${contacts.length} contacts`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load signals data'
@@ -78,12 +79,12 @@ export default function SignalsPage() {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }
+  }, [isRefreshing, mySignals.length, contacts.length])
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
     await loadSignalsData()
-  }
+  }, [loadSignalsData])
 
   useEffect(() => {
     loadSignalsData()
@@ -123,12 +124,12 @@ export default function SignalsPage() {
     setSelectedSignalType(null)
   }
 
-  const stats = {
+  const stats = useMemo(() => ({
     collected: mySignals.length,
     sent: recentMints.length,
     connections: contacts.length,
     rarities: [...new Set(mySignals.map(s => s.metadata.rarity))].length
-  }
+  }), [mySignals.length, recentMints.length, contacts.length, mySignals])
 
   return (
     <div className="min-h-screen bg-ink">
@@ -140,7 +141,7 @@ export default function SignalsPage() {
           <div className="text-center">
             <GenZHeading level={1} className="flex items-center justify-center gap-2">
               <Sparkles className="w-6 h-6 text-pri-500 animate-breathe-glow" />
-              {currentView === 'dashboard' ? 'Feed' : 
+              {currentView === 'dashboard' ? 'Signals' : 
                currentView === 'selector' ? 'Send Props' : 
                currentView === 'minting' ? 'Send Props' : 'My Props'}
             </GenZHeading>

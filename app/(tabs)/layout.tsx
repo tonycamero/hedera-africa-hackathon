@@ -44,7 +44,7 @@ export default function TabsLayout({
     }
   }, [])
 
-  // GenZ navigation order: Friends → Feed → Profile (Circle optional)
+  // GenZ navigation order: Friends → Circle → Signals (social campfire in the center)
   const tabs = [
     {
       id: "contacts",
@@ -55,20 +55,20 @@ export default function TabsLayout({
       description: "Add friends"
     },
     {
+      id: "inner-circle",
+      label: "Circle",
+      path: "/inner-circle",
+      icon: Circle,
+      badge: null,
+      description: "Trust campfire"
+    },
+    {
       id: "signals", 
-      label: "Feed",
+      label: "Signals",
       path: "/signals",
       icon: Activity,
       badge: hasUnseen ? "•" : null,
       description: "Props activity"
-    },
-    {
-      id: "inner-circle",
-      label: "Profile",
-      path: "/inner-circle",
-      icon: Circle,
-      badge: null,
-      description: "Your circle"
     }
   ]
 
