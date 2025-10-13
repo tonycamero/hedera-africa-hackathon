@@ -8,8 +8,8 @@ export default function CircleRedirect() {
 
   useEffect(() => {
     // 302 redirect to the new inner-circle route
-    window.location.href = '/inner-circle'
-  }, [])
+    router.replace('/inner-circle')
+  }, [router])
 
   return (
     <div className="min-h-screen bg-ink flex items-center justify-center">
