@@ -1108,62 +1108,6 @@ export default function YourCrewPage() {
               {/* Trust Agent - First Priority Action */}
               <AICrewNudge onAddFriend={handleAddFriend} />
               
-              {/* Friend Action CTAs */}
-              <GenZCard variant="glass" className="p-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <GenZButton 
-                    variant="boost" 
-                    className="flex-col h-16 gap-1" 
-                    glow
-                    onClick={handleAddFriend}
-                  >
-                    <Users className="w-5 h-5" />
-                    <span className="text-sm font-bold">Add Friend</span>
-                  </GenZButton>
-                  
-                  <GenZButton 
-                    variant="primary" 
-                    className="flex-col h-16 gap-1"
-                    onClick={() => {
-                      // Generate and show QR code for their profile
-                      const profileUrl = `${window.location.origin}/u/${sessionId}`
-                      toast.success('📱 Share this link!', {
-                        description: 'Copied to clipboard',
-                        duration: 3000
-                      })
-                      navigator.clipboard.writeText(profileUrl)
-                    }}
-                  >
-                    <span className="text-xl">📱</span>
-                    <span className="text-sm font-bold">Your QR</span>
-                  </GenZButton>
-                  
-                  <GenZButton 
-                    variant="signal" 
-                    className="flex-col h-16 gap-1"
-                    onClick={() => {
-                      // Show share modal or copy invite link
-                      const inviteText = `Add me on TrustMesh! 🚀 ${window.location.origin}/u/${sessionId}`
-                      if (navigator.share) {
-                        navigator.share({
-                          title: 'Add me on TrustMesh!',
-                          text: inviteText
-                        })
-                      } else {
-                        navigator.clipboard.writeText(inviteText)
-                        toast.success('📸 Invite copied!', {
-                          description: 'Send this to add friends',
-                          duration: 3000
-                        })
-                      }
-                    }}
-                  >
-                    <span className="text-xl">📸</span>
-                    <span className="text-sm font-bold">Scan</span>
-                  </GenZButton>
-                </div>
-              </GenZCard>
-              
               {/* Main Crew Section (no tabs) */}
               <CrewSection 
                 friends={friends} 
