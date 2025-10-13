@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SignalType, SignalInstance } from '@/lib/types/signals-collectible'
 import { getCategoryIcon, getRarityTheme, formatRarityDisplay } from '@/lib/ui/signal-rarities'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import { GenZButton, GenZCard, GenZText, GenZHeading } from '@/components/ui/genz-design-system'
 import { User, Send, Sparkles, Database, Zap, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
@@ -28,7 +27,6 @@ export function MintSignalFlow({ selectedType, onBack, onComplete }: MintSignalF
   const [inscription, setInscription] = useState('')
   const [contacts, setContacts] = useState<BondedContact[]>([])
   const [loading, setLoading] = useState(true)
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
   
   const theme = getRarityTheme(selectedType.rarity)
 
@@ -101,10 +99,7 @@ export function MintSignalFlow({ selectedType, onBack, onComplete }: MintSignalF
             <GenZText size="sm" dim>Creating your collectible signal token</GenZText>
           </div>
           <div className="flex items-center justify-center gap-2">
-            <Badge className={`${getDataSourceBadgeColor('signals')} flex items-center gap-1`}>
-              <Zap className="h-3 w-3" />
-              {getDataSourceLabel('signals')}
-            </Badge>
+            <Sparkles className="h-4 w-4 text-blue-500 animate-pulse" />
           </div>
         </div>
       </GenZCard>

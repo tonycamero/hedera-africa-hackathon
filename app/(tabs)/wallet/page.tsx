@@ -6,7 +6,6 @@ import { SignalAsset } from '@/lib/types/signals-collectible'
 import { SignalCard } from '@/components/signals/SignalCard'
 import { MobileTradingCard } from '@/components/signals/MobileTradingCard'
 import { getRarityRank, RARITY_ORDER } from '@/lib/ui/signal-rarities'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import { GenZButton, GenZCard, GenZHeading, GenZText, GenZChip, genZClassNames } from '@/components/ui/genz-design-system'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -32,7 +31,6 @@ export default function GenZWalletPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [activeTab, setActiveTab] = useState('collection')
   const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(false)
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
   const router = useRouter()
 
   const userAddress = getSessionId() || 'tm-alex-chen'
@@ -135,10 +133,6 @@ export default function GenZWalletPage() {
             
             <div className="flex items-center justify-center gap-2 mb-4">
               <GenZText size="sm" dim>{signals.length} signals collected</GenZText>
-              <GenZChip variant="boost" className="text-xs">
-                {getDataSourceLabel('wallet') === 'Mock Data' ? <Database className="w-3 h-3 mr-1" /> : <Zap className="w-3 h-3 mr-1" />}
-                {getDataSourceLabel('wallet')}
-              </GenZChip>
             </div>
           </div>
 

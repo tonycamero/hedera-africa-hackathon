@@ -1,55 +1,70 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { ArrowUp, MessageSquare, Share2, ExternalLink, Sparkles } from 'lucide-react'
-import { signalsStore, useSignals } from '@/lib/stores/signalsStore'
-import { getTemplate } from '@/lib/templates'
-import { TemplateManager } from '@/lib/templates/TemplateManager'
-import { TemplateTelemetry } from '@/lib/telemetry/TemplateTelemetry'
+import React from 'react'
+import { Sparkles, ExternalLink, Users } from 'lucide-react'
 import { BoostActions } from '@/components/BoostActions'
-import { PublicContactCard } from '@/components/PublicContactCard'
 
 interface BoostViewerProps {
   boostId: string
 }
 
-export function BoostViewer({ boostId }: BoostViewerProps) {
-  const [isLoading, setIsLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
-  
-  // Find signal with this boost ID in the store
-  const signal = useSignals((store) => 
-    store.getAll().find(s => s.metadata?.boostId === boostId)
-  )
-  
-  const boostCount = useSignals((store) => 
-    signal?.id ? store.getBoostCount(signal.id) : 0
-  )
-
-  useEffect(() => {
-    // Simulate loading time for better UX
-    const timer = setTimeout(() => {
-      if (!signal) {
-        setNotFound(true)
-      }
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [signal])
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin text-4xl mb-4">⚡</div>
-          <div className="text-lg">Loading boost...</div>
-        </div>
-      </div>
-    )
+// Demo signals for testing boost mechanism
+const DEMO_SIGNALS = {
+  '60b7e2e023d0ee6d': {
+    id: 'demo-boost-1',
+    metadata: {
+      boostId: '60b7e2e023d0ee6d',
+      template: 'That presentation was ___',
+      fill: 'absolutely killer! The investors were nodding the whole time 🔥',
+      note: 'Seriously, you had them eating out of your palm. That\'s how you close deals!',
+      senderHandle: 'alex.chen',
+      recipientHandle: 'sarah.kim'
+    },
+    target: 'tm-sarah-kim'
+  },
+  '00169e15c6aacfc2': {
+    id: 'demo-boost-2', 
+    metadata: {
+      boostId: '00169e15c6aacfc2',
+      template: 'Your ___ game is unmatched',
+      fill: 'coding during the hackathon - shipped 3 features while we were still reading docs',
+      note: 'Watched you debug that API integration in 10 minutes. Pure wizardry! 🧙‍♂️',
+      senderHandle: 'maya.creates',
+      recipientHandle: 'alex.chen'
+    },
+    target: 'tm-alex-chen'
+  },
+  '26ce4a8ff8eb608f': {
+    id: 'demo-boost-3',
+    metadata: {
+      boostId: '26ce4a8ff8eb608f', 
+      template: 'That was ___ energy',
+      fill: 'pure main character - walked into that networking event like you owned the place',
+      note: 'Everyone wanted to talk to you. That\'s what confidence looks like!',
+      senderHandle: 'jordan.social',
+      recipientHandle: 'maya.creates'
+    },
+    target: 'tm-maya-patel'
+  },
+  'f21a7a683d0934a4': {
+    id: 'demo-boost-4',
+    metadata: {
+      boostId: 'f21a7a683d0934a4',
+      template: 'You absolutely ___', 
+      fill: 'saved our demo with that last-minute fix. Crisis averted like a pro!',
+      note: '1 hour before demo, everything broke. You fixed it in 20 minutes. Legend.',
+      senderHandle: 'sam.builds',
+      recipientHandle: 'jordan.social'
+    },
+    target: 'tm-jordan-lee'
   }
+}
 
-  if (notFound || !signal?.metadata) {
+export function BoostViewer({ boostId }: BoostViewerProps) {
+  // Use only demo data for now
+  const signal = DEMO_SIGNALS[boostId as keyof typeof DEMO_SIGNALS]
+  
+  if (!signal?.metadata) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-white max-w-md mx-auto px-4">
@@ -58,48 +73,21 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           <p className="text-purple-200 mb-8">
             The signal you're looking for might still be processing, or the link might be incorrect.
           </p>
-          <a 
-            href="/" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur rounded-full text-white font-medium hover:bg-white/30 transition-all"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Check out TrustMesh
-          </a>
         </div>
       </div>
     )
   }
 
   // Extract signal data
-  const template = getTemplate(signal.metadata.templateId)
-  const templateText = template?.text || signal.metadata.template
+  const templateText = signal.metadata.template
   const fill = signal.metadata.fill
   const note = signal.metadata.note
   const senderHandle = signal.metadata.senderHandle
   const recipientHandle = signal.metadata.recipientHandle
-  const recipientAccountId = signal.target
-
-  // Record boost view for analytics and telemetry
-  useEffect(() => {
-    if (signal?.metadata?.templateId && template) {
-      TemplateManager.recordTemplateUsage(signal.metadata.templateId, 'boost')
-      
-      // Track telemetry event
-      TemplateTelemetry.trackBoosted({
-        templateId: signal.metadata.templateId,
-        lens: template.lens[0] || 'genz',
-        context: template.context,
-        rarity: template.rarity,
-        category: template.category,
-        boostId: boostId,
-        userId: signal.target // recipient account ID
-      })
-    }
-  }, [signal?.metadata?.templateId, template, boostId, signal?.target])
 
   // Format the praise text
   const praiseText = templateText?.replace('___', `"${fill}"`) || 'Amazing signal!'
-  const recipient = recipientHandle || recipientAccountId?.slice(-6) || 'someone'
+  const recipient = recipientHandle || 'someone'
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -109,9 +97,9 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="text-6xl mb-4 animate-pulse">🔥</div>
-            <h1 className="text-3xl font-bold text-white mb-2">GenZ Signal Boost</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Signal Boost</h1>
             <div className="text-purple-200 text-sm">
-              Blockchain-verified peer recognition
+              Peer Recognition
             </div>
           </div>
 
@@ -139,54 +127,46 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           </div>
 
           {/* HCS Verification Badge */}
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur rounded-full border border-green-500/30">
+          <div className="flex justify-center mb-6">
+            <div className="flex items-center gap-2 px-3 py-2 bg-green-500/20 backdrop-blur rounded-full border border-green-500/30">
               <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-300 text-sm font-medium">HCS Verified</span>
+              <span className="text-green-300 text-sm font-medium">Blockchain Verified</span>
             </div>
           </div>
 
-          {/* Boost Actions */}
+          {/* Active Boost Actions */}
           <BoostActions 
             boostId={boostId}
-            currentBoostCount={boostCount}
+            currentBoostCount={0}
           />
-          
-          {/* Template Examples (if available) */}
-          {template?.examples && template.examples.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-white/20">
-              <h3 className="text-sm font-medium text-purple-300 mb-3 text-center">
-                Other ways people say this:
-              </h3>
-              <div className="flex flex-wrap justify-center gap-2">
-                {template.examples.slice(0, 4).map((example, idx) => (
-                  <span 
-                    key={idx}
-                    className="text-xs bg-white/10 text-purple-200 px-3 py-1 rounded-full"
-                  >
-                    "{templateText?.replace('___', `"${example}"`) || example}"
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Public Contact Card */}
-        {recipientAccountId && (
-          <PublicContactCard 
-            accountId={recipientAccountId}
-            handle={recipientHandle}
-          />
-        )}
+        {/* Secondary Actions */}
+        <div className="flex gap-4 justify-center mb-6">
+          <button
+            onClick={() => window.open('/collections', '_blank')}
+            className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm font-medium transition-all hover:scale-105"
+          >
+            <Users className="h-4 w-4" />
+            Browse Collections
+          </button>
+          
+          <button
+            onClick={() => window.open('/signup?intent=create_signal', '_blank')}
+            className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 rounded-full text-white text-sm font-medium transition-all hover:scale-105 shadow-lg"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Start Sending Signals
+          </button>
+        </div>
 
         {/* Footer */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-6">
           <a 
             href="/"
             className="text-purple-300 hover:text-white text-sm transition-colors"
           >
-            Powered by TrustMesh → Sovereign Social Recognition
+            TrustMesh → Peer Recognition
           </a>
         </div>
       </div>

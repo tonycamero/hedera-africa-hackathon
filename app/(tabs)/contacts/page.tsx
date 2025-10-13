@@ -28,8 +28,7 @@ import {
   Camera,
   Music,
   Coffee,
-  BookOpen,
-  Circle
+  BookOpen
 } from 'lucide-react'
 import { PurpleFlame } from '@/components/ui/TrustAgentFlame'
 import { XMTPMessageButton } from '@/components/messaging/XMTPIntegration'
@@ -450,14 +449,14 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
             <div className="flex items-center gap-2">
               <GenZText size="sm" className="text-boost-400 font-medium">Bonded</GenZText>
               <span className="text-genz-text-dim">•</span>
-              <GenZText size="sm" dim>Ready for props</GenZText>
+              <GenZText size="sm" dim>{friend.propsReceived || 0} props sent · {Math.floor(Math.random() * 5)} received</GenZText>
             </div>
           )}
         </div>
         
-        {/* Core Actions Only - Add to Circle or Send Props */}
+        {/* Quick Actions */}
         <div className="flex items-center gap-2">
-          {/* Show Add to Circle button if not in circle yet */}
+          {/* Show Allocate Trust button if not in circle yet and handler provided */}
           {!friend.isClose && onAllocateTrust && (
             <GenZButton
               size="sm"
@@ -467,12 +466,11 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
                 onAllocateTrust(friend)
               }}
             >
-              <Circle className="w-3 h-3 mr-1" />
-              Circle
+              <Users className="w-3 h-3 mr-1" />
+              Trust
             </GenZButton>
           )}
           
-          {/* Send Recognition/Props */}
           <GenZButton
             size="sm"
             variant="boost"
@@ -485,35 +483,140 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
             <Zap className="w-3 h-3 mr-1" />
             Props
           </GenZButton>
+          
+          <GenZButton
+            size="sm"
+            variant="ghost"
+            className="w-8 h-8 p-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              // Share friend profile
+              const shareText = `Check out ${friend.name} on TrustMesh! 🔥`
+              const shareUrl = `${window.location.origin}/u/${friend.id}`
+              
+              if (navigator.share) {
+                navigator.share({ title: friend.name, text: shareText, url: shareUrl })
+              } else {
+                navigator.clipboard.writeText(`${shareText} ${shareUrl}`)
+                toast.success('Link copied! 🚀')
+              }
+            }}
+          >
+            <Share2 className="w-3 h-3" />
+          </GenZButton>
+          
+          <XMTPMessageButton
+            recipient={{
+              address: friend.id,
+              name: friend.name
+            }}
+          />
         </div>
       </div>
     </GenZCard>
   )
 }
 
-// All unused mock components removed
+// CampusPersonCard - For campus connections
+function CampusPersonCard({ person }: { person: any }) {
+  return (
+    <GenZCard variant="glass" className={`p-4 ${genZClassNames.hoverScale} cursor-pointer`}>
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        <div className="relative">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sec-500/30 to-pri-500/20 border border-sec-500/30 flex items-center justify-center">
+            <span className="text-genz-text font-semibold text-sm">
+              {person.name.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+          {person.isOnline && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-genz-success border-2 border-panel" />
+          )}
+        </div>
+        
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <GenZText className="font-medium truncate">{person.name}</GenZText>
+            {person.joinedRecently && (
+              <GenZChip variant="signal" className="text-xs">
+                New
+              </GenZChip>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 text-xs">
+            <GenZText size="sm" dim>{person.handle}</GenZText>
+            <span className="text-genz-text-dim">•</span>
+            <GenZText size="sm" className="text-genz-success">
+              {person.mutualFriends} mutual
+            </GenZText>
+          </div>
+          
+          <GenZText size="sm" dim className="mt-1">
+            {person.vibe}
+          </GenZText>
+        </div>
+        
+        {/* Add Button */}
+        <GenZButton size="sm" variant="signal">
+          <UserPlus className="w-3 h-3 mr-1" />
+          Add
+        </GenZButton>
+      </div>
+    </GenZCard>
+  )
+}
 
-export default function YourCrewPage() {
-  // Core state - Real HCS data only
-  const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
-  const [trustLevels, setTrustLevels] = useState<Map<string, { allocatedTo: number, receivedFrom: number }>>(new Map())
-  const [sessionId, setSessionId] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
-  
-  // GenZ UI state (simplified)
-  const [sendSignalModalOpen, setSendSignalModalOpen] = useState(false)
-  const [addFriendOpen, setAddFriendOpen] = useState(false)
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
-  const [allocateTrustModalOpen, setAllocateTrustModalOpen] = useState(false)
-  const [selectedContactForTrust, setSelectedContactForTrust] = useState<Friend | null>(null)
-  
-  // Professional state management
-  const [error, setError] = useState<string | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(false)
-  
-  // Professional data loading with enhanced error handling
-  const loadContacts = async () => {
+// SuggestionCard - For discovery suggestions
+function SuggestionCard({ person }: { person: any }) {
+  return (
+    <GenZCard variant="glass" className={`p-4 ${genZClassNames.hoverScale} cursor-pointer`}>
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        <div className="relative">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-genz-text-dim/30 to-genz-border/20 border border-genz-text-dim/30 flex items-center justify-center">
+            <span className="text-genz-text font-semibold text-sm">
+              {person.name.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+          {person.isOnline && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-genz-success border-2 border-panel" />
+          )}
+        </div>
+        
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <GenZText className="font-medium truncate mb-1">{person.name}</GenZText>
+          
+          <GenZText size="sm" className="text-pri-500 mb-1">
+            {person.reason}
+          </GenZText>
+          
+          <div className="flex items-center gap-2 text-xs">
+            <GenZText size="sm" dim>{person.handle}</GenZText>
+            <span className="text-genz-text-dim">•</span>
+            <GenZText size="sm" dim>{person.vibe}</GenZText>
+          </div>
+        </div>
+        
+        {/* Add Button */}
+        <GenZButton size="sm" variant="ghost" className="border border-pri-500/30">
+          <UserPlus className="w-3 h-3 mr-1" />
+          Add
+        </GenZButton>
+      </div>
+    </GenZCard>
+  )
+}
+
+// CampusSection - IRL campus events and meetups
+function CampusSection() {
+  const campusEvents = [
+    {
+      id: 'campus-1',
+      name: 'Tech Meetup @ UCLA',
+      location: 'Engineering Building',
       when: 'Tonight 7pm',
       attendees: 45,
       icon: '💻',

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Wallet, Plus } from 'lucide-react'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import {
   Tooltip,
   TooltipContent,
@@ -15,7 +14,6 @@ import { useRouter } from 'next/navigation'
 
 export function WalletFloatingButton() {
   const router = useRouter()
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
   const [isHovered, setIsHovered] = useState(false)
 
   const handleClick = () => {
@@ -61,12 +59,6 @@ export function WalletFloatingButton() {
               <div className="flex items-center gap-2">
                 <Wallet className="h-4 w-4" />
                 <span className="font-medium">My Signal Wallet</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span>Data Source:</span>
-                <Badge className={`text-xs ${getDataSourceBadgeColor('wallet')}`}>
-                  {getDataSourceLabel('wallet')}
-                </Badge>
               </div>
               <p className="text-xs text-gray-600">
                 View your collectible signal tokens

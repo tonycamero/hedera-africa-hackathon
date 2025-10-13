@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SignalInstance } from '@/lib/types/signals-collectible'
 import { getCategoryIcon, getRarityTheme, formatRarityDisplay } from '@/lib/ui/signal-rarities'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import { GenZCard, GenZText, GenZHeading } from '@/components/ui/genz-design-system'
 import { Clock, TrendingUp, Sparkles, Gift, Database, Zap } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -31,7 +30,6 @@ export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const recognition = useHcsEvents('recognition', 2500)
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
 
   useEffect(() => {
     const live = recognitionItemsToActivity(recognition.items) as any as ActivityItem[]
@@ -209,13 +207,7 @@ export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
           <Clock className="h-4 w-4 text-pri-500" />
           <GenZHeading level={4}>Recent Activity</GenZHeading>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge className={`text-xs ${getDataSourceBadgeColor('signals')} flex items-center gap-1`}>
-            {getDataSourceLabel('signals') === 'Mock Data' ? <Database className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-            {getDataSourceLabel('signals')}
-          </Badge>
-          <GenZText size="sm" dim>{activities.length} recent</GenZText>
-        </div>
+        <GenZText size="sm" dim>{activities.length} recent</GenZText>
       </div>
 
       <div className="space-y-3">

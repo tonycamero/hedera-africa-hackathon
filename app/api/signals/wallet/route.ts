@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { SignalAsset } from '@/lib/types/signals-collectible'
-import { demoMode } from '@/lib/config/demo-mode'
 import { signalsStore } from '@/lib/stores/signalsStore'
 import { recognitionSignals } from '@/lib/data/recognitionSignals'
 
@@ -17,10 +16,10 @@ export async function GET(request: Request) {
       )
     }
 
-    // Check demo mode - if not using mock wallet data, fetch real HCS recognition data
-    if (!demoMode.shouldUseMockWallet()) {
-      // For Alex Chen (the default user), fetch his recognition data from HCS signals
-      const sessionId = owner === '0.0.123456' ? 'tm-alex-chen' : owner
+    // For Alex Chen (the hackathon demo user), fetch recognition data from HCS signals
+    const sessionId = owner === '0.0.123456' ? 'tm-alex-chen' : owner
+    
+    // Try to get HCS data first
       
       // Get recognition events from signals store (RECOGNITION_MINT type for the user)
       const recognitionEvents = signalsStore.getByType('RECOGNITION_MINT')
@@ -67,13 +66,15 @@ export async function GET(request: Request) {
         new Date(b.issued_at).getTime() - new Date(a.issued_at).getTime()
       )
       
-      return NextResponse.json({
-        assets: sortedAssets,
-        count: sortedAssets.length,
-        owner: sessionId,
-        dataSource: 'HCS Live'
-      })
-    }
+      // If we have HCS data, return it
+      if (sortedAssets.length > 0) {
+        return NextResponse.json({
+          assets: sortedAssets,
+          count: sortedAssets.length,
+          owner: sessionId,
+          dataSource: 'HCS Live'
+        })
+      }
 
     // Mock signal assets for demo
     const mockSignalAssets: SignalAsset[] = [
@@ -149,14 +150,14 @@ export async function GET(request: Request) {
       }
     ]
 
-    // Sort by issued_at desc (newest first)
-    const sortedAssets = mockSignalAssets.sort((a, b) => 
+    // Sort by issued_at desc (newest first) - fallback mock data
+    const mockSortedAssets = mockSignalAssets.sort((a, b) => 
       new Date(b.issued_at).getTime() - new Date(a.issued_at).getTime()
     )
 
     return NextResponse.json({
-      assets: sortedAssets,
-      count: sortedAssets.length,
+      assets: mockSortedAssets,
+      count: mockSortedAssets.length,
       owner,
       dataSource: 'Mock Data'
     })

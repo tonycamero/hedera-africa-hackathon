@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
-import { DemoModeToggle } from "@/components/DemoModeToggle"
 import { WalletFloatingButton } from "@/components/WalletFloatingButton"
 import { 
   Circle, 
@@ -78,10 +77,8 @@ export default function TabsLayout({
       <header className="bg-black/20 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Demo Mode Toggle - Left */}
-            <div className="flex-1">
-              <DemoModeToggle />
-            </div>
+            {/* Logo space - Left */}
+            <div className="flex-1"></div>
             
             {/* TrustMesh Logo - Centered */}
             <div className="w-14 h-14 flex items-center justify-center opacity-90">

@@ -6,7 +6,6 @@ import { SignalTypeSelector } from '@/components/signals/SignalTypeSelector'
 import { MintSignalFlow } from '@/components/signals/MintSignalFlow'
 import { RecentActivity } from '@/components/signals/RecentActivity'
 import { SignalType, SignalInstance, SignalAsset } from '@/lib/types/signals-collectible'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import { GenZButton, GenZCard, GenZHeading, GenZText, GenZChip } from '@/components/ui/genz-design-system'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,7 +33,6 @@ export default function SignalsPage() {
   const [sessionId, setSessionId] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
   const router = useRouter()
   
   // Professional state

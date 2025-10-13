@@ -5,7 +5,6 @@ import { SignalAsset, SignalType } from '@/lib/types/signals-collectible'
 import { GlassTradingCard } from '@/components/signals/GlassTradingCard'
 import { TradingSpotlight } from '@/components/signals/TradingSpotlight'
 import { MobileTradingCard } from '@/components/signals/MobileTradingCard'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Database, Zap, Sparkles } from 'lucide-react'
@@ -16,7 +15,6 @@ export default function SignalsTradingView() {
   const [owned, setOwned] = useState<SignalAsset[]>([])
   const [selected, setSelected] = useState<{ asset: SignalAsset; type: SignalType } | null>(null)
   const [loading, setLoading] = useState(true)
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
 
   // Default to Alex Chen who has real HCS recognition data
   const userAddress = "tm-alex-chen"
@@ -118,10 +116,6 @@ export default function SignalsTradingView() {
             <h1 className="text-2xl font-bold text-white mb-2">My Collection</h1>
             <div className="flex items-center justify-center gap-2">
               <span className="text-white/60 text-sm">{owned.length} signal tokens</span>
-              <Badge className={`text-xs ${getDataSourceBadgeColor('wallet')} flex items-center gap-1`}>
-                {getDataSourceLabel('wallet') === 'Mock Data' ? <Database className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-                {getDataSourceLabel('wallet')}
-              </Badge>
             </div>
           </div>
 
@@ -165,10 +159,6 @@ export default function SignalsTradingView() {
               <div className="text-lg font-semibold">My Signal Collection</div>
               <div className="text-xs text-white/60 flex items-center gap-2">
                 <span>{owned.length} tokens • Earned, owned, collectible</span>
-                <Badge className={`text-xs ${getDataSourceBadgeColor('wallet')} flex items-center gap-1`}>
-                  {getDataSourceLabel('wallet') === 'Mock Data' ? <Database className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-                  {getDataSourceLabel('wallet')}
-                </Badge>
               </div>
             </div>
             <div className="flex items-center gap-2">

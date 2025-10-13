@@ -4,7 +4,6 @@ import { SignalAsset, SignalType } from '@/lib/types/signals-collectible'
 import { getCategoryIcon } from '@/lib/ui/signal-rarities'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useDemoMode } from '@/lib/hooks/useDemoMode'
 import { ExternalLink, Share2, Wallet, Database, Zap, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import '@/styles/glass-cards.css'
@@ -22,7 +21,6 @@ interface TradingSpotlightProps {
 }
 
 export function TradingSpotlight({ asset, type }: TradingSpotlightProps) {
-  const { getDataSourceLabel, getDataSourceBadgeColor } = useDemoMode()
 
   if (!asset || !type) {
     return (
