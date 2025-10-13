@@ -123,7 +123,7 @@ export default function ContactsPage() {
         </div>
         <div className="flex gap-2">
           <AddContactDialog>
-            <Button className="flex-1 bg-gradient-to-r from-emerald-500/80 to-green-500/80 hover:from-emerald-500 hover:to-green-500 text-white font-medium">
+            <Button className="flex-1 bg-gradient-to-r from-emerald-500/80 to-green-500/80 hover:from-emerald-500 hover:to-green-500 text-white font-medium shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:shadow-[0_0_25px_rgba(52,211,153,0.4)] transition-all duration-300">
               <QrCode className="w-4 h-4 mr-2" />
               QR Exchange
             </Button>
@@ -154,7 +154,7 @@ export default function ContactsPage() {
           {bondedContacts.length} contacts • Recognition signals available
         </div>
         <PeerRecommendationModal>
-          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium">
+          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium shadow-[0_0_20px_rgba(0,246,255,0.3)] hover:shadow-[0_0_25px_rgba(0,246,255,0.4)] transition-all duration-300">
             <Award className="w-4 h-4 mr-2" />
             Send Signal
           </Button>
@@ -162,7 +162,7 @@ export default function ContactsPage() {
       </div>
 
       {/* All Contacts with Trust Levels */}
-      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/10 rounded-lg p-4 shadow-lg backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-2 border-white/20 rounded-lg p-4 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] backdrop-blur-sm relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-white">All Contacts</h3>

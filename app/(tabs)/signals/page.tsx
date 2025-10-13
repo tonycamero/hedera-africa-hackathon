@@ -254,7 +254,7 @@ export default function SignalsPage() {
       </div>
 
       {/* Mobile Tabs */}
-      <div className="grid grid-cols-2 bg-white/5 border border-white/10 rounded-lg p-1 gap-1">
+      <div className="grid grid-cols-2 bg-gradient-to-r from-slate-800/60 to-slate-900/60 border-2 border-white/20 rounded-lg p-1 gap-1 shadow-[0_0_20px_rgba(255,255,255,0.08)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <Button
           variant="ghost"
           size="sm"
@@ -302,7 +302,7 @@ export default function SignalsPage() {
             </div>
           ) : (
             filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-white/5 border border-white/10 backdrop-blur-sm hover:border-[#00F6FF]/30 transition-all duration-300 rounded-lg p-2.5">
+              <div key={signal.id} className="bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/15 backdrop-blur-sm hover:border-[#00F6FF]/40 hover:shadow-[0_0_15px_rgba(0,246,255,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#00F6FF]/10 hover:before:to-[#00F6FF]/10">
                 {/* Compact Feed Item */}
                 <div className="flex items-center gap-2">
                   {/* Small Avatar with status */}
@@ -354,7 +354,7 @@ export default function SignalsPage() {
               const colors = getCategoryColor(token.category)
               
               return (
-                <div key={token.id} className={`bg-gradient-to-r ${colors.bg} border ${colors.border} rounded-xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 shadow-lg`}>
+                <div key={token.id} className={`bg-gradient-to-br from-slate-800/60 to-slate-900/50 ${colors.bg} border-2 ${colors.border} rounded-xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 shadow-[0_0_25px_rgba(0,0,0,0.3)] hover:shadow-[0_0_35px_rgba(0,0,0,0.4)] relative before:absolute before:inset-0 before:rounded-xl before:p-[1px] before:bg-gradient-to-r before:${colors.border.replace('border-', 'from-').replace('/30', '/20')} before:via-transparent before:to-${colors.border.replace('border-', '').replace('/30', '/20')} before:-z-10 before:animate-pulse`}>
                   <div className="flex items-center gap-4">
                     {/* Left 2/3: Token Info */}
                     <div className="flex-1 space-y-2">

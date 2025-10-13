@@ -295,7 +295,7 @@ export default function CirclePage() {
               </div>
             ) : (
               circleMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+              <div key={member.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/40 to-slate-900/30 border border-green-400/20 rounded-lg hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-800/40 hover:border-green-400/30 hover:shadow-[0_0_15px_rgba(52,211,153,0.15)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-green-400/10 before:via-transparent before:to-green-400/10 before:-z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00F6FF]/20 to-cyan-500/20 border border-[#00F6FF]/30 flex items-center justify-center">
                     <User className="w-4 h-4 text-[#00F6FF]" />
@@ -341,7 +341,7 @@ export default function CirclePage() {
                 
                 {/* Show up to 3 empty slots */}
                 {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
-                  <div key={`empty-${i}`} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border-2 border-dashed border-[#00F6FF]/20">
+                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/30 to-slate-900/20 rounded-lg border-2 border-dashed border-[#00F6FF]/30 hover:border-[#00F6FF]/50 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-800/30 hover:shadow-[0_0_12px_rgba(0,246,255,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#00F6FF]/5 before:via-transparent before:to-[#00F6FF]/5 before:-z-10">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[#00F6FF]/10 border border-[#00F6FF]/30 flex items-center justify-center">
                         <Plus className="w-4 h-4 text-[#00F6FF]/60" />

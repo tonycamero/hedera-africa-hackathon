@@ -280,11 +280,16 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         <DialogContent
           className="
             fixed bottom-0 left-0 right-0 w-full max-w-none p-0
-            rounded-t-2xl border-t border-white/10
-            bg-gradient-to-b from-slate-900/95 to-slate-900/85 backdrop-blur-xl
+            rounded-t-2xl border-t-2 border-l border-r border-[#00F6FF]/30
+            bg-gradient-to-br from-slate-900/95 to-slate-800/90 backdrop-blur-xl
+            shadow-[0_0_40px_rgba(0,246,255,0.2),0_0_80px_rgba(0,246,255,0.1)]
             data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8
             data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom-8
             translate-x-0 translate-y-0
+            relative
+            before:absolute before:inset-0 before:rounded-t-2xl before:p-[1px]
+            before:bg-gradient-to-r before:from-[#00F6FF]/30 before:via-transparent before:to-[#00F6FF]/30
+            before:-z-10 before:animate-pulse
           "
           style={{
             position: 'fixed',
