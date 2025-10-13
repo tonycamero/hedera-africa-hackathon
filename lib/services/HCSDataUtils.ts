@@ -182,22 +182,25 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
 // Derive trust statistics from HCS trust events
 export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): HCSTrustStats & { pendingOut: number } {
   const trustEvents = events.filter(e => 
-    e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE' || 
-    e.type === 'TRUST_ACCEPT' || e.type === 'TRUST_DECLINE'
+    e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE'
   ).sort((a, b) => a.ts - b.ts)
   
   let allocatedOut = 0
-  let pendingOut = 0
   let receivedIn = 0
   
-  // Track outbound trust state per peer
-  const outboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
+  // Get bonded contacts to verify allocations are valid
+  const bondedContacts = getBondedContactsFromHCS(events, sessionId)
+  const bondedIds = new Set(bondedContacts.map(c => c.peerId))
+  
+  // Track outbound trust state per peer (latest event wins)
+  const outboundTrustByPeer = new Map<string, { weight: number; active: boolean }>()
   
   // Process outbound trust events in chronological order
   const outboundTrust = trustEvents.filter(e => {
     const actor = e.actor || (e as any).actors?.from
     return actor === sessionId
   })
+  
   for (const event of outboundTrust) {
     const peerId = event.target || (event as any).actors?.to
     if (!peerId) continue
@@ -205,57 +208,45 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
     const weight = event.metadata?.weight || 1
     
     if (event.type === 'TRUST_ALLOCATE') {
-      outboundTrustByPeer.set(peerId, { weight, status: 'pending' })
+      // Trust allocation is immediate for bonded contacts
+      outboundTrustByPeer.set(peerId, { weight, active: true })
     } else if (event.type === 'TRUST_REVOKE') {
-      const existing = outboundTrustByPeer.get(peerId)
-      if (existing) {
-        existing.status = 'revoked'
-      }
+      // Revoke trust allocation
+      outboundTrustByPeer.set(peerId, { weight: 0, active: false })
     }
   }
   
-  // Process inbound acceptance/decline signals to update outbound trust status
+  // Process inbound trust events
   const inboundTrust = trustEvents.filter(e => {
     const target = e.target || (e as any).actors?.to
     return target === sessionId
   })
+  
   for (const event of inboundTrust) {
     const peerId = event.actor || (event as any).actors?.from
     if (!peerId) continue
     
-    if (event.type === 'TRUST_ACCEPT') {
-      const existing = outboundTrustByPeer.get(peerId)
-      if (existing && existing.status === 'pending') {
-        existing.status = 'bonded'
-      }
-      // Also count as received trust
-      receivedIn += event.metadata?.weight || 1
-    } else if (event.type === 'TRUST_DECLINE') {
-      const existing = outboundTrustByPeer.get(peerId)
-      if (existing && existing.status === 'pending') {
-        existing.status = 'declined'
-      }
-    } else if (event.type === 'TRUST_ALLOCATE') {
-      // Direct inbound allocation (legacy - should be followed by accept/decline)
-      receivedIn += event.metadata?.weight || 1
+    const weight = event.metadata?.weight || 1
+    
+    if (event.type === 'TRUST_ALLOCATE') {
+      receivedIn += weight
     } else if (event.type === 'TRUST_REVOKE') {
-      // Inbound trust revoked
-      receivedIn -= event.metadata?.weight || 1
+      receivedIn -= weight
     }
   }
   
-  // Calculate final counts
-  for (const { weight, status } of outboundTrustByPeer.values()) {
-    if (status === 'bonded') {
-      allocatedOut += weight
-    } else if (status === 'pending') {
-      pendingOut += weight
+  // Calculate final outbound count - only count active allocations to bonded contacts
+  for (const [peerId, data] of outboundTrustByPeer.entries()) {
+    if (data.active && bondedIds.has(peerId)) {
+      allocatedOut += data.weight
     }
-    // declined and revoked don't count toward slots used
   }
   
-  // Trust capacity is always 9 slots, regardless of bonded contacts
+  // Trust capacity is always 9 slots
   const cap = 9
+  
+  // For backwards compatibility, we don't track pending separately anymore
+  const pendingOut = 0
   
   return {
     allocatedOut: Math.max(0, allocatedOut),
@@ -308,6 +299,10 @@ export function getPersonalMetricsFromHCS(
 export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: string): Map<string, { allocatedTo: number, receivedFrom: number }> {
   const trustLevels = new Map<string, { allocatedTo: number, receivedFrom: number }>()
   
+  // Get bonded contacts to verify allocations are valid
+  const bondedContacts = getBondedContactsFromHCS(events, sessionId)
+  const bondedIds = new Set(bondedContacts.map(c => c.peerId))
+  
   // Initialize trust levels for all contacts
   const initializeTrustLevel = (contactId: string) => {
     if (!trustLevels.has(contactId)) {
@@ -315,15 +310,19 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
     }
   }
   
+  // Initialize all bonded contacts
+  for (const contact of bondedContacts) {
+    initializeTrustLevel(contact.peerId)
+  }
+  
   // Get all trust-related events
   const trustEvents = events.filter(e => 
-    e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE' || 
-    e.type === 'TRUST_ACCEPT' || e.type === 'TRUST_DECLINE'
+    e.type === 'TRUST_ALLOCATE' || e.type === 'TRUST_REVOKE'
   ).sort((a, b) => a.ts - b.ts)
   
-  // Track outbound and inbound trust per peer
-  const outboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
-  const inboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
+  // Track outbound and inbound trust per peer (latest event wins)
+  const outboundTrustByPeer = new Map<string, { weight: number; active: boolean }>()
+  const inboundTrustByPeer = new Map<string, { weight: number; active: boolean }>()
   
   // Process all trust events
   for (const event of trustEvents) {
@@ -333,66 +332,28 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
     
     if (!actor || !target) continue
     
-    // Initialize trust levels for both parties
-    initializeTrustLevel(actor)
-    initializeTrustLevel(target)
-    
     if (event.type === 'TRUST_ALLOCATE') {
       if (actor === sessionId) {
-        // Outbound trust allocation
-        outboundTrustByPeer.set(target, { weight, status: 'pending' })
+        // Outbound trust allocation - immediate for bonded contacts
+        outboundTrustByPeer.set(target, { weight, active: true })
       } else if (target === sessionId) {
         // Inbound trust allocation
-        inboundTrustByPeer.set(actor, { weight, status: 'pending' })
-      }
-    } else if (event.type === 'TRUST_ACCEPT') {
-      if (actor === sessionId) {
-        // We accepted someone's trust
-        const existing = inboundTrustByPeer.get(target)
-        if (existing && existing.status === 'pending') {
-          existing.status = 'bonded'
-        }
-      } else if (target === sessionId) {
-        // Someone accepted our trust
-        const existing = outboundTrustByPeer.get(actor)
-        if (existing && existing.status === 'pending') {
-          existing.status = 'bonded'
-        }
-      }
-    } else if (event.type === 'TRUST_DECLINE') {
-      if (actor === sessionId) {
-        // We declined someone's trust
-        const existing = inboundTrustByPeer.get(target)
-        if (existing && existing.status === 'pending') {
-          existing.status = 'declined'
-        }
-      } else if (target === sessionId) {
-        // Someone declined our trust
-        const existing = outboundTrustByPeer.get(actor)
-        if (existing && existing.status === 'pending') {
-          existing.status = 'declined'
-        }
+        inboundTrustByPeer.set(actor, { weight, active: true })
       }
     } else if (event.type === 'TRUST_REVOKE') {
       if (actor === sessionId) {
         // We revoked trust to someone
-        const existing = outboundTrustByPeer.get(target)
-        if (existing) {
-          existing.status = 'revoked'
-        }
+        outboundTrustByPeer.set(target, { weight: 0, active: false })
       } else if (target === sessionId) {
         // Someone revoked trust from us
-        const existing = inboundTrustByPeer.get(actor)
-        if (existing) {
-          existing.status = 'revoked'
-        }
+        inboundTrustByPeer.set(actor, { weight: 0, active: false })
       }
     }
   }
   
-  // Calculate final trust levels
+  // Calculate final trust levels - only count active allocations to/from bonded contacts
   for (const [contactId, data] of outboundTrustByPeer.entries()) {
-    if (data.status === 'bonded') {
+    if (data.active && bondedIds.has(contactId)) {
       const current = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
       current.allocatedTo = data.weight
       trustLevels.set(contactId, current)
@@ -400,7 +361,7 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
   }
   
   for (const [contactId, data] of inboundTrustByPeer.entries()) {
-    if (data.status === 'bonded') {
+    if (data.active && bondedIds.has(contactId)) {
       const current = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
       current.receivedFrom = data.weight
       trustLevels.set(contactId, current)
