@@ -24,7 +24,7 @@ export async function GET() {
     })
 
     return NextResponse.json({ 
-      items: signalTypes,
+      types: signalTypes,
       count: signalTypes.length 
     })
   } catch (error) {

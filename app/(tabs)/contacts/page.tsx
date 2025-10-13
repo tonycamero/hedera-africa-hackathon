@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { shareSignal } from "@/lib/utils/shareUtils"
 import { trackSignalSent } from '@/lib/services/GenZTelemetryService'
 import { GenZAddFriendModal } from '@/components/GenZAddFriendModal'
+import { AddContactModal } from '@/components/AddContactModal'
 import { AllocateTrustModal } from '@/components/AllocateTrustModal'
 import { trustAllocationService } from '@/lib/services/TrustAllocationService'
 import { GenZButton, GenZCard, GenZChip, GenZHeading, GenZText, GenZInput, genZClassNames } from '@/components/ui/genz-design-system'
@@ -30,6 +31,14 @@ import {
   BookOpen
 } from 'lucide-react'
 import { PurpleFlame } from '@/components/ui/TrustAgentFlame'
+import { XMTPMessageButton } from '@/components/messaging/XMTPIntegration'
+import { 
+  ProfessionalLoading, 
+  ProfessionalError, 
+  ContextualGuide, 
+  NetworkStatusIndicator,
+  PullToRefresh 
+} from '@/components/enhancements/professional-ux-enhancements'
 // GenZ Friend Interface
 interface Friend {
   id: string
@@ -90,16 +99,17 @@ function CrewSection({ friends, onSignalClick, onAllocateTrust, setActiveTab, on
             
             {/* Main CTA */}
             <div className="space-y-4">
-              <GenZButton 
-                variant="boost" 
-                size="lg"
-                className="w-full py-4 text-lg font-bold transform hover:scale-105 transition-all duration-300" 
-                glow
-                onClick={() => onAddFriend()}
-              >
-                <Camera className="w-5 h-5 mr-2" />
-                Add Contact
-              </GenZButton>
+              <AddContactModal>
+                <GenZButton 
+                  variant="boost" 
+                  size="lg"
+                  className="w-full py-4 text-lg font-bold transform hover:scale-105 transition-all duration-300" 
+                  glow
+                >
+                  <Camera className="w-5 h-5 mr-2" />
+                  Add Contact
+                </GenZButton>
+              </AddContactModal>
             </div>
             
             {/* Contact tips */}
@@ -519,13 +529,12 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
             Props
           </GenZButton>
           
-          <GenZButton
-            size="sm"
-            variant="ghost"
-            className="w-8 h-8 p-0"
-          >
-            <MessageCircle className="w-3 h-3" />
-          </GenZButton>
+          <XMTPMessageButton
+            recipient={{
+              address: friend.id,
+              name: friend.name
+            }}
+          />
         </div>
       </div>
     </GenZCard>
@@ -860,46 +869,74 @@ export default function YourCrewPage() {
   const [sessionId, setSessionId] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   
-  // GenZ UI state
+  // GenZ UI state (simplified)
   const [sendSignalModalOpen, setSendSignalModalOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
-  const [activeTab, setActiveTab] = useState<'crew' | 'campus' | 'discover'>('discover')
   const [allocateTrustModalOpen, setAllocateTrustModalOpen] = useState(false)
   const [selectedContactForTrust, setSelectedContactForTrust] = useState<Friend | null>(null)
   
-  // Load data
-  useEffect(() => {
-    const loadContacts = async () => {
-      try {
-        setIsLoading(true)
-        const currentSessionId = getSessionId()
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
-        
-        // Load bonded contacts from HCS
+  // Professional state management
+  const [error, setError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(false)
+  
+  // Professional data loading with enhanced error handling
+  const loadContacts = async () => {
+    try {
+      if (!isRefreshing) setIsLoading(true)
+      setError(null)
+      
+      const currentSessionId = getSessionId()
+      const effectiveSessionId = currentSessionId || 'tm-alex-chen'
+      setSessionId(effectiveSessionId)
+      
+      // Load with timeout protection
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Loading timeout - check your connection')), 8000)
+      )
+      
+      const loadPromise = Promise.resolve().then(() => {
         const allEvents = signalsStore.getAll()
         const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
-        setBondedContacts(contacts)
-        
-        // Get trust levels for all contacts
         const trustData = getTrustLevelsPerContact(allEvents, effectiveSessionId)
-        setTrustLevels(trustData)
-        
-        console.log(`[GenZContacts] Loaded ${contacts.length} friends`)
-      } catch (error) {
-        console.error('[GenZContacts] Failed to load contacts:', error)
-      } finally {
-        setIsLoading(false)
+        return { contacts, trustData }
+      })
+      
+      const { contacts, trustData } = await Promise.race([loadPromise, timeoutPromise]) as any
+      
+      setBondedContacts(contacts)
+      setTrustLevels(trustData)
+      
+      // Show first-time guide if no contacts
+      if (contacts.length === 0) {
+        setShowFirstTimeGuide(true)
       }
+      
+      console.log(`[GenZContacts] ✅ Loaded ${contacts.length} connections`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load your crew'
+      console.error('[GenZContacts] ❌ Error:', error)
+      setError(message)
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
     }
+  }
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await loadContacts()
+  }
+  
+  useEffect(() => {
 
     loadContacts()
     const unsubscribe = signalsStore.subscribe(loadContacts)
     return unsubscribe
   }, [])
 
-  // Convert HCS contacts to Friend format
+  // Convert HCS contacts to Friend format (no fake data)
   const friends: Friend[] = bondedContacts.map(contact => {
     const trustData = trustLevels.get(contact.peerId || contact.id) || { allocatedTo: 0, receivedFrom: 0 }
     const displayName = contact.handle || `User ${contact.peerId?.slice(-6) || 'Unknown'}`
@@ -908,12 +945,12 @@ export default function YourCrewPage() {
       id: contact.peerId || contact.id,
       name: displayName,
       handle: `@${displayName.toLowerCase().replace(/\s+/g, '')}`,
-      isOnline: Math.random() > 0.3,
-      mutualFriends: Math.floor(Math.random() * 5) + 1,
+      isOnline: true, // Assume online (no fake randomness)
+      mutualFriends: 0, // Real data only
       propsReceived: trustData.receivedFrom,
       isClose: trustData.allocatedTo > 0,
-      recentActivity: trustData.receivedFrom > 0 ? 'just got props!' : undefined,
-      vibe: 'studying 📚'
+      recentActivity: trustData.allocatedTo > 0 ? 'in your circle' : undefined,
+      vibe: undefined // Remove fake vibes
     }
   })
 
@@ -926,6 +963,11 @@ export default function YourCrewPage() {
 
   // Event handlers
   const handleAddFriend = () => {
+    setAddFriendOpen(true)
+  }
+
+  const handleProfessionalAddContact = () => {
+    // This opens the professional contact modal with phone/email integration
     setAddFriendOpen(true)
   }
 
@@ -956,24 +998,51 @@ export default function YourCrewPage() {
 
   return (
     <div className="min-h-screen bg-ink">
-      <div className="max-w-md mx-auto px-4 py-4 space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <GenZHeading level={1} className="flex items-center justify-center gap-2">
-            <Users className="w-6 h-6 text-pri-500 animate-breathe-glow" />
-            Crew
-          </GenZHeading>
-        </div>
+      <NetworkStatusIndicator />
+      
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+          {/* Header */}
+          <div className="text-center">
+            <GenZHeading level={1} className="flex items-center justify-center gap-2">
+              <Users className="w-6 h-6 text-pri-500 animate-breathe-glow" />
+              Crew
+            </GenZHeading>
+          </div>
 
+          {/* First Time Guide */}
+          {showFirstTimeGuide && (
+            <ContextualGuide
+              title="Build Your Crew"
+              message="Connect with people you trust to start building your inner circle."
+              tip="Quality connections matter more than quantity!"
+              actionText="Add Your First Contact"
+              onAction={handleAddFriend}
+              onDismiss={() => setShowFirstTimeGuide(false)}
+              showOnce
+              storageKey="first-contacts"
+            />
+          )}
 
+          {/* Error State */}
+          {error && (
+            <ProfessionalError
+              message={error}
+              onAction={handleRefresh}
+              actionText="Try Again"
+              variant="error"
+              dismissible
+              onDismiss={() => setError(null)}
+            />
+          )}
 
-        {/* Main Content */}
-        <div className="space-y-4">
+          {/* Loading State */}
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="text-5xl mb-4 animate-float">⚡</div>
-              <GenZText dim>Loading my people...</GenZText>
-            </div>
+            <ProfessionalLoading 
+              variant="initial"
+              message="Loading your crew..."
+              submessage="Syncing contacts from HCS"
+            />
           ) : (
             <div className="space-y-4">
               {/* Viral Share Section */}
@@ -982,46 +1051,19 @@ export default function YourCrewPage() {
               {/* Trust Agent */}
               <AICrewNudge onAddFriend={handleAddFriend} />
               
-              {/* Tab Navigation */}
-              <div className="flex justify-center gap-2">
-                {(['crew', 'campus', 'discover'] as const).map((tab) => {
-                  const isSelected = activeTab === tab
-                  const icons = {
-                    crew: <Heart className="w-3 h-3" />,
-                    campus: <MapPin className="w-3 h-3" />,
-                    discover: <Eye className="w-3 h-3" />
-                  }
-                  
-                  return (
-                    <GenZChip
-                      key={tab}
-                      variant={isSelected ? 'boost' : 'neutral'}
-                      className={`cursor-pointer ${genZClassNames.hoverScale} ${isSelected ? 'shadow-glow' : ''}`}
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {icons[tab]}
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </GenZChip>
-                  )
-                })}
-              </div>
-              
-              {activeTab === 'crew' && (
-                <CrewSection friends={friends} onSignalClick={handleSignalClick} onAllocateTrust={handleAllocateTrustClick} setActiveTab={setActiveTab} onAddFriend={handleAddFriend} />
-              )}
-              
-              {activeTab === 'campus' && (
-                <CampusSection />
-              )}
-              
-              {activeTab === 'discover' && (
-                <DiscoverSection />
-              )}
+              {/* Main Crew Section (no tabs) */}
+              <CrewSection 
+                friends={friends} 
+                onSignalClick={handleSignalClick} 
+                onAllocateTrust={handleAllocateTrustClick} 
+                setActiveTab={() => {}} // Removed tab functionality
+                onAddFriend={handleAddFriend} 
+              />
             </div>
           )}
         </div>
-      </div>
-
+      </PullToRefresh>
+      
       {/* Send Signal Modal */}
       {selectedFriend && (
         <SendSignalModal 
@@ -1038,7 +1080,12 @@ export default function YourCrewPage() {
         />
       )}
       
-      {/* GenZ Add Friend Modal */}
+      {/* Professional Add Contact Modal with Phone/Email Integration */}
+      <AddContactModal>
+        <div style={{ display: 'none' }} />
+      </AddContactModal>
+      
+      {/* Fallback GenZ Add Friend Modal */}
       <GenZAddFriendModal
         isOpen={addFriendOpen}
         onClose={() => setAddFriendOpen(false)}

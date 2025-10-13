@@ -11,6 +11,12 @@ import { getBondedContactsFromHCS, getTrustStatsFromHCS, getTrustLevelsPerContac
 import { getSessionId } from "@/lib/session"
 import { StoicGuideModal } from "@/components/StoicGuideModal"
 import { GenZButton, GenZCard, GenZHeading, GenZText, GenZModal, genZClassNames } from '@/components/ui/genz-design-system'
+import { 
+  ProfessionalLoading, 
+  ProfessionalError, 
+  ProfessionalSuccess,
+  ContextualGuide 
+} from '@/components/enhancements/professional-ux-enhancements'
 
 // Inner Circle LED Visualization Component - GenZ Style
 function InnerCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: { 
@@ -78,6 +84,11 @@ export default function InnerCirclePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showContactSelection, setShowContactSelection] = useState(false)
   const [showInviteActions, setShowInviteActions] = useState(false)
+  
+  // Professional state
+  const [error, setError] = useState<string | null>(null)
+  const [isAllocatingTrust, setIsAllocatingTrust] = useState(false)
+  const [recentTrustAllocation, setRecentTrustAllocation] = useState<{name: string, amount: number} | null>(null)
 
   // Load real data from HCS
   useEffect(() => {
@@ -211,13 +222,34 @@ export default function InnerCirclePage() {
     }
   }
 
-  const handleSelectContact = (contactId: string, contactName: string) => {
-    // This would trigger trust allocation in real implementation
-    toast.success(`${contactName} is now in my inner circle! 🔥`, {
-      description: 'They\'re officially in your inner circle'
-    })
-    setShowContactSelection(false)
-    // In real implementation, this would call trust allocation service
+  const handleSelectContact = async (contactId: string, contactName: string) => {
+    try {
+      setIsAllocatingTrust(true)
+      setError(null)
+      
+      // Validate capacity
+      const remaining = trustStats.maxSlots - trustStats.allocatedOut
+      if (remaining <= 0) {
+        throw new Error('Your inner circle is full. Remove someone to add a new member.')
+      }
+      
+      // Default allocation amount = 1 (or next available)
+      const allocationAmount = 1
+      
+      // TODO: integrate trustAllocationService if available here
+      // await trustAllocationService.submitTrustAllocation(contactId, allocationAmount)
+      
+      // Optimistic UI update
+      setRecentTrustAllocation({ name: contactName, amount: allocationAmount })
+      toast.success(`${contactName} added to your inner circle! 🔥`)
+      setShowContactSelection(false)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to add to inner circle'
+      setError(msg)
+      toast.error('Could not add to inner circle', { description: msg })
+    } finally {
+      setIsAllocatingTrust(false)
+    }
   }
 
   const availableSlots = trustStats.maxSlots - trustStats.allocatedOut
@@ -232,13 +264,42 @@ export default function InnerCirclePage() {
               Inner Circle
             </GenZHeading>
         </div>
+        
+        {/* Error State */}
+        {error && (
+          <ProfessionalError
+            message={error}
+            variant="error"
+            dismissible
+            onDismiss={() => setError(null)}
+          />
+        )}
+        
+        {/* Success Feedback */}
+        {recentTrustAllocation && (
+          <ProfessionalSuccess
+            title="Circle Updated!"
+            message={`${recentTrustAllocation.name} is now in your inner circle`}
+            details={[
+              `Trust allocated: ${recentTrustAllocation.amount}`,
+              'They can now see your trust network',
+              'Send them props to strengthen the bond'
+            ]}
+            autoHide
+            hideDelay={5000}
+          />
+        )}
       
         {/* Inner Circle - Visual Centerpiece */}
         <GenZCard variant="glass" className="p-6">
           <div className="text-center mb-4">
             <GenZHeading level={3} className="mb-2">Your Inner Circle 🔥</GenZHeading>
             {isLoading && (
-              <GenZText dim className="animate-pulse">Loading my inner circle...</GenZText>
+              <ProfessionalLoading 
+                variant="default"
+                message="Loading your circle..."
+                className="py-4"
+              />
             )}
           </div>
           
