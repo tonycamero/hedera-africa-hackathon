@@ -276,46 +276,116 @@ export default function ContactsPage() {
       
       {/* Mobile Action Sheet */}
       <MobileActionSheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        {sheetContact && (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-white font-semibold">{sheetContact.handle || `User ${sheetContact.peerId?.slice(-6)}`}</div>
-              <div className="text-white/50 text-xs">Bonded Contact</div>
-            </div>
+        {sheetContact && (() => {
+          const contactId = sheetContact.peerId || sheetContact.id
+          const trustData = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
+          const displayName = sheetContact.handle || `User ${contactId?.slice(-6) || 'Unknown'}`
+          
+          // Parse first and last name from handle
+          let firstName = displayName
+          let lastName = ''
+          const nameParts = displayName.split(' ')
+          if (nameParts.length > 1) {
+            firstName = nameParts[0]
+            lastName = nameParts.slice(1).join(' ')
+          }
+          
+          return (
+            <div className="space-y-4">
+              {/* Rich Contact Header */}
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 border-2 border-[#00F6FF]/40 flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle className="w-8 h-8 text-[#00F6FF]" />
+                </div>
+                <div className="flex items-baseline gap-1 justify-center">
+                  <span className="text-white font-bold text-lg">{firstName}</span>
+                  {lastName && <span className="text-white font-bold text-lg">{lastName}</span>}
+                </div>
+                <div className="text-[#00F6FF] text-sm font-medium">Bonded Contact</div>
+              </div>
+              
+              {/* Trust Metrics */}
+              <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                <div className="text-white/70 text-xs font-medium mb-2 text-center">Trust Relationship</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-green-400">{trustData.allocatedTo}</div>
+                    <div className="text-xs text-white/60">Trust Given</div>
+                    <div className="text-xs text-green-400/70">You → {firstName}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-blue-400">{trustData.receivedFrom}</div>
+                    <div className="text-xs text-white/60">Trust Received</div>
+                    <div className="text-xs text-blue-400/70">{firstName} → You</div>
+                  </div>
+                </div>
+                
+                {/* Trust Status Indicator */}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  {trustData.allocatedTo > 0 ? (
+                    <div className="flex items-center justify-center gap-2 text-green-400">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-xs font-medium">In Your Circle</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 text-white/60">
+                      <div className="w-2 h-2 rounded-full bg-white/30" />
+                      <span className="text-xs">Available for Circle</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-2">
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  className="h-12 text-sm bg-[#00F6FF] text-black hover:bg-[#00F6FF]/90 font-medium"
+                  onClick={() => {
+                    setSheetOpen(false)
+                    toast.info(`Opening chat with ${firstName}…`)
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Message
+                </Button>
+                <Button
+                  className="h-12 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+                  onClick={() => {
+                    setSheetOpen(false)
+                    toast.info(`Send recognition to ${firstName}`)
+                    // TODO: Programmatically open PeerRecommendationModal
+                  }}
+                >
+                  <Award className="w-4 h-4 mr-2" />
+                  Send Signal
+                </Button>
+              </div>
+              
+              {/* Secondary Actions */}
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  variant="outline"
+                  className="h-10 text-sm border-white/20 text-white/80 hover:bg-white/5"
+                  onClick={() => {
+                    setSelectedContactId(contactId)
+                    setSheetOpen(false)
+                  }}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  View Full Profile
+                </Button>
+              </div>
+
               <Button
-                className="h-12 text-sm bg-[#00F6FF] text-black hover:bg-[#00F6FF]/90"
-                onClick={() => {
-                  setSheetOpen(false)
-                  toast.info(`Opening chat…`)
-                }}
+                variant="ghost"
+                className="h-10 w-full text-sm text-white/60 hover:text-white/80"
+                onClick={() => setSheetOpen(false)}
               >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Message
-              </Button>
-              <Button
-                className="h-12 text-sm bg-emerald-500/90 hover:bg-emerald-500 text-white"
-                onClick={() => {
-                  setSheetOpen(false)
-                  toast.info(`Send a recognition signal`)
-                  // Optionally open PeerRecommendationModal trigger programmatically
-                }}
-              >
-                <Award className="w-4 h-4 mr-2" />
-                Send Signal
+                Close
               </Button>
             </div>
-
-            <Button
-              variant="outline"
-              className="h-12 w-full text-sm border-white/20 text-white/80"
-              onClick={() => setSheetOpen(false)}
-            >
-              Close
-            </Button>
-          </div>
-        )}
+          )
+        })()}
       </MobileActionSheet>
     </div>
   )

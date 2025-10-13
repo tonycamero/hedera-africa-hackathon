@@ -34,8 +34,8 @@ export function MobileActionSheet({
           margin: 0
         }}
       >
-        <div className="p-4">{children}</div>
-        <div className="h-4" />
+        <div className="p-4 max-h-[85vh] overflow-y-auto">{children}</div>
+        <div className="h-4 flex-shrink-0" />
       </DialogContent>
     </Dialog>
   )
