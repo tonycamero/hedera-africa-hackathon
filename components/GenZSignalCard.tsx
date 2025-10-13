@@ -129,7 +129,7 @@ export function GenZSignalCard({
       <div className="p-4 space-y-3 flex-1 flex flex-col">
         {/* Signal content */}
         <div className="flex-1">
-          <blockquote className="font-serif font-black text-lg text-black leading-tight mb-3 italic">
+          <blockquote className="font-sans font-bold text-lg text-black leading-tight mb-3">
             "{praiseText}"
           </blockquote>
           
@@ -142,15 +142,15 @@ export function GenZSignalCard({
 
           {note && (
             <div className="mt-3 p-3 rounded-lg bg-gray-800 border-2 border-gray-700">
-              <p className="text-sm text-white italic leading-relaxed font-medium">"{note}"</p>
+              <p className="text-sm text-white leading-relaxed font-medium">"{note}"</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between text-sm pt-3 border-t-2 border-gray-400 mt-2">
-          <span className="font-black text-black">GenZ Signal</span>
-          {timestamp && <span className="font-bold text-black">{new Date(timestamp).toLocaleDateString()}</span>}
+          <span className="font-bold text-black">GenZ Signal</span>
+          {timestamp && <span className="font-medium text-black">{new Date(timestamp).toLocaleDateString()}</span>}
         </div>
       </div>
 
