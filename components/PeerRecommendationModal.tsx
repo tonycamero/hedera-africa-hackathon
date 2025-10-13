@@ -304,7 +304,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
           </DialogTitle>
         </div>
 
-        <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+        <div className="p-4 space-y-4 max-h-[90vh] overflow-y-auto">
           {/* Quick Recipient Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-white">Pick from your trusted contacts list:</Label>
