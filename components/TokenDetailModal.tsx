@@ -40,28 +40,27 @@ export function TokenDetailModal({
         className="fixed inset-0 bg-black/70 backdrop-blur-md animate-in fade-in-0 duration-300"
         onClick={onClose}
       />
-      {/* Modal Container */}
-      <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none">
-        <div className="pointer-events-auto animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
-          <div className={`
-            max-w-md w-full max-h-[85vh] overflow-y-auto 
-            bg-gradient-to-br from-slate-900/85 to-slate-800/80 
-            backdrop-blur-xl 
-            border-2 ${
-              token.category === 'leadership' ? 'border-orange-400/40 shadow-[0_0_40px_rgba(251,146,60,0.3),0_0_80px_rgba(251,146,60,0.1)]' :
-              token.category === 'knowledge' ? 'border-emerald-400/40 shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.1)]' :
-              token.category === 'execution' ? 'border-purple-400/40 shadow-[0_0_40px_rgba(192,132,252,0.3),0_0_80px_rgba(192,132,252,0.1)]' : 'border-[#00F6FF]/40 shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)]'
-            }
-            rounded-[10px] p-6
-            relative
-            before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
-            before:bg-gradient-to-r ${
-              token.category === 'leadership' ? 'before:from-orange-400/50 before:via-transparent before:to-orange-400/50' :
-              token.category === 'knowledge' ? 'before:from-emerald-400/50 before:via-transparent before:to-emerald-400/50' :
-              token.category === 'execution' ? 'before:from-purple-400/50 before:via-transparent before:to-purple-400/50' : 'before:from-[#00F6FF]/50 before:via-transparent before:to-[#00F6FF]/50'
-            }
-            before:-z-10 before:animate-pulse
-          `}>
+      {/* Bottom Sheet Container */}
+      <div className="fixed bottom-0 left-0 right-0 pointer-events-auto animate-in slide-in-from-bottom-8 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+        <div className={`
+          w-full max-h-[90vh] overflow-y-auto 
+          bg-gradient-to-br from-slate-900/95 to-slate-800/90 
+          backdrop-blur-xl 
+          border-t-2 border-l-2 border-r-2 ${
+            token.category === 'leadership' ? 'border-orange-400/40 shadow-[0_0_40px_rgba(251,146,60,0.3),0_0_80px_rgba(251,146,60,0.1)]' :
+            token.category === 'knowledge' ? 'border-emerald-400/40 shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.1)]' :
+            token.category === 'execution' ? 'border-purple-400/40 shadow-[0_0_40px_rgba(192,132,252,0.3),0_0_80px_rgba(192,132,252,0.1)]' : 'border-[#00F6FF]/40 shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)]'
+          }
+          rounded-t-2xl p-6
+          relative
+          before:absolute before:inset-0 before:rounded-t-2xl before:p-[2px]
+          before:bg-gradient-to-r ${
+            token.category === 'leadership' ? 'before:from-orange-400/50 before:via-transparent before:to-orange-400/50' :
+            token.category === 'knowledge' ? 'before:from-emerald-400/50 before:via-transparent before:to-emerald-400/50' :
+            token.category === 'execution' ? 'before:from-purple-400/50 before:via-transparent before:to-purple-400/50' : 'before:from-[#00F6FF]/50 before:via-transparent before:to-[#00F6FF]/50'
+          }
+          before:-z-10 before:animate-pulse
+        `}>
             {/* Close Button */}
             <button
               onClick={onClose}
