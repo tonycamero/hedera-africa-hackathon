@@ -1,0 +1,532 @@
+[
+  {
+    "id": "delulu",
+    "name": "Delulu",
+    "description": "delicious confidence",
+    "icon": "🤡",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/delulu",
+    "_ts": "1758759471.410010908"
+  },
+  {
+    "id": "rizz",
+    "name": "Rizz",
+    "description": "smooth operator",
+    "icon": "🧠",
+    "category": "social",
+    "rarity": "Rare",
+    "_hrl": "def/rizz",
+    "_ts": "1758759473.343699000"
+  },
+  {
+    "id": "brain-rot",
+    "name": "Brain Rot",
+    "description": "too much prime time",
+    "icon": "🧠",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/brain-rot",
+    "_ts": "1758759475.346059000"
+  },
+  {
+    "id": "gyatt",
+    "name": "Gyatt",
+    "description": "respectfully looking",
+    "icon": "❤️",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/gyatt",
+    "_ts": "1758759477.450793599"
+  },
+  {
+    "id": "aura",
+    "name": "Aura",
+    "description": "positive energy",
+    "icon": "😊",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/aura",
+    "_ts": "1758759479.583745000"
+  },
+  {
+    "id": "npc",
+    "name": "NPC",
+    "description": "background character energy",
+    "icon": "🤓",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/npc",
+    "_ts": "1758759481.650576000"
+  },
+  {
+    "id": "tryhard",
+    "name": "Tryhard",
+    "description": "overly serious",
+    "icon": "🎯",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/tryhard",
+    "_ts": "1758759483.621066091"
+  },
+  {
+    "id": "goat",
+    "name": "GOAT",
+    "description": "greatest of all time",
+    "icon": "😊",
+    "category": "social",
+    "rarity": "Legendary",
+    "_hrl": "def/goat",
+    "_ts": "1758759485.540489000"
+  },
+  {
+    "id": "melt",
+    "name": "Melt",
+    "description": "awkward but funny",
+    "icon": "👻",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/melt",
+    "_ts": "1758759487.489581411"
+  },
+  {
+    "id": "ghost",
+    "name": "Ghost",
+    "description": "disappears often",
+    "icon": "👻",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/ghost",
+    "_ts": "1758759489.603098030"
+  },
+  {
+    "id": "lowkey",
+    "name": "Lowkey",
+    "description": "subtle quiet flex",
+    "icon": "🚀",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/lowkey",
+    "_ts": "1758759491.524000000"
+  },
+  {
+    "id": "wagmi",
+    "name": "WAGMI",
+    "description": "crypto hype",
+    "icon": "🤓",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/wagmi",
+    "_ts": "1758759493.539577000"
+  },
+  {
+    "id": "ice",
+    "name": "Ice",
+    "description": "too cool",
+    "icon": "🦢",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/ice",
+    "_ts": "1758759495.505970750"
+  },
+  {
+    "id": "prof-fav",
+    "name": "Prof Fav",
+    "description": "teacher's pet, always cared on",
+    "icon": "🏆",
+    "category": "academic",
+    "rarity": "Common",
+    "_hrl": "def/prof-fav",
+    "_ts": "1758759497.360622398"
+  },
+  {
+    "id": "note-taker",
+    "name": "Note Taker",
+    "description": "clean notes, everyone copies",
+    "icon": "✏️",
+    "category": "academic",
+    "rarity": "Common",
+    "_hrl": "def/note-taker",
+    "_ts": "1758759499.590075256"
+  },
+  {
+    "id": "bookworm",
+    "name": "Bookworm",
+    "description": "lives in the library",
+    "icon": "📖",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/bookworm",
+    "_ts": "1758759501.510433000"
+  },
+  {
+    "id": "lab-rat",
+    "name": "Lab Rat",
+    "description": "always in the science lab",
+    "icon": "🧪",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/lab-rat",
+    "_ts": "1758759503.545611000"
+  },
+  {
+    "id": "deadline-dancer",
+    "name": "Deadline Dancer",
+    "description": "submits last minute",
+    "icon": "⏰",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/deadline-dancer",
+    "_ts": "1758759505.525758916"
+  },
+  {
+    "id": "grad-grind",
+    "name": "Grad Grind",
+    "description": "obsessed with GPA",
+    "icon": "🎯",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/grad-grind",
+    "_ts": "1758759507.399521000"
+  },
+  {
+    "id": "flashcard-flox",
+    "name": "Flashcard Flox",
+    "description": "carries study decks everywhere",
+    "icon": "📄",
+    "category": "academic",
+    "rarity": "Common",
+    "_hrl": "def/flashcard-flox",
+    "_ts": "1758759509.300593000"
+  },
+  {
+    "id": "lecture-sleeper",
+    "name": "Lecture Sleeper",
+    "description": "always nodding off",
+    "icon": "🛌",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/lecture-sleeper",
+    "_ts": "1758759511.419535480"
+  },
+  {
+    "id": "question-king",
+    "name": "Question King",
+    "description": "asks too many",
+    "icon": "🔨",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/question-king",
+    "_ts": "1758759513.459834000"
+  },
+  {
+    "id": "group-glue",
+    "name": "Group Glue",
+    "description": "keeps projects together",
+    "icon": "💛",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/group-glue",
+    "_ts": "1758759515.480253511"
+  },
+  {
+    "id": "exam-sniper",
+    "name": "Exam Sniper",
+    "description": "crushes tests, silent otherwise",
+    "icon": "🎯",
+    "category": "academic",
+    "rarity": "Common",
+    "_hrl": "def/exam-sniper",
+    "_ts": "1758759517.323782918"
+  },
+  {
+    "id": "slow-burner",
+    "name": "Slow Burner",
+    "description": "starts slow, finishes strong",
+    "icon": "🌱",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/slow-burner",
+    "_ts": "1758759519.464482000"
+  },
+  {
+    "id": "early-bird",
+    "name": "Early Bird",
+    "description": "first to class every time",
+    "icon": "🚨",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/early-bird",
+    "_ts": "1758759521.450093323"
+  },
+  {
+    "id": "stats-nerd",
+    "name": "Stats Nerd",
+    "description": "makes everything a graph",
+    "icon": "📊",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/stats-nerd",
+    "_ts": "1758759524.319526000"
+  },
+  {
+    "id": "problem-solver",
+    "name": "Problem Solver",
+    "description": "finds hacks for tricky work",
+    "icon": "❌",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/problem-solver",
+    "_ts": "1758759526.323697000"
+  },
+  {
+    "id": "idea-machine",
+    "name": "Idea Machine",
+    "description": "brainstorming genius",
+    "icon": "💡",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/idea-machine",
+    "_ts": "1758759528.145800000"
+  },
+  {
+    "id": "project-picasso",
+    "name": "Project Picasso",
+    "description": "makes slides beautiful",
+    "icon": "🎨",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/project-picasso",
+    "_ts": "1758759530.130992804"
+  },
+  {
+    "id": "background-dj",
+    "name": "Background DJ",
+    "description": "creates best study sessions",
+    "icon": "🎵",
+    "category": "academic",
+    "rarity": "Common",
+    "_hrl": "def/background-dj",
+    "_ts": "1758759532.105472000"
+  },
+  {
+    "id": "wellness-guru-2",
+    "name": "Wellness Guru",
+    "description": "morning yoga always",
+    "icon": "🧘",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/wellness-guru-2",
+    "_ts": "1758759534.039221430"
+  },
+  {
+    "id": "training-junkie-2",
+    "name": "Training Junkie",
+    "description": "loves learning new skills",
+    "icon": "📚",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/training-junkie-2",
+    "_ts": "1758759535.899528256"
+  },
+  {
+    "id": "powerpoint-pro",
+    "name": "PowerPoint Pro",
+    "description": "biggest slides in the room",
+    "icon": "📊",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/powerpoint-pro",
+    "_ts": "1758759538.023891070"
+  },
+  {
+    "id": "suit-up",
+    "name": "Suit Up",
+    "description": "overdressed for everything",
+    "icon": "💼",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/suit-up",
+    "_ts": "1758759540.003506613"
+  },
+  {
+    "id": "meeting-hog",
+    "name": "Meeting Hog",
+    "description": "talks too much in meetings",
+    "icon": "👽",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/meeting-hog",
+    "_ts": "1758759542.223632000"
+  },
+  {
+    "id": "silent-operator",
+    "name": "Silent Operator",
+    "description": "works hard, unnoticed",
+    "icon": "👀",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/silent-operator",
+    "_ts": "1758759544.189307000"
+  },
+  {
+    "id": "inbox-zero",
+    "name": "Inbox Zero",
+    "description": "replies instantly, always",
+    "icon": "📧",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/inbox-zero",
+    "_ts": "1758759546.044980641"
+  },
+  {
+    "id": "deadline-dodger",
+    "name": "Deadline Dodger",
+    "description": "always almost done",
+    "icon": "⏰",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/deadline-dodger",
+    "_ts": "1758759548.024236000"
+  },
+  {
+    "id": "code-monkey",
+    "name": "Code Monkey",
+    "description": "nonstop coder",
+    "icon": "👨‍💻",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/code-monkey",
+    "_ts": "1758759550.110434820"
+  },
+  {
+    "id": "data-whisperer",
+    "name": "Data Whisperer",
+    "description": "always has chart ready",
+    "icon": "📊",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/data-whisperer",
+    "_ts": "1758759552.086074710"
+  },
+  {
+    "id": "office-macgyver",
+    "name": "Office MacGyver",
+    "description": "fixes everything with random tools",
+    "icon": "🔧",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/office-macgyver",
+    "_ts": "1758759554.000108000"
+  },
+  {
+    "id": "linkedin-star",
+    "name": "LinkedIn Star",
+    "description": "posts daily, corporate jargon",
+    "icon": "🌐",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/linkedin-star",
+    "_ts": "1758759555.865566000"
+  },
+  {
+    "id": "coffee-iv",
+    "name": "Coffee IV",
+    "description": "lives on caffeine",
+    "icon": "☕",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/coffee-iv",
+    "_ts": "1758759557.943774534"
+  },
+  {
+    "id": "slack-phantom",
+    "name": "Slack Phantom",
+    "description": "online but never responds",
+    "icon": "👻",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/slack-phantom",
+    "_ts": "1758759559.983450133"
+  },
+  {
+    "id": "wellness-guru",
+    "name": "Wellness Guru",
+    "description": "morning yoga always hydrated",
+    "icon": "🧘",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/wellness-guru",
+    "_ts": "1758759562.041018000"
+  },
+  {
+    "id": "task-crusher",
+    "name": "Task Crusher",
+    "description": "knocks out to-do list daily",
+    "icon": "🎯",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/task-crusher",
+    "_ts": "1758759564.205249000"
+  },
+  {
+    "id": "night-owl",
+    "name": "Night Owl",
+    "description": "always working 2 AM",
+    "icon": "🦉",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/night-owl",
+    "_ts": "1758759566.150157568"
+  },
+  {
+    "id": "startup-energy",
+    "name": "Startup Energy",
+    "description": "hustles nonstop constantly",
+    "icon": "🚀",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/startup-energy",
+    "_ts": "1758759568.340712442"
+  },
+  {
+    "id": "budget-boss",
+    "name": "Budget Boss",
+    "description": "knows where every cent goes",
+    "icon": "💰",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/budget-boss",
+    "_ts": "1758759570.410085772"
+  },
+  {
+    "id": "training-junkie",
+    "name": "Training Junkie",
+    "description": "loves learning new skills",
+    "icon": "📚",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/training-junkie",
+    "_ts": "1758759572.445109847"
+  },
+  {
+    "id": "innovation-engine",
+    "name": "Innovation Engine",
+    "description": "always has new ideas",
+    "icon": "💡",
+    "category": "social",
+    "rarity": "Common",
+    "_hrl": "def/innovation-engine",
+    "_ts": "1758759574.309784593"
+  },
+  {
+    "id": "network-ninja",
+    "name": "Network Ninja",
+    "description": "knows everyone everywhere",
+    "icon": "🕸️",
+    "category": "professional",
+    "rarity": "Common",
+    "_hrl": "def/network-ninja",
+    "_ts": "1758759576.565768940"
+  }
+]

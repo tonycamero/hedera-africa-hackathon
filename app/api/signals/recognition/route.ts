@@ -1,6 +1,45 @@
 // API endpoint for enriched recognition signals
 import { NextRequest, NextResponse } from 'next/server';
-import { recognitionEnrichmentService } from '@/lib/services/RecognitionEnrichmentService';
+import { mapRarityToCanonical, type CanonicalRarity } from '@/lib/rarity/canonical-rarity';
+
+// Helper functions for enrichment
+function generateEnrichedLabels(name: string, description: string, category: string): string[] {
+  const labels: string[] = [];
+  
+  // Base label from name
+  labels.push(name.toLowerCase().replace(/\s+/g, '-'));
+  
+  // Category-specific labels
+  if (category === 'social') labels.push('social-dynamics');
+  if (category === 'academic') labels.push('academic-achievement');
+  if (category === 'professional') labels.push('workplace-skills');
+  
+  // Content-based labels
+  if (description.includes('confidence')) labels.push('confidence');
+  if (description.includes('smooth')) labels.push('charisma');
+  if (description.includes('energy')) labels.push('positive-energy');
+  if (description.includes('problem')) labels.push('problem-solving');
+  if (description.includes('code')) labels.push('technical');
+  if (description.includes('network')) labels.push('networking');
+  
+  // Special cases
+  if (name.toLowerCase().includes('goat')) labels.push('legendary', 'excellence');
+  if (name.toLowerCase().includes('rizz')) labels.push('charisma', 'social-skills');
+  
+  return [...new Set(labels)].slice(0, 6); // Remove duplicates, limit to 6
+}
+
+function generateContentHash(signalId: string): string {
+  // Simple deterministic hash based on signal ID
+  let hash = 0;
+  const str = `recognition-${signalId}-v1`;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,14 +126,44 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Get all enriched signals
-    const allSignals = await recognitionEnrichmentService.enrichAllSignals();
+    // Get raw signals and enrich them manually since service has issues
+    const rawResponse = await fetch(`${baseUrl}/api/recognition`);
+    
+    if (!rawResponse.ok) {
+      throw new Error(`Recognition API failed: ${rawResponse.status}`);
+    }
+    
+    const rawResult = await rawResponse.json();
+    if (!rawResult.success || !rawResult.data) {
+      throw new Error('Invalid recognition API response');
+    }
+    
+    // Enrich the raw signals
+    const enrichedSignals = rawResult.data.map((signal: any) => ({
+      type_id: `${signal.id}@1`,
+      base_id: signal.id,
+      version: 1,
+      category: signal.category,
+      name: signal.name,
+      description: signal.description,
+      labels: generateEnrichedLabels(signal.name, signal.description, signal.category),
+      rarity: mapRarityToCanonical(signal.rarity),
+      icon: signal.icon,
+      content_hash: generateContentHash(signal.id),
+      created_at: signal._ts,
+      source: 'recognition_signals',
+      metadata: {
+        original_rarity: signal.rarity,
+        hrl: signal._hrl,
+        timestamp: signal._ts
+      }
+    }));
     
     return NextResponse.json({
       success: true,
-      data: allSignals,
-      count: allSignals.length,
-      source: 'recognition_enrichment',
+      data: enrichedSignals,
+      count: enrichedSignals.length,
+      source: 'recognition_enrichment_api',
       timestamp: new Date().toISOString()
     });
     
