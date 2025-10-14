@@ -98,40 +98,40 @@ const NFT_SIGNAL_COLLECTIONS = [
 
 export default function CollectionsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-sm sm:max-w-2xl lg:max-w-6xl">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
-            <h1 className="text-4xl font-bold text-white">NFT Signal Collection</h1>
-            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">NFT Signal Collection</h1>
+            <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
           </div>
-          <p className="text-purple-200 text-xl mb-6">Collectible peer recognition cards on the blockchain</p>
+          <p className="text-purple-200 text-base sm:text-lg lg:text-xl mb-4 sm:mb-6 px-2">Collectible peer recognition cards on the blockchain</p>
           
           {/* Collection Stats */}
-          <div className="flex justify-center gap-8 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 mb-4 sm:mb-6 max-w-md sm:max-w-none mx-auto">
             <div className="text-center">
-              <div className="text-3xl font-bold text-cyan-400">{NFT_SIGNAL_COLLECTIONS.length}</div>
-              <div className="text-sm text-purple-300">Total Cards</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-cyan-400">{NFT_SIGNAL_COLLECTIONS.length}</div>
+              <div className="text-xs sm:text-sm text-purple-300">Total Cards</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length}</div>
-              <div className="text-sm text-purple-300">Legendary</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length}</div>
+              <div className="text-xs sm:text-sm text-purple-300">Legendary</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length}</div>
-              <div className="text-sm text-purple-300">Epic</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length}</div>
+              <div className="text-xs sm:text-sm text-purple-300">Epic</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length}</div>
-              <div className="text-sm text-purple-300">Rare</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length}</div>
+              <div className="text-xs sm:text-sm text-purple-300">Rare</div>
             </div>
           </div>
           
           <button 
             onClick={() => window.history.back()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 sm:px-4 sm:py-2 min-h-[44px] sm:min-h-0 bg-white/10 md:hover:bg-white/20 rounded-full text-white transition-all focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -139,25 +139,25 @@ export default function CollectionsPage() {
         </div>
 
         {/* Rarity Filter */}
-        <div className="flex justify-center gap-4 mb-12">
-          <button className="px-6 py-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-full text-orange-300 border border-orange-500/30 transition-all">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8 sm:mb-12 px-4">
+          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-orange-500/20 md:hover:bg-orange-500/30 rounded-full text-orange-300 border border-orange-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
             🔥 Legendary ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length})
           </button>
-          <button className="px-6 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-full text-purple-300 border border-purple-500/30 transition-all">
+          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-purple-500/20 md:hover:bg-purple-500/30 rounded-full text-purple-300 border border-purple-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
             ⚡ Epic ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length})
           </button>
-          <button className="px-6 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-full text-blue-300 border border-blue-500/30 transition-all">
+          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-blue-500/20 md:hover:bg-blue-500/30 rounded-full text-blue-300 border border-blue-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             ✨ Rare ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length})
           </button>
-          <button className="px-6 py-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-full text-slate-300 border border-slate-500/30 transition-all">
+          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-slate-500/20 md:hover:bg-slate-500/30 rounded-full text-slate-300 border border-slate-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
             ⚪ Common ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'common').length})
           </button>
         </div>
 
         {/* NFT Cards Gallery */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 justify-items-center px-4">
           {NFT_SIGNAL_COLLECTIONS.map((signal, idx) => (
-            <div key={idx} className="transform hover:scale-105 transition-all duration-300">
+            <div key={idx} className="w-full max-w-sm transform md:hover:scale-105 transition-all duration-300 motion-reduce:transition-none">
               <GenZSignalCard
                 title={signal.category}
                 template={signal.template}
@@ -179,13 +179,13 @@ export default function CollectionsPage() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-12 text-center">
-          <div className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-            <h3 className="text-2xl font-bold text-white mb-4">Ready to Send Your First Signal?</h3>
-            <p className="text-purple-200 mb-6">Join TrustMesh to start recognizing others and building your network</p>
+        <div className="mt-8 sm:mt-12 text-center mx-4">
+          <div className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 md:backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/20">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Ready to Send Your First Signal?</h3>
+            <p className="text-base sm:text-lg text-purple-200 mb-4 sm:mb-6">Join TrustMesh to start recognizing others and building your network</p>
             <button
               onClick={() => window.open('/signup?intent=create_signal', '_blank')}
-              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 rounded-full text-white font-medium transition-all hover:scale-105 shadow-lg"
+              className="w-full sm:w-auto px-8 py-4 sm:py-3 min-h-[56px] sm:min-h-0 bg-gradient-to-r from-purple-500 to-cyan-500 md:hover:from-purple-600 md:hover:to-cyan-600 rounded-full text-white font-medium transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
               Create Account & Start Sending
             </button>

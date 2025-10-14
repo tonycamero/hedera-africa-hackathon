@@ -107,41 +107,41 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
   const recipient = recipientHandle || 'someone'
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] p-4">
+      <div className="max-w-sm sm:max-w-2xl lg:max-w-6xl mx-auto">
         {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
-            <h1 className="text-4xl font-bold text-white">NFT Signal Collection</h1>
-            <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">NFT Signal Collection</h1>
+            <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
           </div>
-          <p className="text-purple-200 text-lg">
+          <p className="text-purple-200 text-base sm:text-lg px-2">
             Collectible peer recognition on the blockchain
           </p>
           
           {/* Collection Stats */}
-          <div className="flex justify-center gap-6 mt-6">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-4 sm:mt-6 max-w-md mx-auto">
             <div className="text-center">
-              <div className="text-2xl font-bold text-cyan-400">1/∞</div>
-              <div className="text-xs text-purple-300">Collected</div>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-cyan-400">1/∞</div>
+              <div className="text-xs sm:text-sm text-purple-300">Collected</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{signal.rarity || 'Epic'}</div>
-              <div className="text-xs text-purple-300">Rarity</div>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-400">{signal.rarity || 'Epic'}</div>
+              <div className="text-xs sm:text-sm text-purple-300">Rarity</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{signal.boostCount || 0}</div>
-              <div className="text-xs text-purple-300">Boosts</div>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-400">{signal.boostCount || 0}</div>
+              <div className="text-xs sm:text-sm text-purple-300">Boosts</div>
             </div>
           </div>
         </div>
 
         {/* Main NFT Card Display */}
-        <div className="flex justify-center mb-8">
-          <div className="relative">
-            {/* Glow effect background */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 to-cyan-500/30 blur-xl rounded-xl opacity-70"></div>
+        <div className="flex justify-center mb-6 sm:mb-8 px-4">
+          <div className="relative w-full max-w-sm sm:max-w-md">
+            {/* Glow effect background - reduced on mobile */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 md:from-purple-500/30 to-cyan-500/20 md:to-cyan-500/30 md:blur-xl blur-lg rounded-xl opacity-50 md:opacity-70"></div>
             
             {/* The NFT Card */}
             <div className="relative">
@@ -163,15 +163,15 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
         </div>
 
         {/* HCS Verification Badge */}
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur rounded-full border border-green-500/30">
+        <div className="flex justify-center mb-6 sm:mb-8 px-4">
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 md:backdrop-blur rounded-full border border-green-500/30">
             <Sparkles className="h-4 w-4 text-green-400" />
             <span className="text-green-300 text-sm font-medium">Blockchain Verified NFT</span>
           </div>
         </div>
 
         {/* Interactive Actions */}
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto px-2">
           <BoostActions 
             boostId={boostId}
             currentBoostCount={signal.boostCount || 0}
@@ -179,10 +179,10 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
         </div>
 
         {/* Collection Actions */}
-        <div className="flex gap-4 justify-center mb-8 mt-8">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-6 sm:mb-8 mt-6 sm:mt-8 px-4">
           <button
             onClick={() => window.open('/collections', '_blank')}
-            className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-medium transition-all hover:scale-105 border border-white/20"
+            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[56px] sm:min-h-0 bg-white/10 md:hover:bg-white/20 rounded-full text-white font-medium transition-all md:hover:scale-105 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
           >
             <Users className="h-5 w-5" />
             Browse Collection
@@ -190,7 +190,7 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           
           <button
             onClick={() => window.open('/signup?intent=create_signal', '_blank')}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 rounded-full text-white font-medium transition-all hover:scale-105 shadow-lg"
+            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[56px] sm:min-h-0 bg-gradient-to-r from-purple-500 to-cyan-500 md:hover:from-purple-600 md:hover:to-cyan-600 rounded-full text-white font-medium transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
           >
             <ExternalLink className="h-5 w-5" />
             Start Collecting
@@ -198,33 +198,33 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
         </div>
 
         {/* Rarity Information */}
-        <div className="max-w-2xl mx-auto bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10 mb-8">
-          <h3 className="text-lg font-bold text-white mb-4 text-center">Rarity Guide</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="max-w-2xl mx-auto bg-white/5 md:backdrop-blur rounded-2xl p-4 sm:p-6 border border-white/10 mb-6 sm:mb-8 mx-4">
+          <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4 text-center">Rarity Guide</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <div className="text-center">
-              <div className="text-slate-400 font-bold mb-1">Common</div>
+              <div className="text-slate-400 font-bold mb-1 text-sm sm:text-base">Common</div>
               <div className="text-xs text-slate-300">0-9 boosts</div>
             </div>
             <div className="text-center">
-              <div className="text-blue-400 font-bold mb-1">Rare</div>
+              <div className="text-blue-400 font-bold mb-1 text-sm sm:text-base">Rare</div>
               <div className="text-xs text-blue-300">10-49 boosts</div>
             </div>
             <div className="text-center">
-              <div className="text-purple-400 font-bold mb-1">Epic</div>
+              <div className="text-purple-400 font-bold mb-1 text-sm sm:text-base">Epic</div>
               <div className="text-xs text-purple-300">50-99 boosts</div>
             </div>
             <div className="text-center">
-              <div className="text-orange-400 font-bold mb-1">Legendary</div>
+              <div className="text-orange-400 font-bold mb-1 text-sm sm:text-base">Legendary</div>
               <div className="text-xs text-orange-300">100+ boosts</div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center">
+        <div className="text-center px-4 pb-4">
           <a 
             href="/"
-            className="text-purple-300 hover:text-white text-sm transition-colors"
+            className="text-purple-300 md:hover:text-white text-sm transition-colors focus:outline-none focus:underline"
           >
             TrustMesh → Collectible Peer Recognition
           </a>

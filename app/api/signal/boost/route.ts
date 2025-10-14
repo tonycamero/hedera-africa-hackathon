@@ -32,6 +32,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Feature not enabled' }, { status: 404 })
     }
 
+    // Basic CSRF protection check
+    const requestedWith = req.headers.get('X-Requested-With')
+    if (requestedWith !== 'XMLHttpRequest') {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
     const { boostId } = await req.json()
     
     // Validate boost ID
@@ -39,19 +45,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid boost ID format' }, { status: 400 })
     }
 
-    // Rate limiting per IP + boostId
+    // Enhanced rate limiting per IP + boostId with device fingerprinting
     const clientIP = req.ip || req.headers.get('x-forwarded-for') || 'unknown'
-    const rateLimitKey = `${clientIP}:${boostId}`
+    const userAgent = req.headers.get('user-agent') || 'unknown'
+    const deviceHash = Buffer.from(`${clientIP}:${userAgent}`).toString('base64').slice(0, 8)
+    const rateLimitKey = `${deviceHash}:${boostId}`
     const rateCheck = checkRateLimit(rateLimitKey)
     
     if (!rateCheck.allowed) {
+      console.warn(`[Boost API] Rate limit exceeded for ${deviceHash} on ${boostId}`)
       return NextResponse.json(
         { error: 'Rate limit exceeded. Try again later.' }, 
         { 
           status: 429,
           headers: {
             'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': (Date.now() + RATE_WINDOW).toString()
+            'X-RateLimit-Reset': (Date.now() + RATE_WINDOW).toString(),
+            'Retry-After': Math.ceil(RATE_WINDOW / 1000).toString()
           }
         }
       )

@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Feature not enabled' }, { status: 404 })
     }
 
+    // Basic CSRF protection check
+    const requestedWith = req.headers.get('X-Requested-With')
+    if (requestedWith !== 'XMLHttpRequest') {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
     const { boostId, def_id, note, sessionId } = await req.json()
     
     // Validate required fields
