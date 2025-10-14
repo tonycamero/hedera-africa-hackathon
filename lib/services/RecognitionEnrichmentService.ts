@@ -1,7 +1,4 @@
-'use client';
-
 import type { SignalRarity } from '@/lib/types/signals-collectible';
-import { createHash } from 'crypto';
 
 // Recognition signal from API
 interface RawRecognitionSignal {
@@ -123,7 +120,7 @@ export class RecognitionEnrichmentService {
   }
 
   /**
-   * Generate content hash for provenance
+   * Generate content hash for provenance (using simple string hash)
    */
   private generateContentHash(signal: Omit<EnhancedSignalType, 'content_hash'>): string {
     const canonical = JSON.stringify({
@@ -138,7 +135,14 @@ export class RecognitionEnrichmentService {
       icon: signal.icon
     });
     
-    return createHash('sha256').update(canonical).digest('hex');
+    // Simple hash function for client-side compatibility
+    let hash = 0;
+    for (let i = 0; i < canonical.length; i++) {
+      const char = canonical.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0');
   }
 
   /**
