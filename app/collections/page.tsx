@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { ArrowLeft, Search, Filter, Sparkles, Star } from 'lucide-react'
+import React, { useState } from 'react'
+import { ArrowLeft, Search, Filter, Sparkles, Star, X } from 'lucide-react'
 import { GenZSignalCard } from '@/components/GenZSignalCard'
 
 // NFT-style signal collections with rarity and visual properties
@@ -97,6 +97,8 @@ const NFT_SIGNAL_COLLECTIONS = [
 ]
 
 export default function CollectionsPage() {
+  const [selectedSignal, setSelectedSignal] = useState<typeof NFT_SIGNAL_COLLECTIONS[0] | null>(null)
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-sm sm:max-w-2xl lg:max-w-6xl">
@@ -154,10 +156,10 @@ export default function CollectionsPage() {
           </button>
         </div>
 
-        {/* NFT Cards Gallery */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 justify-items-center px-4">
+        {/* NFT Cards Gallery - 3 columns on mobile, more on larger screens */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 px-4">
           {NFT_SIGNAL_COLLECTIONS.map((signal, idx) => (
-            <div key={idx} className="w-full max-w-sm transform md:hover:scale-105 transition-all duration-300 motion-reduce:transition-none">
+            <div key={idx} className="w-full">
               <GenZSignalCard
                 title={signal.category}
                 template={signal.template}
@@ -169,14 +171,51 @@ export default function CollectionsPage() {
                 boostCount={signal.boostCount}
                 emoji={signal.emoji}
                 timestamp={new Date().toISOString()}
-                onClick={() => {
-                  // Could open a detail modal or navigate to boost page
-                  console.log('Clicked NFT card:', signal)
-                }}
+                compact={true}
+                onClick={() => setSelectedSignal(signal)}
               />
             </div>
           ))}
         </div>
+
+        {/* Full Detail Modal */}
+        {selectedSignal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="relative max-w-md w-full max-h-[90vh] overflow-y-auto">
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedSignal(null)}
+                className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              
+              {/* Full-size card */}
+              <GenZSignalCard
+                title={selectedSignal.category}
+                template={selectedSignal.template}
+                fill={selectedSignal.fill}
+                note={selectedSignal.note}
+                senderHandle={selectedSignal.senderHandle}
+                recipientHandle={selectedSignal.recipientHandle}
+                rarity={selectedSignal.rarity}
+                boostCount={selectedSignal.boostCount}
+                emoji={selectedSignal.emoji}
+                timestamp={new Date().toISOString()}
+                glowEffect={true}
+                compact={false}
+              />
+            </div>
+            
+            {/* Click outside to close */}
+            <div 
+              className="absolute inset-0 -z-10" 
+              onClick={() => setSelectedSignal(null)}
+              aria-label="Click to close modal"
+            />
+          </div>
+        )}
 
         {/* CTA Section */}
         <div className="mt-8 sm:mt-12 text-center mx-4">

@@ -67,8 +67,9 @@ export function GenZSignalCard({
   emoji = "🔥",
   timestamp,
   glowEffect = false,
-  onClick
-}: GenZSignalCardProps) {
+  onClick,
+  compact = false // New prop for mobile 3-column layout
+}: GenZSignalCardProps & { compact?: boolean }) {
   const rarity = providedRarity || getRarityFromBoostCount(boostCount)
   const config = rarityConfig[rarity]
   const praiseText = template.replace('___', `"${fill}"`)
@@ -79,6 +80,61 @@ export function GenZSignalCard({
       event.preventDefault()
       onClick?.()
     }
+  }
+
+  // Compact mobile card (3-column grid)
+  if (compact) {
+    return (
+      <div
+        className={`
+          relative bg-white rounded-lg border ${config.border}
+          shadow-md hover:shadow-lg
+          transform hover:scale-102 active:scale-98 transition-all duration-200
+          overflow-hidden cursor-pointer
+          w-full aspect-[3/4]
+          focus:outline-none focus:ring-1 focus:ring-blue-400
+        `}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={`${rarity} signal card, tap to expand`}
+      >
+        {/* Compact rarity indicator */}
+        <div className={`absolute top-1 right-1 w-3 h-3 rounded-full bg-gradient-to-r ${config.gradient} z-10`} />
+        
+        {/* Compact boost count */}
+        {boostCount > 0 && (
+          <div className="absolute top-1 left-1 text-[10px] font-bold text-white bg-black/60 px-1 rounded z-10">
+            {boostCount}
+          </div>
+        )}
+        
+        {/* Compact header */}
+        <div className={`h-16 bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
+          <div className="text-2xl">{emoji}</div>
+          {rarity === 'legendary' && (
+            <div className="absolute top-2 left-2 w-1 h-1 bg-white rounded-full animate-ping" />
+          )}
+        </div>
+        
+        {/* Compact content */}
+        <div className="p-2 flex-1 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-black leading-tight line-clamp-2 mb-1">
+            {fill.slice(0, 30)}{fill.length > 30 ? '...' : ''}
+          </div>
+          <div className="flex justify-between text-[8px] text-gray-600">
+            <span>{senderHandle.split('.')[0]}</span>
+            <span className={`font-bold ${config.text}`}>{rarity.toUpperCase()}</span>
+          </div>
+        </div>
+        
+        {/* Tap indicator */}
+        <div className="absolute bottom-1 right-1 text-[8px] text-gray-400">
+          👆
+        </div>
+      </div>
+    )
   }
 
   return (

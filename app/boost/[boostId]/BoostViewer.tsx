@@ -157,6 +157,7 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
                 emoji={signal.emoji || '🔥'}
                 timestamp={new Date().toISOString()}
                 glowEffect={true}
+                compact={false}
               />
             </div>
           </div>
