@@ -189,7 +189,9 @@ export class RecognitionEnrichmentService {
     try {
       console.log('[RecognitionEnrichment] Fetching recognition signals for enrichment...');
       
-      const response = await fetch('/api/recognition', {
+      // Use absolute URL for server-side requests
+      const baseUrl = typeof window !== 'undefined' ? '' : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/api/recognition`, {
         cache: 'no-store'
       });
       
