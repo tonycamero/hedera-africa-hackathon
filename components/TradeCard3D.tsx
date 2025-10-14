@@ -96,10 +96,10 @@ export default function TradeCard3D({
             style={{ transform: "translateZ(14px)" }}
           />
 
-          {/* Mobile boost count - readable size */}
+          {/* Mobile boost count - finger-friendly pill */}
           {boostCount > 0 && (
             <div 
-              className="absolute top-2 left-2 text-xs font-bold text-white bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full z-10 min-w-[24px] text-center"
+              className="absolute top-2 left-2 text-sm sm:text-xs font-bold text-white bg-black/80 px-3 py-1.5 rounded-full z-10 min-w-[32px] min-h-[28px] flex items-center justify-center"
               style={{ transform: "translateZ(12px)" }}
             >
               {boostCount}
@@ -129,17 +129,17 @@ export default function TradeCard3D({
               )}
             </div>
 
-            {/* Mobile content - readable fonts */}
-            <div className="p-2 flex-1 flex flex-col justify-between text-white">
-              <div className="text-sm font-bold leading-tight line-clamp-2 mb-2">
-                {fill.slice(0, 40)}{fill.length > 40 ? '...' : ''}
+            {/* Mobile content - readable fonts and proper spacing */}
+            <div className="p-3 flex-1 flex flex-col justify-between text-white">
+              <div className="text-base sm:text-sm font-bold leading-snug line-clamp-2 mb-3 overflow-wrap-anywhere">
+                {fill.slice(0, 45)}{fill.length > 45 ? '...' : ''}
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-300 font-medium">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm sm:text-xs text-gray-200 font-medium bg-black/60 px-2 py-1 rounded-full">
                   @{senderHandle.split('.')[0]}
                 </div>
-                <div className={`text-xs font-bold px-2 py-1 rounded-full bg-gradient-to-r ${rarityGlow[rarity]} text-white uppercase tracking-wide`}>
+                <div className={`text-sm sm:text-xs font-bold px-3 py-1.5 min-h-[28px] rounded-full bg-black/70 text-white uppercase tracking-tight border border-white/20`}>
                   {rarity.slice(0, 3)}
                 </div>
               </div>

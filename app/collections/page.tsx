@@ -100,13 +100,13 @@ export default function CollectionsPage() {
   const [selectedSignal, setSelectedSignal] = useState<typeof NFT_SIGNAL_COLLECTIONS[0] | null>(null)
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-sm sm:max-w-2xl lg:max-w-6xl">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">NFT Signal Collection</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">NFT Signal Collection</h1>
             <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
           </div>
           <p className="text-purple-200 text-base sm:text-lg lg:text-xl mb-4 sm:mb-6 px-2">Collectible peer recognition cards on the blockchain</p>
@@ -140,24 +140,26 @@ export default function CollectionsPage() {
           </button>
         </div>
 
-        {/* Rarity Filter - Mobile-first, 2-row layout */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:justify-center gap-3 sm:gap-4 mb-8 sm:mb-12 px-4">
-          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-orange-500/20 md:hover:bg-orange-500/30 rounded-xl text-orange-300 border border-orange-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 active:scale-95">
-            🔥 Legendary<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length})</span>
-          </button>
-          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-purple-500/20 md:hover:bg-purple-500/30 rounded-xl text-purple-300 border border-purple-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 active:scale-95">
-            ⚡ Epic<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length})</span>
-          </button>
-          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-blue-500/20 md:hover:bg-blue-500/30 rounded-xl text-blue-300 border border-blue-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95">
-            ✨ Rare<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length})</span>
-          </button>
-          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-slate-500/20 md:hover:bg-slate-500/30 rounded-xl text-slate-300 border border-slate-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 active:scale-95">
-            ⚪ Common<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'common').length})</span>
-          </button>
+        {/* Rarity Filter - Horizontal scroll on mobile */}
+        <div className="relative mb-8 sm:mb-12 px-4">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2 sm:justify-center">
+            <button className="snap-start px-4 py-3 sm:px-6 sm:py-3 rounded-full min-h-[44px] text-base sm:text-sm bg-orange-500/30 border border-orange-500/40 ring-1 ring-white/15 text-orange-200 font-medium transition-all md:hover:bg-orange-500/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-500 whitespace-nowrap">
+              🔥 Legendary ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length})
+            </button>
+            <button className="snap-start px-4 py-3 sm:px-6 sm:py-3 rounded-full min-h-[44px] text-base sm:text-sm bg-purple-500/30 border border-purple-500/40 ring-1 ring-white/15 text-purple-200 font-medium transition-all md:hover:bg-purple-500/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 whitespace-nowrap">
+              ⚡ Epic ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length})
+            </button>
+            <button className="snap-start px-4 py-3 sm:px-6 sm:py-3 rounded-full min-h-[44px] text-base sm:text-sm bg-blue-500/30 border border-blue-500/40 ring-1 ring-white/15 text-blue-200 font-medium transition-all md:hover:bg-blue-500/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap">
+              ✨ Rare ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length})
+            </button>
+            <button className="snap-start px-4 py-3 sm:px-6 sm:py-3 rounded-full min-h-[44px] text-base sm:text-sm bg-slate-500/30 border border-slate-500/40 ring-1 ring-white/15 text-slate-200 font-medium transition-all md:hover:bg-slate-500/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-slate-500 whitespace-nowrap">
+              ⚪ Common ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'common').length})
+            </button>
+          </div>
         </div>
 
-        {/* NFT Cards Gallery - 2 columns mobile-first, readable and touchable */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 px-4">
+        {/* NFT Cards Gallery - 2 columns mobile-first with better spacing */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 px-4">
           {NFT_SIGNAL_COLLECTIONS.map((signal, idx) => (
             <TradeCard3D
               key={idx}

@@ -290,6 +290,25 @@ html.theme-mesh-dark .card-subtle {
 /* Smooth scroll behavior for the entire app */
 html {
   scroll-behavior: smooth;
+  font-size: 16px; /* mobile base */
+}
+
+@media (min-width: 640px) {
+  html { font-size: 17px; }
+}
+
+@media (min-width: 1024px) {
+  html { font-size: 18px; }
+}
+
+/* No horizontal scroll utility */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Snap scrolling for vertical feed */

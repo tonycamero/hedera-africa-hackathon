@@ -131,7 +131,7 @@ export function BoostActions({ boostId, currentBoostCount }: BoostActionsProps) 
       {/* Action status - Live region for screen readers */}
       {actionMessage && (
         <div 
-          className="text-center text-sm text-purple-200 bg-purple-900/20 px-4 py-2 rounded-full"
+          className="text-center text-base sm:text-sm text-purple-100 bg-purple-900/30 px-4 py-3 rounded-full border border-purple-500/30"
           aria-live="polite"
           role="status"
         >
@@ -139,7 +139,7 @@ export function BoostActions({ boostId, currentBoostCount }: BoostActionsProps) 
         </div>
       )}
       
-      {/* Action Buttons - Mobile-first stack layout */}
+      {/* Action Buttons - Mobile-first stack with finger targets */}
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-3 justify-center px-4">
         {/* Boost Button */}
         <button
@@ -148,13 +148,13 @@ export function BoostActions({ boostId, currentBoostCount }: BoostActionsProps) 
           className={`
             flex items-center justify-center gap-2 
             px-8 py-4 sm:px-6 sm:py-3 
-            min-h-[56px] sm:min-h-0
+            min-h-[48px] w-full sm:w-auto
             rounded-full font-medium transition-all
             text-base sm:text-sm
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
             ${hasBoost 
-              ? 'bg-blue-500/30 text-blue-300 cursor-not-allowed opacity-60' 
-              : 'bg-blue-500/20 text-white md:hover:bg-blue-500/30 md:hover:scale-105 active:scale-95'
+              ? 'bg-blue-500/40 text-blue-200 cursor-not-allowed opacity-70 border border-blue-500/50' 
+              : 'bg-blue-500/30 text-white md:hover:bg-blue-500/40 md:hover:scale-105 active:scale-95 border border-blue-500/40'
             }
             ${isBoostLoading ? 'md:animate-pulse motion-reduce:animate-none' : ''}
           `}
@@ -177,11 +177,11 @@ export function BoostActions({ boostId, currentBoostCount }: BoostActionsProps) 
           className="
             flex items-center justify-center gap-2 
             px-8 py-4 sm:px-6 sm:py-3 
-            min-h-[56px] sm:min-h-0
+            min-h-[48px] w-full sm:w-auto
             rounded-full font-medium transition-all
             text-base sm:text-sm
-            bg-purple-500/20 text-white 
-            md:hover:bg-purple-500/30 md:hover:scale-105 active:scale-95
+            bg-purple-500/30 text-white border border-purple-500/40
+            md:hover:bg-purple-500/40 md:hover:scale-105 active:scale-95
             focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
             disabled:opacity-60 disabled:cursor-not-allowed
           "
@@ -198,11 +198,11 @@ export function BoostActions({ boostId, currentBoostCount }: BoostActionsProps) 
           className="
             flex items-center justify-center gap-2 
             px-8 py-4 sm:px-6 sm:py-3 
-            min-h-[56px] sm:min-h-0
+            min-h-[48px] w-full sm:w-auto
             rounded-full font-medium transition-all
             text-base sm:text-sm
-            bg-green-500/20 text-white 
-            md:hover:bg-green-500/30 md:hover:scale-105 active:scale-95
+            bg-green-500/30 text-white border border-green-500/40
+            md:hover:bg-green-500/40 md:hover:scale-105 active:scale-95
             focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
           "
           aria-label="Share this signal with others"
@@ -213,20 +213,20 @@ export function BoostActions({ boostId, currentBoostCount }: BoostActionsProps) 
         </button>
       </div>
 
-      {/* Action Descriptions - Mobile-friendly layout */}
-      <div className="text-center space-y-3 sm:space-y-2 text-sm text-purple-200 px-4">
-        <div className="grid grid-cols-1 gap-3 sm:flex sm:justify-center sm:gap-8 text-sm sm:text-xs">
-          <div className="flex items-center justify-center gap-2" id="boost-description">
-            <ArrowUp className="h-3 w-3" />
-            <span>Boost (anonymous)</span>
+      {/* Action Descriptions - Mobile-readable layout */}
+      <div className="text-center space-y-3 sm:space-y-2 text-base sm:text-sm text-purple-200 px-4">
+        <div className="grid grid-cols-1 gap-3 sm:flex sm:justify-center sm:gap-8">
+          <div className="flex items-center justify-center gap-2 bg-black/20 px-3 py-2 rounded-full" id="boost-description">
+            <ArrowUp className="h-4 w-4" />
+            <span className="font-medium">Boost (anonymous)</span>
           </div>
-          <div className="flex items-center justify-center gap-2" id="suggest-description">
-            <MessageSquare className="h-3 w-3" />
-            <span>Suggest template</span>
+          <div className="flex items-center justify-center gap-2 bg-black/20 px-3 py-2 rounded-full" id="suggest-description">
+            <MessageSquare className="h-4 w-4" />
+            <span className="font-medium">Suggest template</span>
           </div>
-          <div className="flex items-center justify-center gap-2" id="share-description">
-            <Share2 className="h-3 w-3" />
-            <span>Share link</span>
+          <div className="flex items-center justify-center gap-2 bg-black/20 px-3 py-2 rounded-full" id="share-description">
+            <Share2 className="h-4 w-4" />
+            <span className="font-medium">Share link</span>
           </div>
         </div>
       </div>

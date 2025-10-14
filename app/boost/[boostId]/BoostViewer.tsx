@@ -107,13 +107,13 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
   const recipient = recipientHandle || 'someone'
 
   return (
-    <div className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] p-4">
+    <div className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] p-4 overflow-x-hidden">
       <div className="max-w-sm sm:max-w-2xl lg:max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">NFT Signal Collection</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">NFT Signal Collection</h1>
             <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400 md:animate-pulse motion-reduce:animate-none" />
           </div>
           <p className="text-purple-200 text-base sm:text-lg px-2">
@@ -177,10 +177,10 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
         </div>
 
         {/* Collection Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-6 sm:mb-8 mt-6 sm:mt-8 px-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-4 justify-center mb-6 sm:mb-8 mt-6 sm:mt-8 px-4">
           <button
             onClick={() => window.open('/collections', '_blank')}
-            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[56px] sm:min-h-0 bg-white/10 md:hover:bg-white/20 rounded-full text-white font-medium transition-all md:hover:scale-105 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
+            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[48px] bg-white/20 md:hover:bg-white/30 rounded-full text-white font-medium transition-all md:hover:scale-105 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 active:scale-95 text-base sm:text-sm"
           >
             <Users className="h-5 w-5" />
             Browse Collection
@@ -188,7 +188,7 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           
           <button
             onClick={() => window.open('/signup?intent=create_signal', '_blank')}
-            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[56px] sm:min-h-0 bg-gradient-to-r from-purple-500 to-cyan-500 md:hover:from-purple-600 md:hover:to-cyan-600 rounded-full text-white font-medium transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[48px] bg-gradient-to-r from-purple-500 to-cyan-500 md:hover:from-purple-600 md:hover:to-cyan-600 rounded-full text-white font-semibold transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 active:scale-95 text-base sm:text-sm"
           >
             <ExternalLink className="h-5 w-5" />
             Start Collecting
