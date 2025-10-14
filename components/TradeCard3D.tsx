@@ -58,29 +58,30 @@ export default function TradeCard3D({
   const rarity = providedRarity || getRarityFromBoostCount(boostCount)
   const praiseText = template.replace('___', `"${fill}"`)
 
-  // Compact mobile card for 3-column grid
+  // Mobile-first card: 2 columns with readable text and finger-friendly UX
   if (compact) {
     return (
       <div className={`perspective-1200 ${className}`}>
         <div
           className={`
-            group relative w-full aspect-[3/4] preserve-3d rounded-lg
+            group relative w-full aspect-[4/5] preserve-3d rounded-xl
             bg-gradient-to-br from-[#0e0f13] to-[#121521]
             ring-2 ${rarityRings[rarity]} card-edge-glow
             animate-[idle-tilt_6s_ease-in-out_infinite] idle-tilt
             will-change-transform cursor-pointer
-            transition-transform duration-500
-            hover:rotate-y-3 hover:-rotate-x-2
+            transition-transform duration-300 active:scale-95
+            md:hover:rotate-y-3 md:hover:-rotate-x-2
+            min-h-[120px]
           `}
           onClick={onClick}
-          aria-label={`${title} trading card, tap to expand`}
+          aria-label={`${rarity} signal from ${senderHandle}, tap to view details`}
           role="button"
           tabIndex={0}
         >
           {/* Edge highlight (outer acrylic) */}
           <div
             className={`
-              pointer-events-none absolute inset-0 rounded-lg
+              pointer-events-none absolute inset-0 rounded-xl
               bg-gradient-to-r ${rarityGlow[rarity]}
               opacity-60 blur-[6px] -z-10
             `}
@@ -89,60 +90,67 @@ export default function TradeCard3D({
 
           {/* Specular sheen sweep */}
           <div
-            className="sheen pointer-events-none absolute -inset-2 rounded-lg 
+            className="sheen pointer-events-none absolute -inset-2 rounded-xl 
                        bg-[linear-gradient(105deg,rgba(255,255,255,0)_0%,rgba(255,255,255,.25)_50%,rgba(255,255,255,0)_100%)]
                        mix-blend-screen animate-[sheen_6s_linear_infinite]"
             style={{ transform: "translateZ(14px)" }}
           />
 
-          {/* Compact boost count */}
+          {/* Mobile boost count - readable size */}
           {boostCount > 0 && (
             <div 
-              className="absolute top-1 left-1 text-[8px] font-bold text-white bg-black/60 px-1 rounded z-10"
+              className="absolute top-2 left-2 text-xs font-bold text-white bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full z-10 min-w-[24px] text-center"
               style={{ transform: "translateZ(12px)" }}
             >
               {boostCount}
             </div>
           )}
 
-          {/* Compact rarity indicator */}
+          {/* Mobile rarity indicator - larger and clearer */}
           <div 
-            className={`absolute top-1 right-1 w-2 h-2 rounded-full bg-gradient-to-r ${rarityGlow[rarity]} z-10`}
+            className={`absolute top-2 right-2 w-4 h-4 rounded-full bg-gradient-to-r ${rarityGlow[rarity]} ring-1 ring-white/30 z-10`}
             style={{ transform: "translateZ(12px)" }}
+            title={`${rarity} rarity`}
           />
 
-          {/* Printed panel */}
+          {/* Printed panel - mobile optimized */}
           <div
-            className="absolute inset-[6px] rounded-[6px] overflow-hidden card-inner-border bg-[#161926]"
+            className="absolute inset-[8px] rounded-lg overflow-hidden card-inner-border bg-[#161926]"
             style={{ transform: "translateZ(8px)" }}
           >
-            {/* Compact header */}
-            <div className={`h-10 bg-gradient-to-br ${rarityGlow[rarity]} flex items-center justify-center relative`}>
-              <div className="text-lg">{emoji}</div>
+            {/* Mobile header - larger emoji */}
+            <div className={`h-16 bg-gradient-to-br ${rarityGlow[rarity]} flex items-center justify-center relative`}>
+              <div className="text-3xl">{emoji}</div>
               {rarity === 'legendary' && (
-                <div className="absolute top-1 left-1 w-1 h-1 bg-white rounded-full animate-ping" />
+                <div className="absolute top-2 left-2 w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+              )}
+              {rarity === 'epic' && (
+                <div className="absolute top-2 right-2 w-1 h-1 bg-white rounded-full animate-pulse" />
               )}
             </div>
 
-            {/* Compact content */}
-            <div className="p-1.5 flex-1 flex flex-col justify-between text-white">
-              <div className="text-[8px] font-bold leading-tight line-clamp-2 mb-1">
-                {fill.slice(0, 25)}{fill.length > 25 ? '...' : ''}
+            {/* Mobile content - readable fonts */}
+            <div className="p-2 flex-1 flex flex-col justify-between text-white">
+              <div className="text-sm font-bold leading-tight line-clamp-2 mb-2">
+                {fill.slice(0, 40)}{fill.length > 40 ? '...' : ''}
               </div>
-              <div className="flex justify-between text-[6px] text-gray-400">
-                <span>{senderHandle.split('.')[0]}</span>
-                <span className="font-bold uppercase">{rarity[0]}</span>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-300 font-medium">
+                  @{senderHandle.split('.')[0]}
+                </div>
+                <div className={`text-xs font-bold px-2 py-1 rounded-full bg-gradient-to-r ${rarityGlow[rarity]} text-white uppercase tracking-wide`}>
+                  {rarity.slice(0, 3)}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Tap indicator */}
+          {/* Touch feedback indicator */}
           <div 
-            className="absolute bottom-1 right-1 text-[8px] text-gray-400"
-            style={{ transform: "translateZ(14px)" }}
-          >
-            👆
-          </div>
+            className="absolute inset-0 rounded-xl bg-white/5 opacity-0 group-active:opacity-100 transition-opacity duration-150 pointer-events-none"
+            style={{ transform: "translateZ(15px)" }}
+          />
         </div>
       </div>
     )

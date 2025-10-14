@@ -111,23 +111,23 @@ export default function CollectionsPage() {
           </div>
           <p className="text-purple-200 text-base sm:text-lg lg:text-xl mb-4 sm:mb-6 px-2">Collectible peer recognition cards on the blockchain</p>
           
-          {/* Collection Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 mb-4 sm:mb-6 max-w-md sm:max-w-none mx-auto">
+          {/* Collection Stats - mobile optimized */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-6 max-w-sm sm:max-w-none mx-auto">
             <div className="text-center">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-cyan-400">{NFT_SIGNAL_COLLECTIONS.length}</div>
-              <div className="text-xs sm:text-sm text-purple-300">Total Cards</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400">{NFT_SIGNAL_COLLECTIONS.length}</div>
+              <div className="text-sm sm:text-base text-purple-300 font-medium">Cards</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length}</div>
-              <div className="text-xs sm:text-sm text-purple-300">Legendary</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-orange-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length}</div>
+              <div className="text-sm sm:text-base text-purple-300 font-medium">Legendary</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length}</div>
-              <div className="text-xs sm:text-sm text-purple-300">Epic</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length}</div>
+              <div className="text-sm sm:text-base text-purple-300 font-medium">Epic</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length}</div>
-              <div className="text-xs sm:text-sm text-purple-300">Rare</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-400">{NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length}</div>
+              <div className="text-sm sm:text-base text-purple-300 font-medium">Rare</div>
             </div>
           </div>
           
@@ -140,24 +140,24 @@ export default function CollectionsPage() {
           </button>
         </div>
 
-        {/* Rarity Filter */}
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8 sm:mb-12 px-4">
-          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-orange-500/20 md:hover:bg-orange-500/30 rounded-full text-orange-300 border border-orange-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
-            🔥 Legendary ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length})
+        {/* Rarity Filter - Mobile-first, 2-row layout */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:justify-center gap-3 sm:gap-4 mb-8 sm:mb-12 px-4">
+          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-orange-500/20 md:hover:bg-orange-500/30 rounded-xl text-orange-300 border border-orange-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 active:scale-95">
+            🔥 Legendary<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'legendary').length})</span>
           </button>
-          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-purple-500/20 md:hover:bg-purple-500/30 rounded-full text-purple-300 border border-purple-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
-            ⚡ Epic ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length})
+          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-purple-500/20 md:hover:bg-purple-500/30 rounded-xl text-purple-300 border border-purple-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 active:scale-95">
+            ⚡ Epic<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'epic').length})</span>
           </button>
-          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-blue-500/20 md:hover:bg-blue-500/30 rounded-full text-blue-300 border border-blue-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            ✨ Rare ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length})
+          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-blue-500/20 md:hover:bg-blue-500/30 rounded-xl text-blue-300 border border-blue-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95">
+            ✨ Rare<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'rare').length})</span>
           </button>
-          <button className="px-4 py-3 sm:px-6 sm:py-2 min-h-[44px] sm:min-h-0 bg-slate-500/20 md:hover:bg-slate-500/30 rounded-full text-slate-300 border border-slate-500/30 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
-            ⚪ Common ({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'common').length})
+          <button className="px-5 py-4 sm:px-6 sm:py-3 min-h-[52px] sm:min-h-[44px] bg-slate-500/20 md:hover:bg-slate-500/30 rounded-xl text-slate-300 border border-slate-500/30 transition-all text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 active:scale-95">
+            ⚪ Common<br/><span className="text-sm opacity-75">({NFT_SIGNAL_COLLECTIONS.filter(s => s.rarity === 'common').length})</span>
           </button>
         </div>
 
-        {/* NFT Cards Gallery - 3 columns on mobile, more on larger screens */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 px-4">
+        {/* NFT Cards Gallery - 2 columns mobile-first, readable and touchable */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 px-4">
           {NFT_SIGNAL_COLLECTIONS.map((signal, idx) => (
             <TradeCard3D
               key={idx}
