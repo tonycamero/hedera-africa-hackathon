@@ -7,11 +7,15 @@ export interface SignalType {
   type_id: string;        // e.g., "rizz@1"
   base_id: string;        // e.g., "rizz"
   version: number;        // 1
-  category: string;       // "Rizz", "Clutch", etc.
+  category: string;       // "Rizz", "Clutch", "social", "academic", "professional", etc.
   labels: string[];       // array of short phrases
   rarity: SignalRarity;
   content_hash: string;   // sha3-256 of canonical JSON
   created_at: string;
+  name?: string;          // display name for recognition signals
+  description?: string;   // description for recognition signals
+  icon?: string;          // emoji icon
+  source?: 'recognition_signals' | 'legacy';  // signal source
 }
 
 export interface SignalInstance {
@@ -114,8 +118,9 @@ export const rarityTheme: Record<SignalRarity, RarityTheme> = {
   },
 };
 
-// Category Icons
+// Category Icons - Extended for recognition signals
 export const typeIcon: Record<string, string> = {
+  // Legacy categories
   "Rizz": "😏",
   "Clutch": "⏱️", 
   "Big Brain": "🧠",
@@ -126,4 +131,29 @@ export const typeIcon: Record<string, string> = {
   "Ops": "🧩",
   "Vibes": "🎛️",
   "Day 1": "🫱🏽‍🫲🏾",
+  
+  // Recognition signal categories
+  "social": "👥",
+  "academic": "📚", 
+  "professional": "💼",
+};
+
+// Category display names
+export const categoryDisplayName: Record<string, string> = {
+  // Legacy categories
+  "Rizz": "Rizz",
+  "Clutch": "Clutch", 
+  "Big Brain": "Big Brain",
+  "Grind": "Grind",
+  "Builder": "Builder",
+  "Plug": "Plug",
+  "W": "W",
+  "Ops": "Ops",
+  "Vibes": "Vibes",
+  "Day 1": "Day 1",
+  
+  // Recognition signal categories
+  "social": "Social",
+  "academic": "Academic", 
+  "professional": "Professional",
 };
