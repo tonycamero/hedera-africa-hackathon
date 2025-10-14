@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { ArrowLeft, Search, Filter, Sparkles, Star, X } from 'lucide-react'
-import { GenZSignalCard } from '@/components/GenZSignalCard'
+import TradeCard3D from '@/components/TradeCard3D'
 
 // NFT-style signal collections with rarity and visual properties
 const NFT_SIGNAL_COLLECTIONS = [
@@ -159,22 +159,21 @@ export default function CollectionsPage() {
         {/* NFT Cards Gallery - 3 columns on mobile, more on larger screens */}
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 px-4">
           {NFT_SIGNAL_COLLECTIONS.map((signal, idx) => (
-            <div key={idx} className="w-full">
-              <GenZSignalCard
-                title={signal.category}
-                template={signal.template}
-                fill={signal.fill}
-                note={signal.note}
-                senderHandle={signal.senderHandle}
-                recipientHandle={signal.recipientHandle}
-                rarity={signal.rarity}
-                boostCount={signal.boostCount}
-                emoji={signal.emoji}
-                timestamp={new Date().toISOString()}
-                compact={true}
-                onClick={() => setSelectedSignal(signal)}
-              />
-            </div>
+            <TradeCard3D
+              key={idx}
+              title={signal.category}
+              template={signal.template}
+              fill={signal.fill}
+              note={signal.note}
+              senderHandle={signal.senderHandle}
+              recipientHandle={signal.recipientHandle}
+              rarity={signal.rarity}
+              boostCount={signal.boostCount}
+              emoji={signal.emoji}
+              timestamp={new Date().toISOString()}
+              compact={true}
+              onClick={() => setSelectedSignal(signal)}
+            />
           ))}
         </div>
 
@@ -192,7 +191,7 @@ export default function CollectionsPage() {
               </button>
               
               {/* Full-size card */}
-              <GenZSignalCard
+              <TradeCard3D
                 title={selectedSignal.category}
                 template={selectedSignal.template}
                 fill={selectedSignal.fill}
@@ -203,7 +202,6 @@ export default function CollectionsPage() {
                 boostCount={selectedSignal.boostCount}
                 emoji={selectedSignal.emoji}
                 timestamp={new Date().toISOString()}
-                glowEffect={true}
                 compact={false}
               />
             </div>

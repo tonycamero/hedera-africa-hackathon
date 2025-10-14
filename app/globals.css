@@ -665,3 +665,57 @@ html.theme-mesh-dark.hc {
   --secondary-foreground: #f1f5f9 !important; /* Even brighter secondary text */
   --border: #64748b !important;               /* More visible borders */
 }
+
+/*
+=============================================================================
+  3D TRADING CARD SYSTEM - IRL-style NFT Cards
+  
+  Pure CSS 3D trading cards with acrylic layers, idle tilt animation,
+  and specular sheen sweep for physical card feel.
+=============================================================================
+*/
+
+/* --- 3D primitives --- */
+.perspective-1200 { perspective: 1200px; }
+.preserve-3d { transform-style: preserve-3d; }
+
+/* --- Idle movement (tiny) --- */
+@keyframes idle-tilt {
+  0%   { transform: rotateX(0deg) rotateY(0deg) translateY(0); }
+  50%  { transform: rotateX(-1.25deg) rotateY(1.75deg) translateY(-4px); }
+  100% { transform: rotateX(0deg) rotateY(0deg) translateY(0); }
+}
+
+/* --- Specular sheen sweep --- */
+@keyframes sheen {
+  0%   { transform: translateX(-120%) rotate(12deg); opacity: .0; }
+  10%  { opacity: .25; }
+  50%  { transform: translateX(120%) rotate(12deg); opacity: .25; }
+  60%  { opacity: 0; }
+  100% { transform: translateX(120%) rotate(12deg); opacity: 0; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .idle-tilt, .sheen { animation: none !important; }
+}
+
+/* Helper for crisp inner border */
+.card-inner-border {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.18),
+    inset 0 0 0 2px rgba(255,255,255,.06);
+}
+
+/* Subtle acrylic edge glow */
+.card-edge-glow {
+  box-shadow:
+    0 8px 28px rgba(0,0,0,.45),
+    0 1px 0 rgba(255,255,255,.04) inset;
+}
+
+/* 3D hover tilt utilities */
+.rotate-y-3 { transform: rotateY(3deg); }
+.-rotate-x-2 { transform: rotateX(-2deg); }
+.hover\:rotate-y-3:hover { transform: rotateY(3deg); }
+.hover\:-rotate-x-2:hover { transform: rotateX(-2deg); }

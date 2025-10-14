@@ -3,7 +3,7 @@
 import React from 'react'
 import { Sparkles, ExternalLink, Users, Star } from 'lucide-react'
 import { BoostActions } from '@/components/BoostActions'
-import { GenZSignalCard } from '@/components/GenZSignalCard'
+import TradeCard3D from '@/components/TradeCard3D'
 
 interface BoostViewerProps {
   boostId: string
@@ -143,23 +143,20 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
             {/* Glow effect background - reduced on mobile */}
             <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 md:from-purple-500/30 to-cyan-500/20 md:to-cyan-500/30 md:blur-xl blur-lg rounded-xl opacity-50 md:opacity-70"></div>
             
-            {/* The NFT Card */}
-            <div className="relative">
-              <GenZSignalCard
-                title={signal.category || 'GenZ Signal'}
-                template={templateText}
-                fill={fill}
-                note={note}
-                senderHandle={senderHandle}
-                recipientHandle={recipientHandle}
-                rarity={signal.rarity || 'epic'}
-                boostCount={signal.boostCount || 0}
-                emoji={signal.emoji || '🔥'}
-                timestamp={new Date().toISOString()}
-                glowEffect={true}
-                compact={false}
-              />
-            </div>
+            {/* The NFT Card - 3D Trading Card */}
+            <TradeCard3D
+              title={signal.category || 'GenZ Signal'}
+              template={templateText}
+              fill={fill}
+              note={note}
+              senderHandle={senderHandle}
+              recipientHandle={recipientHandle}
+              rarity={signal.rarity || 'epic'}
+              boostCount={signal.boostCount || 0}
+              emoji={signal.emoji || '🔥'}
+              timestamp={new Date().toISOString()}
+              compact={false}
+            />
           </div>
         </div>
 
