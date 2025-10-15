@@ -30,13 +30,9 @@ const RegistrySchema = z.object({
   }),
   flags: z.object({
     HCS_ENABLED: z.boolean(),
-    DEMO_MODE: z.boolean(),
-    DEMO_SEED: z.enum(['on', 'off', 'auto']),
     SHARED_CONTACTS_TRUST_TOPIC: z.boolean()
   }).default({
     HCS_ENABLED: true,
-    DEMO_MODE: true,
-    DEMO_SEED: 'on',
     SHARED_CONTACTS_TRUST_TOPIC: true
   }),
   migration: z.object({
@@ -82,8 +78,6 @@ export function loadRegistryFromEnv(): RegistryConfig {
     },
     flags: {
       HCS_ENABLED: clean(process.env.NEXT_PUBLIC_HCS_ENABLED) === 'true',
-      DEMO_MODE: clean(process.env.NEXT_PUBLIC_DEMO_MODE) === 'true',
-      DEMO_SEED: (clean(process.env.NEXT_PUBLIC_DEMO_SEED) as any) || 'on',
       SHARED_CONTACTS_TRUST_TOPIC: true
     }
   }

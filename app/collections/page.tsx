@@ -1,89 +1,98 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Search, Filter, Sparkles, Star, X, Users, BookOpen, Briefcase } from 'lucide-react'
+import { ArrowLeft, Star, X, Users, BookOpen, Briefcase } from 'lucide-react'
 import RecognitionCard3D from '@/components/RecognitionCard3D'
 import type { EnhancedSignalType } from '@/lib/services/RecognitionEnrichmentService'
 
-// No more mock data - using real HCS recognition signals only
+// Simple API-based approach without signalStore complexity
 
 type CategoryFilter = 'all' | 'social' | 'academic' | 'professional'
 
 export default function CollectionsPage() {
   const [selectedRecognition, setSelectedRecognition] = useState<EnhancedSignalType | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
-  const [recognitionSignals, setRecognitionSignals] = useState<EnhancedSignalType[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [stats, setStats] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [recognitionSignals, setRecognitionSignals] = useState<any[]>([])
+  const [error, setError] = useState<string | null>(null)
   
   // Load recognition signals and stats
   useEffect(() => {
     loadRecognitionData()
   }, [])
   
-  // Reload when category filter changes
-  useEffect(() => {
-    if (recognitionSignals.length > 0) {
-      // If we already have signals, just re-filter client-side instead of re-fetching
-      console.log('[Collections] Category filter changed to:', categoryFilter)
-    }
-  }, [categoryFilter])
-  
   const loadRecognitionData = async () => {
     try {
       setIsLoading(true)
+      setError(null)
       console.log('[Collections] Loading recognition signals...')
       
-      // Load stats first
-      const statsResponse = await fetch('/api/signals/recognition?stats=true')
-      if (statsResponse.ok) {
-        const statsResult = await statsResponse.json()
-        if (statsResult.success) {
-          setStats(statsResult.stats)
+      // Load HCS recognition data
+      const response = await fetch('/api/recognition')
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setRecognitionSignals(result.data)
+          console.log(`[Collections] Loaded ${result.data.length} HCS recognition signals`)
+          return
         }
       }
       
-      // Load signals based on category filter
-      const signalsUrl = categoryFilter === 'all' 
-        ? '/api/signals/recognition'
-        : `/api/signals/recognition?category=${categoryFilter}`
+      throw new Error('Failed to load recognition data from any source')
       
-      // Use the enriched signals API directly
-      const enrichedResponse = await fetch('/api/signals/recognition')
-      if (enrichedResponse.ok) {
-        const enrichedResult = await enrichedResponse.json()
-        if (enrichedResult.success && enrichedResult.data) {
-          setRecognitionSignals(enrichedResult.data)
-          console.log(`[Collections] Loaded ${enrichedResult.data.length} enriched recognition signals from API`)
-        }
-      }
     } catch (error) {
       console.error('[Collections] Failed to load recognition data:', error)
+      setError('Failed to load recognition cards')
     } finally {
       setIsLoading(false)
     }
   }
   
-  // Filter recognition signals by category
+  // Filter signals by category
   const filteredRecognitionSignals = categoryFilter === 'all' 
     ? recognitionSignals
-    : recognitionSignals.filter(signal => signal.category === categoryFilter)
+    : recognitionSignals.filter((signal: any) => signal.category === categoryFilter)
     
-  // Get current stats for display
-  const currentStats = stats ? {
-    total: categoryFilter === 'all' ? stats.total : stats.categories[categoryFilter] || 0,
-    regular: stats.rarities.Regular || 0,
-    heat: stats.rarities.Heat || 0,
-    peak: stats.rarities.Peak || 0,
-    godTier: stats.rarities['God-Tier'] || 0
-  } : {
-    total: recognitionSignals.length,
-    regular: 0,
-    heat: 0,
-    peak: 0,
-    godTier: 0
+  // Calculate stats from current data
+  const currentStats = {
+    total: filteredRecognitionSignals.length,
+    regular: recognitionSignals.filter((s: any) => ['Common', 'Uncommon'].includes(s.rarity)).length,
+    heat: recognitionSignals.filter((s: any) => s.rarity === 'Rare').length,
+    peak: recognitionSignals.filter((s: any) => s.rarity === 'Epic').length,
+    godTier: recognitionSignals.filter((s: any) => s.rarity === 'Legendary').length
   }
   
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin motion-reduce:animate-none rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading Recognition Cards...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-white mb-2">Error Loading Cards</h1>
+          <p className="text-red-300 mb-6">{error}</p>
+          <button 
+            onClick={loadRecognitionData}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-sm sm:max-w-2xl lg:max-w-6xl">
@@ -144,7 +153,7 @@ export default function CollectionsPage() {
                 }
               `}
             >
-              🌟 All ({stats?.total || 53})
+              🌟 All ({currentStats.total})
             </button>
             <button 
               onClick={() => setCategoryFilter('social')}
@@ -157,7 +166,7 @@ export default function CollectionsPage() {
               `}
             >
               <Users className="inline w-4 h-4 mr-1" />
-              Social ({stats?.categories?.social || 41})
+              Social ({recognitionSignals.filter((s: any) => s.category === 'social').length})
             </button>
             <button 
               onClick={() => setCategoryFilter('academic')}
@@ -170,7 +179,7 @@ export default function CollectionsPage() {
               `}
             >
               <BookOpen className="inline w-4 h-4 mr-1" />
-              Academic ({stats?.categories?.academic || 5})
+              Academic ({recognitionSignals.filter((s: any) => s.category === 'academic').length})
             </button>
             <button 
               onClick={() => setCategoryFilter('professional')}
@@ -183,37 +192,49 @@ export default function CollectionsPage() {
               `}
             >
               <Briefcase className="inline w-4 h-4 mr-1" />
-              Professional ({stats?.categories?.professional || 7})
+              Professional ({recognitionSignals.filter((s: any) => s.category === 'professional').length})
             </button>
           </div>
         </div>
 
         {/* Recognition Cards Gallery - 2 columns mobile-first */}
         <div className="px-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="text-center">
-                <div className="animate-spin motion-reduce:animate-none rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
-                <p className="text-purple-200 text-base">Loading recognition cards from API...</p>
-              </div>
-            </div>
-          ) : filteredRecognitionSignals.length === 0 ? (
+          {filteredRecognitionSignals.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-purple-200 text-lg mb-2">No recognition cards found</p>
               <p className="text-purple-300 text-base">
-                {categoryFilter === 'all' ? 'Recognition data is loading...' : `No ${categoryFilter} cards available`}
+                {categoryFilter === 'all' ? 'No cards available' : `No ${categoryFilter} cards available`}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-              {filteredRecognitionSignals.map((signal) => (
-                <RecognitionCard3D
-                  key={signal.type_id}
-                  signal={signal}
-                  compact={true}
-                  onClick={() => setSelectedRecognition(signal)}
-                />
-              ))}
+              {filteredRecognitionSignals.map((signal) => {
+                // Convert to expected format
+                const enhancedSignal: EnhancedSignalType = {
+                  type_id: `${signal.id}@1`,
+                  base_id: signal.id,
+                  version: 1,
+                  category: signal.category,
+                  name: signal.name,
+                  description: signal.description,
+                  labels: [signal.category, ...(signal.traits?.personality || []).slice(0, 3)],
+                  rarity: signal.rarity || 'Common',
+                  icon: signal.icon,
+                  content_hash: `hash-${signal.id}`,
+                  created_at: Date.now(),
+                  source: 'recognition_signals',
+                  metadata: signal
+                }
+                
+                return (
+                  <RecognitionCard3D
+                    key={signal.id}
+                    signal={enhancedSignal}
+                    compact={true}
+                    onClick={() => setSelectedRecognition(enhancedSignal)}
+                  />
+                )
+              })}
             </div>
           )}
         </div>

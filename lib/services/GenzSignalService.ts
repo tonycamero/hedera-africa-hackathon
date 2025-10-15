@@ -107,7 +107,7 @@ export class GenzSignalService {
       const envelope = {
         type: 'RECOGNITION_MINT', // Routes to recognition topic
         from: request.senderAccountId,
-        nonce: Date.now(), // Simple nonce for demo
+        nonce: Date.now(),
         ts: Math.floor(timestamp / 1000), // Unix seconds
         payload: signalPayload
       }

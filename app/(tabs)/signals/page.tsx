@@ -55,12 +55,12 @@ export default function SignalsPage() {
       const bondedContacts = getBondedContactsFromHCS(allEvents, currentSessionId)
       setContacts(bondedContacts)
       
-      // Load user's signal collection
-      const walletResponse = await fetch(`/api/signals/wallet?owner=${currentSessionId}`)
-      if (walletResponse.ok) {
-        const walletData = await walletResponse.json()
-        setMySignals(walletData.assets || [])
-      }
+      // Web3-style client-side HCS asset collection query
+      const { hcsAssetCollection } = await import('@/lib/services/HCSAssetCollectionService')
+      const assets = await hcsAssetCollection.getUserCollection(currentSessionId)
+      
+      setMySignals(assets)
+      console.log(`[GenZSignals] ✅ Loaded ${assets.length} assets from HCS`)
       
       // Show first-time guide if no signals
       if (mySignals.length === 0 && contacts.length === 0) {
@@ -217,75 +217,17 @@ export default function SignalsPage() {
                     </div>
                   </GenZCard>
                   
-                  {/* Props Feed */}
-                  <div className="space-y-3">
-                    {/* Mock props activity */}
-                    <GenZCard variant="glass" className="p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-boost-500/30 to-pri-500/20 border border-boost-500/30 flex items-center justify-center">
-                          <span className="text-xs font-semibold">A</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <GenZText className="font-semibold">Alex → Sarah</GenZText>
-                            <GenZChip variant="boost" className="text-xs">clutch</GenZChip>
-                          </div>
-                          <GenZText className="mb-3">
-                            clutched <span className="font-bold text-boost-400">"the presentation"</span> under fire
-                          </GenZText>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <GenZButton size="sm" variant="boost" className="flex items-center gap-1">
-                                <Zap className="w-3 h-3" />
-                                <span>Boost</span>
-                                <span className="text-xs">(3)</span>
-                              </GenZButton>
-                              <GenZButton size="sm" variant="ghost" className="flex items-center gap-1">
-                                <Share2 className="w-3 h-3" />
-                                <span>Share</span>
-                              </GenZButton>
-                            </div>
-                            <GenZText size="sm" dim>
-                              HCS verified • 1m ago
-                            </GenZText>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Live Props Feed */}
+                  <RecentActivity recentMints={recentMints} showTitle={false} />
+                  
+                  {/* Empty State */}
+                  {recentMints.length === 0 && (
+                    <GenZCard variant="glass" className="p-6 text-center">
+                      <div className="text-4xl mb-3">🌟</div>
+                      <GenZText className="mb-2">No recent props activity</GenZText>
+                      <GenZText size="sm" dim>Send your first props to get the feed started!</GenZText>
                     </GenZCard>
-                    
-                    <GenZCard variant="glass" className="p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sec-500/30 to-pri-500/20 border border-sec-500/30 flex items-center justify-center">
-                          <span className="text-xs font-semibold">M</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <GenZText className="font-semibold">Maya → Jordan</GenZText>
-                            <GenZChip variant="signal" className="text-xs">rizz</GenZChip>
-                          </div>
-                          <GenZText className="mb-3">
-                            smooth operator with <span className="font-bold text-pri-400">"that coffee shop convo"</span>
-                          </GenZText>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <GenZButton size="sm" variant="boost" className="flex items-center gap-1">
-                                <Zap className="w-3 h-3" />
-                                <span>Boost</span>
-                                <span className="text-xs">(7)</span>
-                              </GenZButton>
-                              <GenZButton size="sm" variant="ghost" className="flex items-center gap-1">
-                                <Share2 className="w-3 h-3" />
-                                <span>Share</span>
-                              </GenZButton>
-                            </div>
-                            <GenZText size="sm" dim>
-                              HCS verified • 15m ago
-                            </GenZText>
-                          </div>
-                        </div>
-                      </div>
-                    </GenZCard>
-                  </div>
+                  )}
                   
                   {/* Stats Overview (moved down) */}
                   <GenZCard variant="glass" className="p-4">

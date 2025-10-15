@@ -16,7 +16,6 @@ export async function GET() {
       ],
       environment: {
         HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED,
-        DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
         NODE_ENV: process.env.NODE_ENV,
         topics: {
           profile: process.env.NEXT_PUBLIC_TOPIC_PROFILE,

@@ -35,40 +35,32 @@ export async function POST(req: NextRequest) {
           issuer: issuerId
         }
       },
-      sig: "demo_signature" // In production, this would be a real signature
+      // In production, add signature here
     }
 
     console.log(`[HCS Mint] Minting recognition signal: ${name} (${category}) to ${recipientId}`)
 
     // Submit to HCS SIGNAL topic
-    if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true" && SIGNAL_TOPIC) {
-      const result = await submitToTopic(SIGNAL_TOPIC, JSON.stringify(envelope))
-      
-      console.log(`[HCS Mint] Successfully minted hashinal: ${tokenId}`)
-      
+    if (!process.env.NEXT_PUBLIC_HCS_ENABLED || !SIGNAL_TOPIC) {
       return NextResponse.json({
-        ok: true,
-        tokenId,
-        name,
-        category,
-        status: "onchain",
-        hrl: `hcs://11/${SIGNAL_TOPIC}/pending`, // Real seq would be returned from HCS
-        message: "Recognition signal minted successfully on HCS"
-      })
-    } else {
-      // Fallback for demo mode
-      console.log(`[HCS Mint] Demo mode - would mint: ${tokenId}`)
-      
-      return NextResponse.json({
-        ok: true,
-        tokenId,
-        name, 
-        category,
-        status: "local",
-        hrl: `hcs://11/${SIGNAL_TOPIC}/demo-${tokenId}`,
-        message: "Recognition signal created locally (HCS disabled)"
-      })
+        ok: false,
+        error: "HCS is not enabled or signal topic not configured"
+      }, { status: 503 })
     }
+    
+    const result = await submitToTopic(SIGNAL_TOPIC, JSON.stringify(envelope))
+    
+    console.log(`[HCS Mint] Successfully minted hashinal: ${tokenId}`)
+    
+    return NextResponse.json({
+      ok: true,
+      tokenId,
+      name,
+      category,
+      status: "onchain",
+      hrl: `hcs://11/${SIGNAL_TOPIC}/pending`, // Real seq would be returned from HCS
+      message: "Recognition signal minted successfully on HCS"
+    })
 
   } catch (error: any) {
     console.error(`[HCS Mint] Error minting recognition signal:`, error)
@@ -93,18 +85,15 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // In a real implementation, this would replay the SIGNAL topic
-    // to determine current ownership by processing SIGNAL_MINT and SIGNAL_TRANSFER messages
-    console.log(`[HCS Mint] Would replay topic to find owner of: ${tokenId}`)
+    // TODO: Implement topic replay to determine current ownership
+    // This would replay the SIGNAL topic to process SIGNAL_MINT and SIGNAL_TRANSFER messages
+    console.log(`[HCS Mint] Topic replay not yet implemented for: ${tokenId}`)
     
     return NextResponse.json({
-      ok: true,
-      tokenId,
-      currentOwner: "demo-owner", // Would be derived from topic replay
-      mintTransaction: `hcs://11/${SIGNAL_TOPIC}/demo-mint`,
-      transfers: [], // Array of transfer transactions
-      status: "active"
-    })
+      ok: false,
+      error: "Topic replay feature not yet implemented",
+      tokenId
+    }, { status: 501 })
 
   } catch (error: any) {
     console.error(`[HCS Mint] Error retrieving hashinal:`, error)

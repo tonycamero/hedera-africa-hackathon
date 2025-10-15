@@ -13,8 +13,6 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       serverSessionId,
-      expectedDemoId: 'tm-alex-chen',
-      isMatch: serverSessionId === 'tm-alex-chen',
       timestamp: new Date().toISOString()
     })
     

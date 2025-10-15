@@ -34,12 +34,12 @@ export default function SignalsTradingView() {
         setTypes(typesData.types || [])
       }
 
-      // Fetch wallet signals
-      const signalsResponse = await fetch(`/api/signals/wallet?owner=${userAddress}`)
-      if (signalsResponse.ok) {
-        const signalsData = await signalsResponse.json()
-        setOwned(signalsData.assets || [])
-      }
+      // Web3-style client-side HCS asset collection query
+      const { hcsAssetCollection } = await import('@/lib/services/HCSAssetCollectionService')
+      const assets = await hcsAssetCollection.getUserCollection(userAddress)
+      
+      setOwned(assets)
+      console.log(`[TradingView] ✅ Loaded ${assets.length} assets from HCS`)
     } catch (error) {
       console.error('Failed to load trading data:', error)
     } finally {

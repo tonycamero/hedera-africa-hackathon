@@ -12,6 +12,7 @@ import { GenZCard, GenZText, GenZHeading } from '@/components/ui/genz-design-sys
 import { Clock, TrendingUp, Sparkles, Gift, Database, Zap } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
+import { getSessionId } from '@/lib/session'
 
 interface ActivityItem {
   id: string
@@ -24,9 +25,10 @@ interface ActivityItem {
 
 interface RecentActivityProps {
   recentMints?: SignalInstance[]
+  showTitle?: boolean
 }
 
-export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
+export function RecentActivity({ recentMints = [], showTitle = true }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const recognition = useHcsEvents('recognition', 2500)
@@ -46,108 +48,6 @@ export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
     setLoading(false)
   }, [recognition.watermark, recentMints])
 
-  const generateActivityData = () => {
-    // Mock recent activity data
-    const mockActivities: ActivityItem[] = [
-      {
-        id: 'act_1',
-        type: 'mint',
-        signal: {
-          instance_id: 'inst_001',
-          type_id: 'rizz@1',
-          issuer_pub: 'tm-alex-chen',
-          recipient_pub: 'tm-sarah-kim',
-          issued_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          metadata: {
-            category: 'Rizz',
-            rarity: 'Heat',
-            inscription: 'Absolutely killed that presentation to the investors! 🔥',
-            labels: ['smooth operator', 'presentation king', 'confidence boost']
-          }
-        },
-        actor: 'Alex Chen',
-        timestamp: new Date(Date.now() - 5 * 60 * 1000),
-        isFromNetwork: true
-      },
-      {
-        id: 'act_2',
-        type: 'claim',
-        signal: {
-          instance_id: 'inst_002',
-          type_id: 'clutch@1',
-          issuer_pub: 'tm-mike-jones',
-          recipient_pub: 'tm-alex-chen',
-          issued_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          metadata: {
-            category: 'Clutch',
-            rarity: 'Peak',
-            inscription: 'Fixed the production bug at 2AM when everything was on fire',
-            labels: ['came through', 'under pressure', 'hero moment']
-          }
-        },
-        actor: 'You',
-        timestamp: new Date(Date.now() - 12 * 60 * 1000),
-        isFromNetwork: true
-      },
-      {
-        id: 'act_3',
-        type: 'mint',
-        signal: {
-          instance_id: 'inst_003',
-          type_id: 'day-1@1',
-          issuer_pub: 'tm-lisa-park',
-          recipient_pub: 'tm-david-wilson',
-          issued_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          metadata: {
-            category: 'Day 1',
-            rarity: 'God-Tier',
-            inscription: 'Been supporting this vision since the very beginning',
-            labels: ['loyalty recognized', 'original supporter', 'foundation member']
-          }
-        },
-        actor: 'Lisa Park',
-        timestamp: new Date(Date.now() - 30 * 60 * 1000),
-        isFromNetwork: true
-      },
-      {
-        id: 'act_4',
-        type: 'boost',
-        signal: {
-          instance_id: 'inst_004',
-          type_id: 'grind@1',
-          issuer_pub: 'tm-john-doe',
-          recipient_pub: 'tm-jane-smith',
-          issued_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-          metadata: {
-            category: 'Grind',
-            rarity: 'Regular',
-            inscription: '5am workouts for 30 days straight - dedication noticed!',
-            labels: ['hustle mode', 'discipline', 'consistency']
-          }
-        },
-        actor: 'Multiple people',
-        timestamp: new Date(Date.now() - 40 * 60 * 1000),
-        isFromNetwork: false
-      }
-    ]
-
-    // Add recent mints to the activity
-    const mintActivities: ActivityItem[] = recentMints.map((signal, idx) => ({
-      id: `recent_${idx}`,
-      type: 'mint' as const,
-      signal,
-      actor: 'You',
-      timestamp: new Date(signal.issued_at),
-      isFromNetwork: true
-    }))
-
-    const allActivities = [...mintActivities, ...mockActivities]
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, 8)
-
-    setActivities(allActivities)
-    setLoading(false)
-  }
 
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
@@ -161,7 +61,8 @@ export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
   }
 
   const getActivityText = (activity: ActivityItem) => {
-    const recipientName = activity.signal.recipient_pub === 'tm-alex-chen' ? 'you' : 
+    const currentUserId = getSessionId() || 'tm-alex-chen'
+    const recipientName = activity.signal.recipient_pub === currentUserId ? 'you' : 
                          activity.signal.recipient_pub.replace('tm-', '').replace('-', ' ')
     
     switch (activity.type) {
@@ -185,10 +86,12 @@ export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
   if (loading) {
     return (
       <GenZCard variant="glass" className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="h-4 w-4 text-pri-500 animate-pulse" />
-          <GenZHeading level={4}>Recent Activity</GenZHeading>
-        </div>
+        {showTitle && (
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="h-4 w-4 text-pri-500 animate-pulse" />
+            <GenZHeading level={4}>Recent Activity</GenZHeading>
+          </div>
+        )}
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="animate-pulse">
@@ -202,13 +105,15 @@ export function RecentActivity({ recentMints = [] }: RecentActivityProps) {
 
   return (
     <GenZCard variant="glass" className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-pri-500" />
-          <GenZHeading level={4}>Recent Activity</GenZHeading>
+      {showTitle && (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-pri-500" />
+            <GenZHeading level={4}>Recent Activity</GenZHeading>
+          </div>
+          <GenZText size="sm" dim>{activities.length} recent</GenZText>
         </div>
-        <GenZText size="sm" dim>{activities.length} recent</GenZText>
-      </div>
+      )}
 
       <div className="space-y-3">
         {activities.length === 0 ? (

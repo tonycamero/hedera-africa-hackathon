@@ -77,9 +77,9 @@ export function SendSignalModal({ isOpen, onClose, recipient }: SendSignalModalP
     setError('')
 
     try {
-      // TODO: Get actual user session data
-      const senderAccountId = '0.0.5864559' // Demo account
-      const senderHandle = 'demo_user'
+      // TODO: Get actual user session data from authenticated user
+      const senderAccountId = '0.0.123456' // Placeholder - should come from user session
+      const senderHandle = 'user'
 
       // Record template usage metrics and telemetry
       TemplateManager.recordTemplateUsage(selectedTemplate, 'use')

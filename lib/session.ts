@@ -1,5 +1,5 @@
 import { profileService } from './profile/profileService'
-import { ALLOW_DEMO, HCS_ENABLED } from './env'
+import { HCS_ENABLED } from './env'
 
 export interface SessionProfile {
   sessionId: string
@@ -94,23 +94,11 @@ export function resetSession(): void {
   }
 }
 
-// Demo mode: honor URL only when demo is explicitly allowed
-function isInDemoMode(): boolean {
-  if (!ALLOW_DEMO) return false
-  if ((process.env.NEXT_PUBLIC_DEMO_SEED ?? '').trim().toLowerCase() === 'on') return true
-  if (typeof window !== 'undefined') {
-    const isLive = new URLSearchParams(window.location.search).get('live') === '1'
-    return !isLive
-  }
-  return true
-}
 
 // Helper to get ephemeral mode from runtime flags
 function getRuntimeEphemeralMode(): boolean {
   if (typeof window === 'undefined') return true
   
-  const q = new URLSearchParams(window.location.search)
-  const live = q.get("live") === "1"
-  
-  return live ? true : (process.env.NEXT_PUBLIC_DEMO_EPHEMERAL_STRICT === "true")
+  // Always use live mode (no demo mode)
+  return true
 }

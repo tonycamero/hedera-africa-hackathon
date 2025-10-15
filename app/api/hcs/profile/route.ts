@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { parseHrl } from "@/lib/utils/hrl"
-import { HRL_DEMO_PROFILES } from "@/lib/services/profileService"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
 
@@ -56,21 +55,14 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.warn(`[HCS Profile] Error fetching profile:`, error.message)
     
-    // Check demo profiles first before generic fallback
+    // Return error without fallback
     const hrl = req.nextUrl.searchParams.get("hrl")
-    let fallbackProfile = HRL_DEMO_PROFILES[hrl || ''] || {
-      handle: "Unknown User",
-      bio: "Profile unavailable",
-      visibility: "public",
-      verified: false
-    }
-
+    
     return NextResponse.json({ 
-      ok: false, 
-      profile: fallbackProfile,
+      ok: false,
       error: error.message || "Failed to fetch profile",
       hrl,
-      source: "fallback"
-    }, { status: 200 }) // Return 200 so UI can still render
+      source: "error"
+    }, { status: 404 })
   }
 }

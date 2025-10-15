@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { bootIngestionOnce, addShutdownHandler } from '@/lib/boot/bootIngestion';
 import { signalsStore } from '@/lib/stores/signalsStore';
-import { HCS_ENABLED, DEMO_SEED, MIRROR_REST, MIRROR_WS, TOPICS } from '@/lib/env';
+import { HCS_ENABLED, MIRROR_REST, MIRROR_WS, TOPICS } from '@/lib/env';
 
 /**
  * Global HCS ingestion initialization component.
@@ -16,7 +16,6 @@ export default function BootHCSClient() {
         console.log('🚀 [BootHCSClient] Starting HCS ingestion with Step 3 architecture...');
         console.log('🚀 [BootHCSClient] Environment check:', {
           HCS_ENABLED,
-          DEMO_SEED,
           NODE_ENV: process.env.NODE_ENV,
           MIRROR_REST,
           MIRROR_WS,
@@ -72,8 +71,7 @@ export default function BootHCSClient() {
         console.error('❌ [BootHCSClient] Error details:', {
           message: error.message,
           stack: error.stack,
-          HCS_ENABLED,
-          DEMO_SEED
+          HCS_ENABLED
         });
         // Don't throw - let the app continue with empty state
       }

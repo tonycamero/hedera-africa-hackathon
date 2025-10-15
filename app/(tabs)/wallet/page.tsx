@@ -40,20 +40,18 @@ export default function GenZWalletPage() {
       if (!isRefreshing) setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/signals/wallet?owner=${userAddress}`)
-      if (response.ok) {
-        const data = await response.json()
-        setSignals(data.assets || [])
-        
-        // Show first-time guide if no signals
-        if ((data.assets || []).length === 0) {
-          setShowFirstTimeGuide(true)
-        }
-        
-        console.log(`[GenZWallet] ✅ Loaded ${(data.assets || []).length} signals`)
-      } else {
-        throw new Error('Failed to load signals')
+      // Web3-style client-side HCS asset collection query
+      const { hcsAssetCollection } = await import('@/lib/services/HCSAssetCollectionService')
+      const assets = await hcsAssetCollection.getUserCollection(userAddress)
+      
+      setSignals(assets)
+      
+      // Show first-time guide if no signals
+      if (assets.length === 0) {
+        setShowFirstTimeGuide(true)
       }
+      
+      console.log(`[GenZWallet] ✅ Loaded ${assets.length} assets from HCS`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load your collection'
       console.error('[GenZWallet] ❌ Error:', error)

@@ -277,32 +277,3 @@ export default function RecognitionDetailPage() {
   )
 }
 
-// Static generation support (optional)
-export async function generateStaticParams() {
-  // This would pre-generate pages for all recognition signals
-  // For now, we'll use dynamic rendering
-  return []
-}
-
-// Dynamic metadata for SEO and OG images
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const signalId = params.id
-  
-  // In production, you'd fetch the actual signal data here
-  return {
-    title: `${signalId} - TrustMesh Recognition Card`,
-    description: `View the ${signalId} recognition card from TrustMesh's Gen-Z signal collection`,
-    openGraph: {
-      title: `${signalId} Recognition Card`,
-      description: `Part of TrustMesh's collectible recognition signal cards`,
-      images: [`/api/og/recognition?id=${signalId}`], // Dynamic OG image
-      type: 'website'
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${signalId} Recognition Card`,
-      description: `Collectible recognition signal from TrustMesh`,
-      images: [`/api/og/recognition?id=${signalId}`]
-    }
-  }
-}

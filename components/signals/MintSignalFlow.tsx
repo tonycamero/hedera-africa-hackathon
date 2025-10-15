@@ -50,28 +50,82 @@ export function MintSignalFlow({ selectedType, onBack, onComplete }: MintSignalF
   const handleMint = async () => {
     setStep('minting')
     
-    // Simulate minting process
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    const newSignal: SignalInstance = {
-      instance_id: `inst_${Date.now()}`,
-      type_id: selectedType.type_id,
-      issuer_pub: getSessionId() || 'tm-alex-chen',
-      recipient_pub: recipient,
-      issued_at: new Date().toISOString(),
-      metadata: {
-        category: selectedType.category,
-        rarity: selectedType.rarity,
-        inscription,
-        labels: selectedType.example_labels.slice(0, 3)
+    try {
+      // Get user session info
+      const issuerId = getSessionId() || 'tm-alex-chen'
+      
+      // Convert recipient handle to account ID (simplified for demo)
+      // In production, this would do proper handle-to-accountId resolution
+      const recipientId = recipient.startsWith('0.0.') ? recipient : '0.0.123456' // Demo fallback
+      
+      console.log('[MintSignalFlow] Minting hashinal NFT:', {
+        recipientId,
+        recognitionId: selectedType.base_id || selectedType.category.toLowerCase(),
+        issuerId,
+        inscriptionLength: inscription.length
+      })
+      
+      // Call our new hashinal minting API
+      const response = await fetch('/api/hashinals/mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipientId,
+          recognitionId: selectedType.base_id || selectedType.category.toLowerCase(),
+          inscription,
+          issuerId
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `Server error: ${response.status}`)
       }
+      
+      console.log('[MintSignalFlow] Hashinal minted successfully:', result.data)
+      
+      // Create SignalInstance object with hashinal data
+      const newSignal: SignalInstance = {
+        instance_id: result.data.serialNumber || `inst_${Date.now()}`,
+        type_id: selectedType.type_id,
+        issuer_pub: issuerId,
+        recipient_pub: recipient,
+        issued_at: result.data.mintedAt || new Date().toISOString(),
+        metadata: {
+          category: selectedType.category,
+          rarity: selectedType.rarity,
+          inscription,
+          labels: selectedType.example_labels?.slice(0, 3) || [selectedType.category],
+          // Include hashinal-specific metadata
+          tokenId: result.data.tokenId,
+          serialNumber: result.data.serialNumber,
+          transactionId: result.data.transactionId,
+          hcsReference: result.data.hcsReference,
+          isHashinal: true
+        }
+      }
+
+      toast.success('Hashinal NFT minted! 🎨⚡', {
+        description: `${selectedType.category} recognition NFT created for ${recipient}`,
+        duration: 5000
+      })
+
+      onComplete(newSignal)
+      
+    } catch (error: any) {
+      console.error('[MintSignalFlow] Minting failed:', error)
+      
+      toast.error('Minting failed 😞', {
+        description: error.message || 'Failed to create recognition NFT. Please try again.',
+        duration: 6000
+      })
+      
+      // Go back to preview step so user can retry
+      setStep('preview')
     }
-
-    toast.success('Signal minted! ⚡', {
-      description: `${selectedType.category} signal created for ${recipient}`
-    })
-
-    onComplete(newSignal)
   }
 
   const canProceed = () => {
@@ -95,11 +149,13 @@ export function MintSignalFlow({ selectedType, onBack, onComplete }: MintSignalF
             {getCategoryIcon(selectedType.category)}
           </div>
           <div>
-            <GenZHeading level={3} className="mb-2">Minting Signal...</GenZHeading>
-            <GenZText size="sm" dim>Creating your collectible signal token</GenZText>
+            <GenZHeading level={3} className="mb-2">Minting Hashinal NFT...</GenZHeading>
+            <GenZText size="sm" dim>Creating transferable recognition token on Hedera</GenZText>
+            <GenZText size="xs" dim className="mt-1">This creates a real NFT that can be owned, traded, and transferred!</GenZText>
           </div>
           <div className="flex items-center justify-center gap-2">
             <Sparkles className="h-4 w-4 text-blue-500 animate-pulse" />
+            <GenZText size="xs" dim>HCS-5 Standard</GenZText>
           </div>
         </div>
       </GenZCard>
