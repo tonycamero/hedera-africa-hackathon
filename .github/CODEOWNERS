@@ -1,0 +1,16 @@
+# TrustMesh v2 Code Ownership
+
+# Phase Control - requires trust-ops review
+config/phases.json        @trust-ops
+.env.phases               @trust-ops
+scripts/phase.ts          @platform-team
+scripts/ci-guard.sh       @platform-team
+scripts/ci-phase-guard.sh @platform-team
+
+# Critical Infrastructure 
+lib/v2/engine/            @platform-team
+lib/v2/adapters/          @platform-team
+lib/bootstrap/            @platform-team
+
+# Workflows
+.github/workflows/        @platform-team @trust-ops

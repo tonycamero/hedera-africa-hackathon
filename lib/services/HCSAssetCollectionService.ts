@@ -297,7 +297,6 @@ export class HCSAssetCollectionService {
       recentCount
     }
   }
-}
 
   /**
    * Convert user address/handle to Hedera account ID
