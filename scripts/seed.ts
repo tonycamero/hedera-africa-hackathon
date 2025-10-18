@@ -22,11 +22,14 @@ async function main() {
   ];
 
   for (const eventData of events) {
-    await prisma.event.upsert({
-      where: { title: eventData.title },
-      update: eventData,
-      create: eventData
+    // Check if event already exists by title
+    const existing = await prisma.event.findFirst({
+      where: { title: eventData.title }
     });
+    
+    if (!existing) {
+      await prisma.event.create({ data: eventData });
+    }
   }
 
   // Create sample invites for testing QR codes

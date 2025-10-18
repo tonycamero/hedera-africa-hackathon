@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-// Redirect to main contacts page
+// Redirect to Fairfield Voice join page
 export default function HomePage() {
-  redirect("/contacts")
+  redirect("/join")
 }

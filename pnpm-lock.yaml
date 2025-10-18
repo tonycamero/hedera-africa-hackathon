@@ -14,6 +14,9 @@ importers:
       '@hashgraphonline/standards-sdk':
         specifier: ^0.1.106
         version: 0.1.106(@types/react@18.3.26)(@walletconnect/qrcode-modal@1.8.0)(@walletconnect/types@2.21.9(ioredis@5.8.0))(@walletconnect/utils@2.21.9(ioredis@5.8.0)(typescript@5.9.2)(zod@3.25.67))(@walletconnect/web3wallet@1.16.1(ioredis@5.8.0)(typescript@5.9.2)(zod@3.25.67))(ansi-regex@6.2.2)(ansi-styles@6.2.3)(bn.js@5.2.2)(debug@4.4.3)(protobufjs@7.5.4)(react-native@0.81.4(@babel/core@7.28.4)(@types/react@18.3.26)(react@18.3.1))(react@18.3.1)(strip-ansi@7.1.2)(typescript@5.9.2)
+      '@heroicons/react':
+        specifier: ^2.2.0
+        version: 2.2.0(react@18.3.1)
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.63.0(react@18.3.1))
@@ -843,6 +846,11 @@ packages:
 
   '@hashgraphonline/standards-sdk@0.1.106':
     resolution: {integrity: sha512-MM9uMn/EWUjkaXdpLTROs2P2PgcFK5TDJtvBWs9nkIBfbt8O3G4cohHo9tDrUtjG1+EDGTwf4ab8iwNsB7Cldw==}
+
+  '@heroicons/react@2.2.0':
+    resolution: {integrity: sha512-LMcepvRaS9LYHJGsF0zzmgKCUim/X3N/DQKc4jepAXJ7l8QxJ1PmxJzqplF2Z3FE4PqBAIGyJAQ/w4B5dsqbtQ==}
+    peerDependencies:
+      react: '>= 16 || ^19.0.0-rc'
 
   '@hiero-did-sdk/cache@0.1.5':
     resolution: {integrity: sha512-x4lEgCRSiNSRMltFxiGY53cFeW56BG6WhNe9XLtfy4fb+UqGQlyplMBWKVuaz6v3JaUMWOptNBNKIETvIr1fOQ==}
@@ -6598,6 +6606,10 @@ snapshots:
       - typescript
       - uploadthing
       - utf-8-validate
+
+  '@heroicons/react@2.2.0(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
 
   '@hiero-did-sdk/cache@0.1.5(bn.js@5.2.2)(react-native@0.81.4(@babel/core@7.28.4)(@types/react@18.3.26)(react@18.3.1))':
     dependencies:

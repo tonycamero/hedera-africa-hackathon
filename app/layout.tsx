@@ -22,8 +22,8 @@ const sourceSans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: "TrustMesh - Build Your Circle",
-  description: "GenZ Lens - Real connections, real trust. Send props, discover IRL events, build your crew with Trust Agent.",
+  title: "Fairfield Voice - Make Your Voice Heard",
+  description: "Local government engagement platform powered by TrustMesh. Join your Inner Circle, support initiatives, and make a difference in your community.",
   generator: "v0.app",
 }
 
