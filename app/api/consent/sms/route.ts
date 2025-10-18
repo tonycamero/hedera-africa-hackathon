@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     await prisma.consentLog.create({
       data: {
         issuer,
-        channel: "sms",
+        channel: "email",
         action
       }
     });

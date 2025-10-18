@@ -12,10 +12,10 @@ datasource db {
 
 model User {
   id         String   @id @default(cuid())
-  issuer     String   @unique  // Magic DID (no phone on-chain)
-  phone      String?  @unique
+  issuer     String   @unique  // Magic DID (no email on-chain)
+  email      String?  @unique
   ward       String?           // e.g., "W-3"
-  smsOptIn   Boolean  @default(false)
+  emailOptIn Boolean  @default(false)
   createdAt  DateTime @default(now())
 }
 

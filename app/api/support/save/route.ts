@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (contactPref) {
       await prisma.user.update({
         where: { issuer },
-        data: { smsOptIn: contactPref === "sms" }
+        data: { emailOptIn: contactPref === "email" }
       });
     }
 

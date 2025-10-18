@@ -9,16 +9,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { phone, ward, smsOptIn } = body;
+    const { email, ward, emailOptIn } = body;
 
-    const user = await upsertUser(issuer, { phone, ward, smsOptIn });
+    const user = await upsertUser(issuer, { email, ward, emailOptIn });
 
     return NextResponse.json({ 
       user: {
         id: user.id,
-        phone: user.phone,
+        email: user.email,
         ward: user.ward,
-        smsOptIn: user.smsOptIn
+        emailOptIn: user.emailOptIn
       }
     });
   } catch (error) {

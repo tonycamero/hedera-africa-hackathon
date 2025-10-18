@@ -12,7 +12,7 @@ const wards = [
 ];
 
 export default function JoinPage() {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [ward, setWard] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,11 +31,11 @@ export default function JoinPage() {
   }, []);
 
   const handleLogin = async () => {
-    if (!magic || !phone) return;
+    if (!magic || !email) return;
     
     setIsLoading(true);
     try {
-      await magic.auth.loginWithSMS({ phoneNumber: phone });
+      await magic.auth.loginWithMagicLink({ email });
       setIsAuthenticated(true);
     } catch (error) {
       console.error("Login failed:", error);
@@ -59,9 +59,9 @@ export default function JoinPage() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          phone,
+          email,
           ward,
-          smsOptIn: true
+          emailOptIn: true
         })
       });
 
@@ -105,23 +105,23 @@ export default function JoinPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
+                  Email Address
                 </label>
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 (555) 123-4567"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
               </div>
 
               <button
                 onClick={handleLogin}
-                disabled={!phone || isLoading}
+                disabled={!email || isLoading}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
               >
-                {isLoading ? "Sending..." : "Send Login Code"}
+                {isLoading ? "Sending..." : "Send Magic Link"}
               </button>
             </div>
           </div>

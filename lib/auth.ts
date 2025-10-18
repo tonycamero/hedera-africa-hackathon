@@ -16,23 +16,23 @@ export async function getIssuer(req: Request): Promise<string | null> {
 export async function upsertUser(
   issuer: string, 
   data: { 
-    phone?: string; 
+    email?: string; 
     ward?: string; 
-    smsOptIn?: boolean 
+    emailOptIn?: boolean 
   }
 ) {
   return prisma.user.upsert({
     where: { issuer },
     create: { 
       issuer, 
-      phone: data.phone, 
+      email: data.email, 
       ward: data.ward, 
-      smsOptIn: !!data.smsOptIn 
+      emailOptIn: !!data.emailOptIn 
     },
     update: { 
-      phone: data.phone ?? undefined, 
+      email: data.email ?? undefined, 
       ward: data.ward ?? undefined, 
-      smsOptIn: data.smsOptIn ?? undefined 
+      emailOptIn: data.emailOptIn ?? undefined 
     },
   });
 }

@@ -111,12 +111,12 @@ export default function SupportPage() {
                 <input
                   type="radio"
                   name="contact"
-                  value="sms"
-                  checked={contactPref === "sms"}
+                  value="email"
+                  checked={contactPref === "email"}
                   onChange={(e) => setContactPref(e.target.value)}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-3 text-gray-900">SMS notifications</span>
+                <span className="ml-3 text-gray-900">Email notifications</span>
               </label>
               
               <label className="flex items-center p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -137,7 +137,7 @@ export default function SupportPage() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-xs text-yellow-800">
               <strong>Privacy:</strong> Your support position will be recorded anonymously 
-              on the Hedera blockchain. Your phone number stays private and secure.
+              on the Hedera blockchain. Your email address stays private and secure.
             </p>
           </div>
 
