@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { bootIngestionOnce, addShutdownHandler } from '@/lib/boot/bootIngestion';
 import { signalsStore } from '@/lib/stores/signalsStore';
-import { HCS_ENABLED, MIRROR_REST, MIRROR_WS, TOPICS } from '@/lib/env';
+import { shouldBootHCS, getValidTopics, MIRROR_REST, MIRROR_WS, TOPICS, BOOT } from '@/lib/env';
 
 /**
  * Global HCS ingestion initialization component.
@@ -13,24 +13,27 @@ export default function BootHCSClient() {
   useEffect(() => {
     const initializeServices = async () => {
       try {
+        // Check if we should boot HCS ingestion
+        if (!shouldBootHCS()) {
+          console.log('[Boot] HCS ingestion disabled by flags/env. Skipping.', {
+            BOOT_FLAGS: BOOT,
+            VALID_TOPICS: getValidTopics(),
+            MIRROR_REST,
+            MIRROR_WS
+          });
+          return;
+        }
+        
+        const validTopics = getValidTopics();
         console.log('🚀 [BootHCSClient] Starting HCS ingestion with Step 3 architecture...');
         console.log('🚀 [BootHCSClient] Environment check:', {
-          HCS_ENABLED,
+          BOOT_FLAGS: BOOT,
           NODE_ENV: process.env.NODE_ENV,
           MIRROR_REST,
           MIRROR_WS,
-          TOPICS,
-          raw_hcs_enabled: process.env.NEXT_PUBLIC_HCS_ENABLED,
-          raw_mirror_rest: process.env.NEXT_PUBLIC_MIRROR_NODE_URL
+          VALID_TOPICS: validTopics,
+          ALL_TOPICS: TOPICS
         });
-        
-        // Only initialize if HCS is enabled
-        if (!HCS_ENABLED) {
-          console.warn('🚫 [BootHCSClient] HCS_ENABLED=false, skipping ingestion initialization');
-          console.warn('🚫 [BootHCSClient] Raw env value:', process.env.NEXT_PUBLIC_HCS_ENABLED);
-          console.warn('🚫 [BootHCSClient] To enable: Set NEXT_PUBLIC_HCS_ENABLED=true in environment');
-          return;
-        }
 
         // Start the new Step 3 ingestion system
         console.log('📡 [BootHCSClient] Booting HCS ingestion (backfill + streaming + recognition two-phase)...');
@@ -71,7 +74,8 @@ export default function BootHCSClient() {
         console.error('❌ [BootHCSClient] Error details:', {
           message: error.message,
           stack: error.stack,
-          HCS_ENABLED
+          SHOULD_BOOT: shouldBootHCS(),
+          BOOT_FLAGS: BOOT
         });
         // Don't throw - let the app continue with empty state
       }
@@ -80,8 +84,8 @@ export default function BootHCSClient() {
     // Initialize services on mount
     initializeServices();
 
-    // Always set up debug helpers, even if initialization fails
-    if (typeof window !== 'undefined') {
+    // Only set up debug helpers if we should boot HCS
+    if (typeof window !== 'undefined' && shouldBootHCS()) {
       (window as any).signalsStore = signalsStore;
       (window as any).debugStore = {
         getSignals: () => signalsStore.getAll(),

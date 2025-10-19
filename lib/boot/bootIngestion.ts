@@ -4,7 +4,9 @@
  */
 
 import { startIngestion, stopIngestion, getIngestionHealth } from '@/lib/ingest/ingestor'
-import { HCS_ENABLED, INGEST_DEBUG } from '@/lib/env'
+import { shouldBootHCS, getValidTopics, BOOT, NODE_ENV } from '@/lib/env'
+
+const INGEST_DEBUG = NODE_ENV === 'development';
 
 let bootStarted = false
 let shutdownHandlers: Array<() => void> = []
@@ -21,8 +23,13 @@ export async function bootIngestionOnce(): Promise<void> {
     return
   }
 
-  if (!HCS_ENABLED) {
-    console.info('[Boot] HCS ingestion disabled, skipping boot')
+  if (!shouldBootHCS()) {
+    const validTopics = getValidTopics();
+    console.log('[Boot] HCS ingestion disabled by flags/env. Skipping.', {
+      BOOT_FLAGS: BOOT,
+      VALID_TOPICS: validTopics.length,
+      TOPICS: validTopics.map(t => `${t.name}:${t.id}`)
+    });
     return
   }
 
@@ -121,7 +128,9 @@ export function isIngestionBooted(): boolean {
 export function getBootStatus() {
   return {
     booted: bootStarted,
-    enabled: HCS_ENABLED,
+    shouldBoot: shouldBootHCS(),
+    bootFlags: BOOT,
+    validTopics: getValidTopics().length,
     health: bootStarted ? getIngestionHealth() : null,
     shutdownHandlers: shutdownHandlers.length
   }

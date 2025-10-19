@@ -19,7 +19,10 @@ const nextConfig = {
       'zstd-napi': false,
       'fs': false,
       'path': false,
-      'crypto': false
+      'crypto': false,
+      'encoding': false,
+      'bufferutil': false,
+      'utf-8-validate': false
     }
 
     // Ignore React Native modules in browser/server builds

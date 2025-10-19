@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Magic } from "magic-sdk";
 import { useRouter, useSearchParams } from "next/navigation";
+
+// Get Magic publishable key
+const MAGIC_PK = process.env.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY;
 
 const wards = [
   { id: "W-1", name: "Ward 1 - Downtown" },
@@ -11,11 +14,12 @@ const wards = [
   { id: "W-4", name: "Ward 4 - Northside" }
 ];
 
-export default function JoinPage() {
+function JoinPageContent() {
   const [email, setEmail] = useState("");
   const [ward, setWard] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasCompletedSetup, setHasCompletedSetup] = useState(false);
   const [magic, setMagic] = useState<Magic | null>(null);
   
   const router = useRouter();
@@ -23,11 +27,46 @@ export default function JoinPage() {
   const inviteRef = searchParams.get("ref");
 
   useEffect(() => {
-    const m = new Magic(process.env.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY!);
+    if (!MAGIC_PK) {
+      console.error('[Magic] Missing NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY');
+      return; // leave UI to show friendly message below
+    }
+    
+    const m = new Magic(MAGIC_PK);
     setMagic(m);
     
     // Check if already logged in
-    m.user.isLoggedIn().then(setIsAuthenticated);
+    m.user.isLoggedIn().then(async (isLoggedIn) => {
+      setIsAuthenticated(isLoggedIn);
+      
+      if (isLoggedIn) {
+        // Check if user has already completed setup
+        try {
+          const token = await m.user.getIdToken();
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const { user } = await response.json();
+            if (user?.hasCompletedSetup) {
+              // User already completed setup, redirect to home
+              router.push('/home');
+              return;
+            }
+            // Pre-fill email if available
+            if (user?.email) {
+              setEmail(user.email);
+            }
+            setHasCompletedSetup(false);
+          }
+        } catch (error) {
+          console.error('Error checking user status:', error);
+        }
+      }
+    });
   }, []);
 
   const handleLogin = async () => {
@@ -88,6 +127,25 @@ export default function JoinPage() {
     setIsLoading(false);
   };
 
+  // Show configuration error if Magic key is missing
+  if (!MAGIC_PK) {
+    return (
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full rounded-2xl border-2 border-red-300 p-6 bg-white shadow-lg">
+          <h2 className="text-xl font-bold mb-2 text-red-800">Configuration Required</h2>
+          <p className="text-sm text-gray-700 mb-4">
+            The Magic authentication service isn't configured. Please contact an administrator to add the
+            <code className="mx-1 px-1 py-0.5 rounded bg-gray-100">NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY</code>
+            environment variable.
+          </p>
+          <p className="text-xs text-gray-500">
+            This is required for secure email-based authentication.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-blue-50 px-4 py-8">
@@ -169,5 +227,13 @@ export default function JoinPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-blue-50 flex items-center justify-center"><div className="text-lg">Loading...</div></div>}>
+      <JoinPageContent />
+    </Suspense>
   );
 }

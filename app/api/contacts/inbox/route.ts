@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIssuer } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { readTopicMessages } from "@/lib/mirror";
+import { readTopic } from "@/lib/mirror";
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,21 +9,19 @@ export async function GET(req: NextRequest) {
     if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const topicId = process.env.HEDERA_TOPIC_ID!;
-    const messages = await readTopicMessages(topicId);
+    const messages = await readTopic(topicId);
 
     // Get all direct requests targeting me
     const directRequests = messages.filter(msg => {
-      const envelope = msg.envelope;
-      return envelope?.type === "CONTACT_BOND_REQUEST_DIRECT" && 
-             envelope?.payload?.invitee === me;
+      return msg?.type === "CONTACT_BOND_REQUEST_DIRECT" && 
+             msg?.payload?.invitee === me;
     });
 
     // Get all confirmations to filter out already confirmed requests
     const confirmations = new Set<string>();
     messages.forEach(msg => {
-      const envelope = msg.envelope;
-      if (envelope?.type === "CONTACT_BOND_CONFIRMED" && envelope.payload) {
-        const { inviter, invitee } = envelope.payload;
+      if (msg?.type === "CONTACT_BOND_CONFIRMED" && msg?.payload) {
+        const { inviter, invitee } = msg.payload;
         if (invitee === me) confirmations.add(inviter);
         if (inviter === me) confirmations.add(invitee);
       }
@@ -31,13 +29,13 @@ export async function GET(req: NextRequest) {
 
     // Filter to pending requests only
     const pendingRequests = directRequests.filter(msg => {
-      const inviter = msg.envelope?.payload?.inviter;
+      const inviter = msg?.payload?.inviter;
       return inviter && !confirmations.has(inviter);
     });
 
     // Get inviter user details
     const inviterIssuers = pendingRequests
-      .map(msg => msg.envelope?.payload?.inviter)
+      .map(msg => msg?.payload?.inviter)
       .filter(Boolean);
 
     const inviters = await prisma.user.findMany({
@@ -51,13 +49,13 @@ export async function GET(req: NextRequest) {
 
     // Combine request data with user details
     const requests = pendingRequests.map(msg => {
-      const payload = msg.envelope?.payload;
+      const payload = msg?.payload;
       const inviter = inviters.find(u => u.issuer === payload?.inviter);
       
       return {
         nonce: payload?.nonce,
         inviter: inviter || { issuer: payload?.inviter, displayName: null, ward: payload?.ward },
-        timestamp: msg.timestamp,
+        timestamp: msg.ts || Date.now(),
         ward: payload?.ward
       };
     });

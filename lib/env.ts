@@ -1,30 +1,40 @@
 // Environment utilities with whitespace cleaning to prevent CR/LF issues
 export const clean = (s?: string | null) => (s ?? '').replace(/\r|\n/g, '').trim();
+const trim = (s?: string | null) => (s ?? '').trim().replace(/\/+$/,'');
 
-export const cleanBool = (s?: string | null) => {
+const cleanBool = (s?: string | null) => {
   const v = clean(s).toLowerCase();
   return v === 'true' || v === '1' || v === 'yes' || v === 'on';
 };
 
-// Check if we're in Fairfield Voice mode
-const isFairfieldMode = () => 
-  (process.env.NEXT_PUBLIC_APP_MODE || "").toLowerCase() === "fairfield";
+// Ensure REST endpoint has exactly one /api/v1
+const ensureRest = (base: string) =>
+  /\/api\/v1$/.test(base) ? base : `${base}/api/v1`;
 
-// Clean topic environment variables
+// App configuration
+export const APP_MODE = (process.env.NEXT_PUBLIC_APP_MODE || 'fairfield').toLowerCase();
+export const IS_PROD = process.env.NODE_ENV === 'production';
+
+// Check if we're in Fairfield Voice mode
+const isFairfieldMode = () => APP_MODE === "fairfield";
+
+// Mirror endpoints (guard the double api/v1 issue)
+export const MIRROR_REST = ensureRest(trim(process.env.NEXT_PUBLIC_MIRROR_REST) || 'https://testnet.mirrornode.hedera.com');
+export const MIRROR_WS = trim(process.env.NEXT_PUBLIC_MIRROR_WS) || 'wss://testnet.mirrornode.hedera.com';
+
+// Topics (empty = disabled)
 export const TOPIC = {
   profile: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE),
-  contacts: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACT),
+  contacts: clean(process.env.NEXT_PUBLIC_TOPIC_CONTACTS),
   trust: clean(process.env.NEXT_PUBLIC_TOPIC_TRUST),
-  feed: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL),
+  signal: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL),
   recognition: clean(process.env.NEXT_PUBLIC_TOPIC_RECOGNITION),
-  system: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL), // Using signal topic as system
 };
 
 // Fairfield Voice uses a single HCS topic for all events
 const FAIRFIELD_TOPIC = clean(process.env.HEDERA_TOPIC_ID);
 
 // Ingestion-compatible topic mapping (normalized names)
-// In Fairfield mode, use single topic for all event types
 export const TOPICS = isFairfieldMode() ? {
   contacts: FAIRFIELD_TOPIC,
   trust: FAIRFIELD_TOPIC, 
@@ -35,24 +45,38 @@ export const TOPICS = isFairfieldMode() ? {
   contacts: TOPIC.contacts,
   trust: TOPIC.trust,
   profile: TOPIC.profile,
-  signal: TOPIC.feed,
+  signal: TOPIC.signal,
   recognition: TOPIC.recognition,
 } as const;
 
 export type TopicKey = keyof typeof TOPICS;
 
-// Clean other environment variables - ensure Mirror REST URL has /api/v1
-export const MIRROR_REST = (() => {
-  const rawUrl = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_URL) || "https://testnet.mirrornode.hedera.com";
-  // Strip any existing /api/v1 and add it once
-  const cleanUrl = rawUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '');
-  return `${cleanUrl}/api/v1`;
-})();
-export const MIRROR_WS = clean(process.env.NEXT_PUBLIC_MIRROR_NODE_WS) || "wss://testnet.mirrornode.hedera.com:5600";
+// Feature flags (explicit opt-in)
+export const BOOT = {
+  DEMO: cleanBool(process.env.NEXT_PUBLIC_BOOT_DEMO),
+  HCS_INGEST: cleanBool(process.env.NEXT_PUBLIC_BOOT_INGEST) !== false, // default true
+};
+
+// Derived "should we start this" checks
+export const SHOULD_INGEST = BOOT.HCS_INGEST && (
+  !!TOPIC.contacts || !!TOPIC.recognition || !!TOPIC.signal || !!TOPIC.trust || !!TOPIC.profile
+);
+
+// Validation helpers
+export const getValidTopics = () => {
+  return Object.entries(TOPICS)
+    .filter(([, id]) => !!id && /^0\.0\.\d+$/.test(id))
+    .map(([name, id]) => ({ name, id }));
+};
+
+export const shouldBootHCS = () => {
+  const validTopics = getValidTopics();
+  return SHOULD_INGEST && validTopics.length > 0 && MIRROR_REST && MIRROR_WS;
+};
+
 export const NODE_ENV = clean(process.env.NODE_ENV) || 'development';
 
-export const HCS_ENABLED =
-  ['true','1','yes','on'].includes((process.env.NEXT_PUBLIC_HCS_ENABLED ?? '').trim().toLowerCase());
+export const HCS_ENABLED = cleanBool(process.env.NEXT_PUBLIC_HCS_ENABLED) !== false;
 
 // GenZ Lens Feature Flag
 export const GENZ_LENS = cleanBool(process.env.GENZ_LENS) || cleanBool(process.env.NEXT_PUBLIC_GENZ_LENS);

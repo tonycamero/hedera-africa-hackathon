@@ -19,6 +19,7 @@ export default function HomePage() {
   const [inviteUrl, setInviteUrl] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [profile, setProfile] = useState<{displayName?: string, directoryOptIn?: boolean}>({});
+  const [user, setUser] = useState<{id?: string, email?: string, ward?: string} | null>(null);
 
   useEffect(() => {
     const initMagic = async () => {
@@ -43,6 +44,7 @@ export default function HomePage() {
         
         await loadProgress(m);
         await loadProfile(m);
+        await loadUserData(m);
       } catch (error) {
         setDebugInfo(prev => prev + `\nError initializing Magic: ${error.message}`);
         setIsLoading(false);
@@ -65,6 +67,23 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error("Failed to load profile:", error);
+    }
+  };
+  
+  const loadUserData = async (magicInstance = magic) => {
+    if (!magicInstance) return;
+    try {
+      const token = await magicInstance.user.getIdToken();
+      const response = await fetch("/api/auth/me", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setDebugInfo(prev => prev + `\nUser loaded: ward=${data.user?.ward}`);
+      }
+    } catch (error) {
+      console.error("Failed to load user:", error);
     }
   };
   
@@ -216,6 +235,13 @@ export default function HomePage() {
         <div className="fairfield-card text-center">
           <h1 className="fairfield-display text-4xl mb-4">Fairfield Voice</h1>
           <p className="fairfield-body text-lg">Join the campaign for a stronger Fairfield.</p>
+          {user?.ward && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border-2 border-blue-600 rounded-lg">
+              <span className="fairfield-caption text-sm font-bold text-blue-800">
+                Ward: {user.ward.replace('W-', '')} - {user.ward === 'W-1' ? 'Downtown' : user.ward === 'W-2' ? 'Eastside' : user.ward === 'W-3' ? 'Westside' : 'Northside'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Circle of Trust Progress */}

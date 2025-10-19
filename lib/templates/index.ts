@@ -32,7 +32,7 @@ export const getAllTemplateIds = (): string[] => {
   return Array.from(templateById.keys());
 };
 
-// Re-export everything from library for convenience
-export * from './SignalTemplateLibrary';
-export * from './TemplateManager';
-export * from './SignalTemplateService';
+// Re-export specific items to avoid conflicts
+export { SIGNAL_TEMPLATE_LIBRARY, type SignalTemplate } from './SignalTemplateLibrary';
+export { TemplateManager } from './TemplateManager';
+export { SignalTemplateService } from './SignalTemplateService';

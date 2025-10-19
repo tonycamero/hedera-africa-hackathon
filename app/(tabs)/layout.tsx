@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signalsStore } from "@/lib/stores/signalsStore"
+import { isFairfieldVoice } from "@/lib/featureFlags"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
 import { WalletFloatingButton } from "@/components/WalletFloatingButton"
 import { 
@@ -19,12 +19,26 @@ export default function TabsLayout({
 }) {
   const pathname = usePathname()
   const [hasUnseen, setHasUnseen] = useState(false)
+  
+  // Redirect to home if in Fairfield Voice mode
+  if (isFairfieldVoice()) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/home';
+    }
+    return null;
+  }
 
   // Update unseen signals indicator
   useEffect(() => {
     const updateUnseen = () => {
-      const unseen = signalsStore.hasUnseen()
-      setHasUnseen(unseen)
+      try {
+        const { signalsStore } = require('@/lib/stores/signalsStore');
+        const unseen = signalsStore.hasUnseen()
+        setHasUnseen(unseen)
+      } catch (error) {
+        // signalsStore disabled in Fairfield mode
+        setHasUnseen(false)
+      }
     }
 
     // Load initially

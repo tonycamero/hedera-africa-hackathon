@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getIssuer } from "@/lib/auth";
-import { readTopicMessages } from "@/lib/mirror";
+import { readTopic } from "@/lib/mirror";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,13 +13,12 @@ export async function GET(req: NextRequest) {
 
     // Get my existing bonded contacts to exclude from directory
     const topicId = process.env.HEDERA_TOPIC_ID!;
-    const messages = await readTopicMessages(topicId);
+    const messages = await readTopic(topicId);
     
     const bonded = new Set<string>();
     messages.forEach(msg => {
-      const envelope = msg.envelope;
-      if (envelope?.type === "CONTACT_BOND_CONFIRMED" && envelope.payload) {
-        const { inviter, invitee } = envelope.payload;
+      if (msg?.type === "CONTACT_BOND_CONFIRMED" && msg?.payload) {
+        const { inviter, invitee } = msg.payload;
         if (inviter === me) bonded.add(invitee);
         if (invitee === me) bonded.add(inviter);
       }

@@ -24,6 +24,11 @@ export const metadata: Metadata = {
   title: "Fairfield Voice - Make Your Voice Heard",
   description: "Local government engagement platform powered by TrustMesh. Join your Inner Circle, support initiatives, and make a difference in your community.",
   generator: "v0.app",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.svg',
+  },
 }
 
 export const viewport: Viewport = {
