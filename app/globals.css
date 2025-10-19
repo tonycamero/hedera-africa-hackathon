@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import '../styles/glass-cards.css';
+@import '../styles/fairfield-voice.css';
 
 @custom-variant dark (&:is(.dark *));
 

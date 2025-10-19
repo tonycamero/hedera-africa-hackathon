@@ -1,0 +1,303 @@
+/**
+ * FAIRFIELD VOICE DESIGN SYSTEM
+ * Professional civic campaign styling with maximum readability
+ */
+
+/* ==== RESET & BASE ==== */
+body {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Global text color override */
+* {
+  color: inherit !important;
+}
+
+h1, h2, h3, h4, h5, h6, p, span, div, button, a, label, input {
+  color: #000000 !important;
+}
+
+/* ==== TYPOGRAPHY SCALE ==== */
+.fairfield-display {
+  font-family: ui-serif, Georgia, 'Times New Roman', Times, serif !important;
+  font-weight: 900 !important;
+  color: #000000 !important;
+  line-height: 1.2 !important;
+}
+
+.fairfield-heading {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+  font-weight: 800 !important;
+  color: #000000 !important;
+  line-height: 1.3 !important;
+}
+
+.fairfield-body {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+  font-weight: 700 !important;
+  color: #000000 !important;
+  line-height: 1.5 !important;
+}
+
+.fairfield-caption {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+  font-weight: 700 !important;
+  color: #000000 !important;
+  line-height: 1.4 !important;
+}
+
+.fairfield-muted {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  color: #333333;
+  line-height: 1.4;
+}
+
+/* ==== LAYOUT SYSTEM ==== */
+.fairfield-page {
+  min-height: 100vh !important;
+  background: #ffffff !important;
+  padding: 1.5rem 1rem !important;
+}
+
+.fairfield-container {
+  max-width: 28rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ==== CARD SYSTEM ==== */
+.fairfield-card {
+  background: #f5f5f5 !important;
+  border: 4px solid #000000 !important;
+  border-radius: 1rem !important;
+  padding: 2rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.fairfield-card:hover {
+  border-color: #000000;
+  background: #eeeeee;
+}
+
+.fairfield-card-interactive {
+  cursor: pointer;
+}
+
+.fairfield-card-interactive:hover {
+  border-color: #000000;
+  background: #e8e8e8;
+  transform: translateY(-2px);
+}
+
+.fairfield-card-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f0f0f0;
+  border-color: #666666;
+}
+
+.fairfield-card-disabled:hover {
+  transform: none;
+  border-color: #666666;
+}
+
+.fairfield-card-leader {
+  background: #000000 !important;
+  border: 4px solid #ffd700 !important;
+  color: #ffffff !important;
+}
+
+.fairfield-card-leader * {
+  color: #ffffff !important;
+}
+
+/* ==== BUTTON SYSTEM ==== */
+.fairfield-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.25;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.fairfield-btn-primary {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: 3px solid #000000 !important;
+}
+
+.fairfield-btn-primary * {
+  color: #ffffff !important;
+}
+
+.fairfield-btn-primary:hover {
+  background: #333333;
+  border-color: #333333;
+  transform: translateY(-1px);
+}
+
+.fairfield-btn-secondary {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+}
+
+.fairfield-btn-secondary:hover {
+  background: #f0f0f0;
+  border-color: #000000;
+}
+
+/* ==== PROGRESS SYSTEM ==== */
+.fairfield-progress-ring {
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto;
+  position: relative;
+}
+
+.fairfield-progress-ring svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.fairfield-progress-bg {
+  fill: none;
+  stroke: #cccccc;
+  stroke-width: 4;
+}
+
+.fairfield-progress-fill {
+  fill: none;
+  stroke: #000000;
+  stroke-width: 4;
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.fairfield-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.5rem;
+  color: #000000;
+}
+
+/* ==== STATUS SYSTEM ==== */
+.fairfield-status {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.fairfield-status-locked {
+  background: #ffeb3b;
+  color: #000000;
+  border: 3px solid #000000;
+  font-weight: 800;
+}
+
+.fairfield-status-available {
+  background: #4caf50;
+  color: #ffffff;
+  border: 3px solid #000000;
+  font-weight: 800;
+}
+
+/* ==== ICON SYSTEM ==== */
+.fairfield-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.fairfield-icon-lg {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+
+.fairfield-icon-container {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fairfield-icon-blue {
+  background: #2196f3;
+  color: #ffffff;
+  border: 2px solid #000000;
+}
+
+.fairfield-icon-green {
+  background: #4caf50;
+  color: #ffffff;
+  border: 2px solid #000000;
+}
+
+.fairfield-icon-purple {
+  background: #9c27b0;
+  color: #ffffff;
+  border: 2px solid #000000;
+}
+
+.fairfield-icon-gray {
+  background: #666666;
+  color: #ffffff;
+  border: 2px solid #000000;
+}
+
+/* ==== FOOTER SYSTEM ==== */
+.fairfield-footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 4px solid #000000;
+  text-align: center;
+}
+
+.fairfield-footer-primary {
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+}
+
+.fairfield-footer-secondary {
+  font-weight: 700;
+  color: #000000;
+  font-size: 1rem;
+}
+
+/* ==== RESPONSIVE ADJUSTMENTS ==== */
+@media (max-width: 640px) {
+  .fairfield-page {
+    padding: 1rem 0.75rem;
+  }
+  
+  .fairfield-container {
+    gap: 1.25rem;
+  }
+  
+  .fairfield-card {
+    padding: 1.25rem;
+  }
+}

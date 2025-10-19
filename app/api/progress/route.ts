@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIssuer } from "@/lib/auth";
-import { readTopic } from "@/lib/mirror";
+import { signalsStore } from "@/lib/stores/signalsStore";
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,19 +9,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Read HCS messages to count accepted invites
-    const topicId = process.env.HEDERA_TOPIC_ID;
-    if (!topicId) {
-      return NextResponse.json({ error: "Topic ID not configured" }, { status: 500 });
-    }
-
-    const messages = await readTopic(topicId);
+    // Use signalsStore to read bonded contacts from universal recognition system
+    // This follows the same pattern as Professional and GenZ lenses
+    const contactBondEvents = signalsStore.getByType('CONTACT_BOND_CONFIRMED');
     
-    // Count INVITE_ACCEPTED where user was the inviter
-    const accepted = messages.filter(msg => 
-      msg.type === "INVITE_ACCEPTED" && 
-      msg.payload?.inviter === issuer
-    ).length;
+    // Count unique bonded contacts for this user
+    const bondedContacts = new Set<string>();
+    contactBondEvents.forEach(event => {
+      if (event.metadata?.inviter === issuer) {
+        bondedContacts.add(event.metadata.invitee);
+      }
+      if (event.metadata?.invitee === issuer) {
+        bondedContacts.add(event.metadata.inviter);
+      }
+    });
+    
+    const accepted = bondedContacts.size;
 
     return NextResponse.json({
       accepted,

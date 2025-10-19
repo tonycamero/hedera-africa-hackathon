@@ -30,6 +30,18 @@ const nextConfig = {
       'zstd-napi': false
     }
 
+    // Disable legacy TrustMesh v2 ingestion when in Fairfield mode
+    if (process.env.NEXT_PUBLIC_APP_MODE === "fairfield") {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@/lib/v2/events/eventBus': '@/lib/shims/noop',
+        '@/lib/v2/demo/signal-orchestrator': '@/lib/shims/noop',
+        '@/lib/v2/engine/universalRecognition': '@/lib/shims/noop',
+        '@/lib/v2/store/ledgers': '@/lib/shims/noop',
+        '@/lib/bootstrap/phaseFlags': '@/lib/shims/noop',
+      };
+    }
+
     return config
   },
 }

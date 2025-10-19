@@ -2,10 +2,10 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
-import BootHCSClient from "@/app/providers/BootHCSClient"
-import { BootRegistryClient } from "@/lib/registry/BootRegistryClient"
+import { shouldDisableLegacyHCS } from "@/lib/featureFlags"
 import { isGenZ } from "@/lib/ui/theme"
 import "./globals.css"
+import "../styles/fairfield-voice.css"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -39,11 +39,22 @@ export default function RootLayout({
 }>) {
   const themeClass = isGenZ() ? 'theme-genz-dark' : 'theme-mesh-dark'
   
-  return (
-    <html lang="en" className={`${playfair.variable} ${sourceSans.variable} ${themeClass}`} suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground font-sans antialiased" data-genz={isGenZ() ? 'true' : 'false'}>
+  // Dynamic import of legacy TrustMesh components only when not in Fairfield mode
+  const LegacyProviders = shouldDisableLegacyHCS() ? null : (() => {
+    const BootHCSClient = require('@/app/providers/BootHCSClient').default
+    const { BootRegistryClient } = require('@/lib/registry/BootRegistryClient')
+    return (
+      <>
         <BootRegistryClient />
         <BootHCSClient />
+      </>
+    )
+  })()
+  
+  return (
+    <html lang="en" className={`${playfair.variable} ${sourceSans.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen" style={{background: '#ffffff', color: '#000000'}} data-genz={isGenZ() ? 'true' : 'false'}>
+        {LegacyProviders}
         {children}
         <Toaster />
       </body>

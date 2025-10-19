@@ -12,10 +12,15 @@ datasource db {
 
 model User {
   id         String   @id @default(cuid())
-  issuer     String   @unique  // Magic DID (no email on-chain)
+  issuer     String   @unique  // Magic DID
   email      String?  @unique
   ward       String?           // e.g., "W-3"
   emailOptIn Boolean  @default(false)
+  
+  // NEW: Contact directory features
+  displayName    String?          // "Alex C." or "Alex Chen"
+  directoryOptIn Boolean @default(false)
+  
   createdAt  DateTime @default(now())
 }
 

@@ -6,6 +6,10 @@ export const cleanBool = (s?: string | null) => {
   return v === 'true' || v === '1' || v === 'yes' || v === 'on';
 };
 
+// Check if we're in Fairfield Voice mode
+const isFairfieldMode = () => 
+  (process.env.NEXT_PUBLIC_APP_MODE || "").toLowerCase() === "fairfield";
+
 // Clean topic environment variables
 export const TOPIC = {
   profile: clean(process.env.NEXT_PUBLIC_TOPIC_PROFILE),
@@ -16,8 +20,18 @@ export const TOPIC = {
   system: clean(process.env.NEXT_PUBLIC_TOPIC_SIGNAL), // Using signal topic as system
 };
 
+// Fairfield Voice uses a single HCS topic for all events
+const FAIRFIELD_TOPIC = clean(process.env.HEDERA_TOPIC_ID);
+
 // Ingestion-compatible topic mapping (normalized names)
-export const TOPICS = {
+// In Fairfield mode, use single topic for all event types
+export const TOPICS = isFairfieldMode() ? {
+  contacts: FAIRFIELD_TOPIC,
+  trust: FAIRFIELD_TOPIC, 
+  profile: FAIRFIELD_TOPIC,
+  signal: FAIRFIELD_TOPIC,
+  recognition: FAIRFIELD_TOPIC,
+} as const : {
   contacts: TOPIC.contacts,
   trust: TOPIC.trust,
   profile: TOPIC.profile,

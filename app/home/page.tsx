@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Magic } from "magic-sdk";
 import Link from "next/link";
-import { QrCodeIcon, UserGroupIcon, CalendarIcon, HeartIcon } from "@heroicons/react/24/outline";
+import QRCode from "qrcode";
+import { QrCodeIcon, UserGroupIcon, CalendarIcon, HeartIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function HomePage() {
   const [progress, setProgress] = useState<{
@@ -11,27 +11,107 @@ export default function HomePage() {
     unlocked3: boolean;
     unlocked9: boolean;
   } | null>(null);
-  const [magic, setMagic] = useState<Magic | null>(null);
+  const [magic, setMagic] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState("");
+  const [showQR, setShowQR] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [showProfile, setShowProfile] = useState(false);
+  const [profile, setProfile] = useState<{displayName?: string, directoryOptIn?: boolean}>({});
 
   useEffect(() => {
-    const m = new Magic(process.env.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY!);
-    setMagic(m);
+    const initMagic = async () => {
+      setDebugInfo("Starting Magic initialization...");
+      
+      const key = process.env.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY;
+      setDebugInfo(prev => prev + `\nMagic key: ${key ? 'SET' : 'MISSING'}`);
+      
+      if (!key) {
+        setDebugInfo(prev => prev + "\nERROR: No Magic key found!");
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const { Magic } = await import("magic-sdk");
+        setDebugInfo(prev => prev + "\nMagic SDK imported successfully");
+        
+        const m = new Magic(key);
+        setMagic(m);
+        setDebugInfo(prev => prev + "\nMagic instance created");
+        
+        await loadProgress(m);
+        await loadProfile();
+      } catch (error) {
+        setDebugInfo(prev => prev + `\nError initializing Magic: ${error.message}`);
+        setIsLoading(false);
+      }
+    };
     
-    loadProgress();
+    initMagic();
   }, []);
-
-  const loadProgress = async () => {
+  
+  const loadProfile = async () => {
     if (!magic) return;
+    try {
+      const token = await magic.user.getIdToken();
+      const response = await fetch("/api/contacts/optin", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error("Failed to load profile:", error);
+    }
+  };
+  
+  const updateProfile = async (data: {displayName?: string, directoryOptIn?: boolean}) => {
+    if (!magic) return;
+    try {
+      const token = await magic.user.getIdToken();
+      const response = await fetch("/api/contacts/optin", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setProfile(updated);
+        setShowProfile(false);
+        alert("Profile updated successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      alert("Failed to update profile. Please try again.");
+    }
+  };
+
+  const loadProgress = async (magicInstance = magic) => {
+    if (!magicInstance) {
+      setDebugInfo(prev => prev + "\nSkipping progress load - no magic instance");
+      return;
+    };
     
     try {
-      const isLoggedIn = await magic.user.isLoggedIn();
+      setDebugInfo(prev => prev + "\nChecking login status...");
+      const isLoggedIn = await magicInstance.user.isLoggedIn();
+      setDebugInfo(prev => prev + `\nLogin status: ${isLoggedIn}`);
+      
       if (!isLoggedIn) {
+        setDebugInfo(prev => prev + "\nRedirecting to /join...");
         window.location.href = "/join";
         return;
       }
 
-      const token = await magic.user.getIdToken();
+      setDebugInfo(prev => prev + "\nGetting ID token...");
+      const token = await magicInstance.user.getIdToken();
+      setDebugInfo(prev => prev + "\nToken received, fetching progress...");
+      
       const response = await fetch("/api/progress", {
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -39,225 +119,331 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json();
         setProgress(data);
+        setDebugInfo(prev => prev + `\nProgress loaded: ${JSON.stringify(data)}`);
+      } else {
+        setDebugInfo(prev => prev + `\nAPI error: ${response.status}`);
       }
     } catch (error) {
       console.error("Failed to load progress:", error);
+      setDebugInfo(prev => prev + `\nError: ${error.message}`);
     }
     setIsLoading(false);
   };
 
-  const createInvite = async () => {
-    if (!magic) return;
-    
+  const showInviteQR = async () => {
     try {
-      const token = await magic.user.getIdToken();
-      const response = await fetch("/api/invite/create", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-
-      if (response.ok) {
-        const { url } = await response.json();
-        if (navigator.share) {
-          await navigator.share({
-            title: "Join Fairfield Voice",
-            text: "I'd like to invite you to join our local government engagement platform!",
-            url
-          });
-        } else {
-          await navigator.clipboard.writeText(url);
-          alert("Invite link copied to clipboard!");
+      const joinUrl = `${window.location.origin}/join`;
+      const qrDataUrl = await QRCode.toDataURL(joinUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#1a1a1a',
+          light: '#ffffff'
         }
-        
-        // Refresh progress
-        setTimeout(loadProgress, 1000);
-      }
+      });
+      setQrCodeUrl(qrDataUrl);
+      setShowQR(true);
     } catch (error) {
-      console.error("Failed to create invite:", error);
+      console.error("Failed to generate QR code:", error);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div className="fairfield-page">
+        <div className="fairfield-container">
+          <div className="fairfield-card text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-black mx-auto mb-4"></div>
+            <p className="fairfield-body mb-4">Loading...</p>
+            {debugInfo && (
+              <div className="fairfield-card mt-4">
+                <strong className="fairfield-heading text-lg">Debug Info:</strong>
+                <pre className="fairfield-caption text-sm mt-2 whitespace-pre-wrap">{debugInfo}</pre>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   const getCircleStatus = () => {
-    if (!progress) return "Getting started";
-    if (progress.accepted >= 9) return "Inner Circle Complete! 🎉";
-    if (progress.accepted >= 3) return "Building momentum 🚀";
-    if (progress.accepted >= 1) return "Great start! 👍";
-    return "Ready to grow 🌱";
+    if (!progress) return "Ready to build our community";
+    if (progress.accepted >= 9) return "Strong network established 🏙️";
+    if (progress.accepted >= 3) return "Building community support 🤝";
+    if (progress.accepted >= 1) return "Great start connecting neighbors";
+    return "Invite neighbors who believe in a better Fairfield";
   };
 
   const getUnlockMessage = () => {
     if (!progress) return "";
-    if (progress.accepted >= 9) return "All features unlocked!";
-    if (progress.accepted >= 3) return "Core features unlocked!";
-    return `${3 - progress.accepted} more invites to unlock features`;
+    if (progress.accepted >= 9) return "Full supporter access activated!";
+    if (progress.accepted >= 3) return "Supporter tools now available!";
+    return `${3 - progress.accepted} more neighbors needed to unlock supporter tools`;
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 px-4 py-6">
-      <div className="max-w-sm mx-auto space-y-6">
+    <div className="fairfield-page">
+      <div className="fairfield-container">
         
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Fairfield Voice</h1>
-          <p className="text-gray-600 text-sm">Your civic engagement hub</p>
+        <div className="fairfield-card text-center">
+          <h1 className="fairfield-display text-4xl mb-4">Fairfield Voice</h1>
+          <p className="fairfield-body text-lg">Join the campaign for a stronger Fairfield.</p>
         </div>
 
-        {/* Inner Circle Progress */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <div className="text-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Inner Circle</h2>
-            <p className="text-sm text-gray-600">{getCircleStatus()}</p>
+        {/* Circle of Trust Progress */}
+        <div className="fairfield-card">
+          <div className="text-center mb-6">
+            <h2 className="fairfield-heading text-2xl mb-3">Your Circle of Trust</h2>
+            <p className="fairfield-body text-lg font-bold">{getCircleStatus()}</p>
           </div>
           
-          <div className="flex justify-center mb-4">
-            <div className="relative w-24 h-24">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path
-                  d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831"
-                  fill="none"
-                  stroke="#e5e7eb"
-                  strokeWidth="2"
-                />
-                <path
-                  d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831"
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2"
-                  strokeDasharray={`${Math.min((progress?.accepted || 0) / 9 * 100, 100)}, 100`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xl font-bold text-gray-900">
-                  {progress?.accepted || 0}/9
-                </span>
-              </div>
+          <div className="fairfield-progress-ring mb-6">
+            <svg viewBox="0 0 36 36">
+              <path
+                className="fairfield-progress-bg"
+                d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831"
+              />
+              <path
+                className="fairfield-progress-fill"
+                d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831"
+                strokeDasharray={`${Math.min((progress?.accepted || 0) / 9 * 100, 100)}, 100`}
+              />
+            </svg>
+            <div className="fairfield-progress-text">
+              {progress?.accepted || 0}/9
             </div>
           </div>
           
-          <p className="text-center text-sm text-gray-600 mb-4">
+          <p className="fairfield-body text-center mb-6">
             {getUnlockMessage()}
           </p>
           
           <button
-            onClick={createInvite}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            onClick={showInviteQR}
+            className="fairfield-btn fairfield-btn-primary w-full"
           >
-            <QrCodeIcon className="w-5 h-5" />
-            <span>Create Invite</span>
+            <QrCodeIcon className="fairfield-icon" />
+            <span>Invite Neighbors</span>
           </button>
         </div>
+
+        {/* Find Neighbors Button */}
+        <div className="fairfield-card">
+          <div className="text-center">
+            <h3 className="fairfield-heading text-lg mb-2">Find More Neighbors</h3>
+            <p className="fairfield-body text-sm mb-4">
+              Browse the directory to connect with neighbors who've opted in
+            </p>
+            <Link href="/contacts" className="fairfield-btn fairfield-btn-primary">
+              <UserGroupIcon className="fairfield-icon" />
+              Find Neighbors
+            </Link>
+          </div>
+        </div>
+        
+        {/* Profile Settings */}
+        <div className="fairfield-card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="fairfield-heading text-lg">Directory Profile</h3>
+            <button
+              onClick={() => setShowProfile(!showProfile)}
+              className="fairfield-btn fairfield-btn-secondary text-sm px-3 py-1"
+            >
+              {showProfile ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+          
+          {showProfile ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block fairfield-caption text-sm mb-2">Display Name</label>
+                <input
+                  type="text"
+                  value={profile.displayName || ''}
+                  onChange={(e) => setProfile(prev => ({ ...prev, displayName: e.target.value }))}
+                  placeholder="How neighbors will see you (e.g., Alex C.)"
+                  className="w-full px-4 py-3 border-4 border-black rounded-xl bg-white fairfield-body"
+                  maxLength={50}
+                />
+              </div>
+              
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={profile.directoryOptIn || false}
+                  onChange={(e) => setProfile(prev => ({ ...prev, directoryOptIn: e.target.checked }))}
+                  className="w-5 h-5 border-2 border-black rounded"
+                />
+                <div>
+                  <span className="fairfield-caption font-medium">List me in the campaign directory</span>
+                  <p className="fairfield-caption text-xs">
+                    Let neighbors in your ward find and connect with you
+                  </p>
+                </div>
+              </label>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => updateProfile(profile)}
+                  className="fairfield-btn fairfield-btn-primary flex-1"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setShowProfile(false)}
+                  className="fairfield-btn fairfield-btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="fairfield-body text-sm mb-2">
+                <strong>Display Name:</strong> {profile.displayName || 'Not set'}
+              </p>
+              <p className="fairfield-body text-sm">
+                <strong>Directory Listing:</strong> {profile.directoryOptIn ? 'Visible to neighbors' : 'Private'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* QR Code Modal */}
+        {showQR && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="fairfield-card max-w-sm w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="fairfield-heading text-xl">Invite Neighbors</h3>
+                <button
+                  onClick={() => setShowQR(false)}
+                  className="p-2 fairfield-btn fairfield-btn-secondary rounded-full"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-white p-4 rounded-lg border-4 border-black mb-4">
+                  <img src={qrCodeUrl} alt="QR Code" className="w-full h-auto" />
+                </div>
+                
+                <p className="fairfield-body text-sm mb-3">
+                  Show this QR code to neighbors to invite them to join Fairfield Voice
+                </p>
+                
+                <div className="fairfield-card">
+                  <p className="fairfield-caption text-xs">
+                    Scans to: {window.location.origin}/join
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action Cards */}
         <div className="space-y-4">
           
           {/* Support Card */}
-          <Link href={progress?.unlocked3 ? "/support" : "#"}>
-            <div className={`bg-white rounded-2xl shadow-lg p-6 transition-all ${
+          <Link href={progress?.unlocked3 ? "/support" : "#"} className="block">
+            <div className={`fairfield-card ${
               progress?.unlocked3 
-                ? "hover:shadow-xl cursor-pointer" 
-                : "opacity-60 cursor-not-allowed"
+                ? "fairfield-card-interactive" 
+                : "fairfield-card-disabled"
             }`}>
-              <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-xl ${
-                  progress?.unlocked3 ? "bg-green-100" : "bg-gray-100"
+              <div className="flex items-start gap-4">
+                <div className={`fairfield-icon-container ${
+                  progress?.unlocked3 ? "fairfield-icon-green" : "fairfield-icon-gray"
                 }`}>
-                  <HeartIcon className={`w-6 h-6 ${
-                    progress?.unlocked3 ? "text-green-600" : "text-gray-400"
-                  }`} />
+                  <HeartIcon className="fairfield-icon-lg" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Show Support</h3>
-                  <p className="text-sm text-gray-600">Express support for local initiatives</p>
+                  <h3 className="fairfield-heading text-xl mb-2">Add Your Name</h3>
+                  <p className="fairfield-body">Join the list of local supporters publicly backing the campaign</p>
                 </div>
               </div>
               {!progress?.unlocked3 && (
-                <div className="mt-3 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-                  🔒 Unlocks at 3 accepted invites
+                <div className="fairfield-status fairfield-status-locked mt-4">
+                  Available after 3 accepted invites
                 </div>
               )}
             </div>
           </Link>
 
           {/* Events Card */}
-          <Link href={progress?.unlocked3 ? "/events" : "#"}>
-            <div className={`bg-white rounded-2xl shadow-lg p-6 transition-all ${
+          <Link href={progress?.unlocked3 ? "/events" : "#"} className="block">
+            <div className={`fairfield-card ${
               progress?.unlocked3 
-                ? "hover:shadow-xl cursor-pointer" 
-                : "opacity-60 cursor-not-allowed"
+                ? "fairfield-card-interactive" 
+                : "fairfield-card-disabled"
             }`}>
-              <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-xl ${
-                  progress?.unlocked3 ? "bg-blue-100" : "bg-gray-100"
+              <div className="flex items-start gap-4">
+                <div className={`fairfield-icon-container ${
+                  progress?.unlocked3 ? "fairfield-icon-blue" : "fairfield-icon-gray"
                 }`}>
-                  <CalendarIcon className={`w-6 h-6 ${
-                    progress?.unlocked3 ? "text-blue-600" : "text-gray-400"
-                  }`} />
+                  <CalendarIcon className="fairfield-icon-lg" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Local Events</h3>
-                  <p className="text-sm text-gray-600">Attend town halls and meetings</p>
+                  <h3 className="fairfield-heading text-xl mb-2">Meet the Candidate</h3>
+                  <p className="fairfield-body">RSVP to town halls and community meetups</p>
                 </div>
               </div>
               {!progress?.unlocked3 && (
-                <div className="mt-3 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-                  🔒 Unlocks at 3 accepted invites
+                <div className="fairfield-status fairfield-status-locked mt-4">
+                  Available after 3 accepted invites
                 </div>
               )}
             </div>
           </Link>
 
           {/* Volunteer Card */}
-          <Link href={progress?.unlocked3 ? "/volunteer" : "#"}>
-            <div className={`bg-white rounded-2xl shadow-lg p-6 transition-all ${
+          <Link href={progress?.unlocked3 ? "/volunteer" : "#"} className="block">
+            <div className={`fairfield-card ${
               progress?.unlocked3 
-                ? "hover:shadow-xl cursor-pointer" 
-                : "opacity-60 cursor-not-allowed"
+                ? "fairfield-card-interactive" 
+                : "fairfield-card-disabled"
             }`}>
-              <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-xl ${
-                  progress?.unlocked3 ? "bg-purple-100" : "bg-gray-100"
+              <div className="flex items-start gap-4">
+                <div className={`fairfield-icon-container ${
+                  progress?.unlocked3 ? "fairfield-icon-purple" : "fairfield-icon-gray"
                 }`}>
-                  <UserGroupIcon className={`w-6 h-6 ${
-                    progress?.unlocked3 ? "text-purple-600" : "text-gray-400"
-                  }`} />
+                  <UserGroupIcon className="fairfield-icon-lg" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Volunteer</h3>
-                  <p className="text-sm text-gray-600">Help with campaigns and outreach</p>
+                  <h3 className="fairfield-heading text-xl mb-2">Get Involved</h3>
+                  <p className="fairfield-body">Sign up to canvass, phone bank, or host a neighborhood meeting</p>
                 </div>
               </div>
               {!progress?.unlocked3 && (
-                <div className="mt-3 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-                  🔒 Unlocks at 3 accepted invites
+                <div className="fairfield-status fairfield-status-locked mt-4">
+                  Available after 3 accepted invites
                 </div>
               )}
             </div>
           </Link>
 
-          {/* Extra Features for Inner Circle (9+) */}
+          {/* Community Leader Badge (9+) */}
           {progress?.unlocked9 && (
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl shadow-lg p-6 text-white">
+            <div className="fairfield-card fairfield-card-leader">
               <div className="text-center">
-                <h3 className="font-bold text-lg mb-2">🏆 Inner Circle Exclusive</h3>
-                <p className="text-sm opacity-90">Premium features unlocked!</p>
+                <h3 className="fairfield-heading text-2xl mb-2">🏙️ Community Leader</h3>
+                <p className="fairfield-body">Advanced supporter tools available</p>
               </div>
             </div>
           )}
+        </div>
+
+        {/* Campaign Footer */}
+        <div className="fairfield-footer">
+          <p className="fairfield-footer-primary text-sm">
+            Paid for by Friends of [Candidate Name]
+          </p>
+          <p className="fairfield-footer-secondary text-xs">
+            Building trust through technology • Fairfield, CA
+          </p>
         </div>
       </div>
     </div>
