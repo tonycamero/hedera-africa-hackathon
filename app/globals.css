@@ -168,9 +168,10 @@ html.theme-mesh-dark * {
 
 /*
 =============================================================================
-  FAIRFIELD VOICE THEME - Professional Civic Campaign
+  FAIRFIELD VOICE THEME - Professional Civic Campaign with Glass Morphism
   
-  High-contrast, professional theme for mayoral campaign deployment
+  Enhanced professional theme with brushed aluminum and glass effects
+  Inspired by modern civic technology and transparency
 =============================================================================
 */
 
@@ -178,56 +179,62 @@ html.theme-mesh-dark * {
 .theme-fairfield-voice,
 html.theme-fairfield-voice,
 html.theme-fairfield-voice * {
-  /* ==> FAIRFIELD VOICE BRAND COLORS */
-  --fairfield-primary: #000000 !important;
+  /* ==> FAIRFIELD VOICE BRAND COLORS - Civic Blue Palette */
+  --fairfield-primary: #1e40af !important;        /* Strong civic blue */
   --fairfield-primary-foreground: #ffffff !important;
-  --fairfield-secondary: #ffffff !important;
-  --fairfield-secondary-foreground: #000000 !important;
-  --fairfield-accent: #2563eb !important;
-  --fairfield-success: #16a34a !important;
-  --fairfield-warning: #eab308 !important;
-  --fairfield-error: #dc2626 !important;
+  --fairfield-secondary: #e0f2fe !important;      /* Light blue background */
+  --fairfield-secondary-foreground: #0f172a !important;
+  --fairfield-accent: #3b82f6 !important;         /* Bright blue accent */
+  --fairfield-success: #059669 !important;        /* Civic green */
+  --fairfield-warning: #d97706 !important;        /* Civic orange */
+  --fairfield-error: #dc2626 !important;          /* Alert red */
   
-  /* ==> BACKGROUND SURFACES */
-  --background: #ffffff !important;
-  --fairfield-background: #ffffff !important;
-  --fairfield-background-secondary: #f8fafc !important;
-  --fairfield-card: #f5f5f5 !important;
-  --fairfield-card-hover: #eeeeee !important;
-  --fairfield-card-disabled: #f0f0f0 !important;
+  /* ==> GLASS MORPHISM BACKGROUNDS */
+  --background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  --fairfield-background: #f8fafc !important;
+  --fairfield-background-secondary: #e1e7ef !important;
+  --fairfield-card: rgba(255, 255, 255, 0.85) !important;
+  --fairfield-card-hover: rgba(255, 255, 255, 0.95) !important;
+  --fairfield-card-disabled: rgba(248, 250, 252, 0.7) !important;
+  --fairfield-glass: rgba(255, 255, 255, 0.7) !important;
+  --fairfield-glass-border: rgba(59, 130, 246, 0.2) !important;
   
-  /* ==> TEXT HIERARCHY */
-  --foreground: #000000 !important;
-  --fairfield-text-primary: #000000 !important;
-  --fairfield-text-secondary: #1f2937 !important;
-  --fairfield-text-tertiary: #374151 !important;
-  --fairfield-text-muted: #6b7280 !important;
+  /* ==> TEXT HIERARCHY - Professional Blue Tones */
+  --foreground: #0f172a !important;
+  --fairfield-text-primary: #0f172a !important;    /* Deep navy */
+  --fairfield-text-secondary: #1e40af !important;  /* Civic blue */
+  --fairfield-text-tertiary: #334155 !important;   /* Slate gray */
+  --fairfield-text-muted: #64748b !important;      /* Muted gray */
+  --fairfield-text-accent: #3b82f6 !important;     /* Blue accent text */
   
-  /* ==> BORDERS */
-  --fairfield-border: #000000 !important;
-  --fairfield-border-light: #e5e7eb !important;
-  --fairfield-border-accent: #2563eb !important;
+  /* ==> BORDERS AND EFFECTS */
+  --fairfield-border: rgba(59, 130, 246, 0.3) !important;
+  --fairfield-border-light: rgba(148, 163, 184, 0.3) !important;
+  --fairfield-border-accent: #3b82f6 !important;
+  --fairfield-shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.15) !important;
+  --fairfield-shadow-hover: 0 12px 40px rgba(59, 130, 246, 0.25) !important;
   
   /* ==> COMPONENT OVERRIDES */
   --card: var(--fairfield-card) !important;
   --card-foreground: var(--fairfield-text-primary) !important;
   --primary: var(--fairfield-primary) !important;
   --primary-foreground: var(--fairfield-primary-foreground) !important;
-  --secondary: var(--fairfield-card) !important;
+  --secondary: var(--fairfield-glass) !important;
   --secondary-foreground: var(--fairfield-text-primary) !important;
   --muted: var(--fairfield-background-secondary) !important;
   --muted-foreground: var(--fairfield-text-muted) !important;
   --border: var(--fairfield-border-light) !important;
-  --input: #ffffff !important;
+  --input: rgba(255, 255, 255, 0.9) !important;
   --ring: var(--fairfield-accent) !important;
 }
 
 /* ==> UNIVERSAL ELEMENT OVERRIDES */
 html.theme-fairfield-voice,
 html.theme-fairfield-voice body {
-  background-color: var(--fairfield-background) !important;
+  background: var(--background) !important;
   color: var(--fairfield-text-primary) !important;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+  min-height: 100vh !important;
 }
 
 /*
@@ -924,18 +931,40 @@ html.theme-fairfield-voice body {
   gap: 1.5rem !important;
 }
 
-/* ==> CARD SYSTEM */
+/* ==> CARD SYSTEM - Enhanced Glass Morphism */
 
 .fairfield-card {
   background: var(--fairfield-card) !important;
-  border: 4px solid var(--fairfield-border) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid var(--fairfield-glass-border) !important;
   border-radius: 1rem !important;
   padding: 2rem !important;
-  transition: all 0.2s ease !important;
+  box-shadow: var(--fairfield-shadow-glass) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+}
+
+.fairfield-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  border-radius: 1rem !important;
+  padding: 1px !important;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(59,130,246,0.1), rgba(255,255,255,0.2)) !important;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
+  -webkit-mask-composite: xor !important;
+  mask-composite: exclude !important;
+  z-index: -1 !important;
 }
 
 .fairfield-card:hover {
   background: var(--fairfield-card-hover) !important;
+  box-shadow: var(--fairfield-shadow-hover) !important;
+  transform: translateY(-4px) scale(1.02) !important;
 }
 
 .fairfield-card-interactive {
@@ -944,28 +973,43 @@ html.theme-fairfield-voice body {
 
 .fairfield-card-interactive:hover {
   background: var(--fairfield-card-hover) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-6px) scale(1.03) !important;
+  box-shadow: var(--fairfield-shadow-hover) !important;
 }
 
 .fairfield-card-disabled {
   opacity: 0.6 !important;
   cursor: not-allowed !important;
   background: var(--fairfield-card-disabled) !important;
-  border-color: var(--fairfield-text-muted) !important;
+  backdrop-filter: blur(8px) !important;
 }
 
 .fairfield-card-leader {
-  background: var(--fairfield-primary) !important;
-  border: 4px solid var(--fairfield-warning) !important;
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.9), rgba(59, 130, 246, 0.7)) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
   color: var(--fairfield-primary-foreground) !important;
+  box-shadow: 0 8px 32px rgba(30, 64, 175, 0.3) !important;
 }
 
 .fairfield-card-leader * {
   color: var(--fairfield-primary-foreground) !important;
 }
 
-/* ==> BUTTON SYSTEM */
+/* Glass morphism variants */
+.fairfield-card-glass {
+  background: var(--fairfield-glass) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.fairfield-card-accent {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+/* ==> BUTTON SYSTEM - Glass Morphism Professional */
 
 .fairfield-btn {
   display: inline-flex !important;
@@ -974,41 +1018,71 @@ html.theme-fairfield-voice body {
   gap: 0.5rem !important;
   padding: 0.875rem 1.5rem !important;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   font-size: 1rem !important;
   line-height: 1.25 !important;
   border-radius: 0.75rem !important;
-  border: none !important;
+  border: 1px solid transparent !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   text-decoration: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.fairfield-btn::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent) !important;
+  transition: left 0.6s !important;
+}
+
+.fairfield-btn:hover::before {
+  left: 100% !important;
 }
 
 .fairfield-btn-primary {
-  background: var(--fairfield-primary) !important;
+  background: linear-gradient(135deg, var(--fairfield-primary), rgba(30, 64, 175, 0.8)) !important;
   color: var(--fairfield-primary-foreground) !important;
-  border: 4px solid var(--fairfield-primary) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(30, 64, 175, 0.25) !important;
 }
 
 .fairfield-btn-primary:hover {
-  background: #333333 !important;
-  border-color: #333333 !important;
-  transform: translateY(-1px) !important;
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.9), rgba(59, 130, 246, 0.8)) !important;
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 8px 24px rgba(30, 64, 175, 0.4) !important;
 }
 
 .fairfield-btn-primary * {
   color: var(--fairfield-primary-foreground) !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 .fairfield-btn-secondary {
-  background: var(--fairfield-secondary) !important;
-  color: var(--fairfield-secondary-foreground) !important;
-  border: 4px solid var(--fairfield-border) !important;
+  background: var(--fairfield-glass) !important;
+  color: var(--fairfield-text-primary) !important;
+  border: 1px solid var(--fairfield-glass-border) !important;
+  box-shadow: 0 4px 16px rgba(148, 163, 184, 0.15) !important;
 }
 
 .fairfield-btn-secondary:hover {
   background: var(--fairfield-card-hover) !important;
-  border-color: var(--fairfield-border) !important;
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2) !important;
+  border-color: var(--fairfield-accent) !important;
+}
+
+.fairfield-btn-secondary * {
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 /* ==> STATUS SYSTEM */

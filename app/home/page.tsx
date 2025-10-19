@@ -228,16 +228,16 @@ export default function HomePage() {
   };
 
   return (
-    <div className="fairfield-page">
+    <div className="fairfield-page min-h-screen" style={{background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'}}>
       <div className="fairfield-container">
         
         {/* Header */}
-        <div className="fairfield-card text-center">
-          <h1 className="fairfield-display text-4xl mb-4">Fairfield Voice</h1>
-          <p className="fairfield-body text-lg">Join the campaign for a stronger Fairfield.</p>
+        <div className="fairfield-card fairfield-card-glass text-center">
+          <h1 className="fairfield-display text-4xl mb-4 text-[var(--fairfield-text-primary)]">Fairfield Voice</h1>
+          <p className="fairfield-body text-lg text-[var(--fairfield-text-secondary)]">Join the campaign for a stronger Fairfield.</p>
           {user?.ward && (
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border-2 border-blue-600 rounded-lg">
-              <span className="fairfield-caption text-sm font-bold text-blue-800">
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-lg backdrop-blur-sm">
+              <span className="fairfield-caption text-sm font-bold text-blue-700">
                 Ward: {user.ward.replace('W-', '')} - {user.ward === 'W-1' ? 'Downtown' : user.ward === 'W-2' ? 'Eastside' : user.ward === 'W-3' ? 'Westside' : 'Northside'}
               </span>
             </div>
@@ -245,10 +245,10 @@ export default function HomePage() {
         </div>
 
         {/* Circle of Trust Progress */}
-        <div className="fairfield-card">
+        <div className="fairfield-card fairfield-card-accent">
           <div className="text-center mb-6">
-            <h2 className="fairfield-heading text-2xl mb-3">Your Circle of Trust</h2>
-            <p className="fairfield-body text-lg font-bold">{getCircleStatus()}</p>
+            <h2 className="fairfield-heading text-2xl mb-3 text-[var(--fairfield-text-primary)]">Your Circle of Trust</h2>
+            <p className="fairfield-body text-lg font-bold text-[var(--fairfield-text-accent)]">{getCircleStatus()}</p>
           </div>
           
           <div className="fairfield-progress-ring mb-6">
@@ -284,8 +284,8 @@ export default function HomePage() {
         {/* Find Neighbors Button */}
         <div className="fairfield-card">
           <div className="text-center">
-            <h3 className="fairfield-heading text-lg mb-2">Find More Neighbors</h3>
-            <p className="fairfield-body text-sm mb-4">
+            <h3 className="fairfield-heading text-lg mb-2 text-[var(--fairfield-text-primary)]">Find More Neighbors</h3>
+            <p className="fairfield-body text-sm mb-4 text-[var(--fairfield-text-tertiary)]">
               Browse the directory to connect with neighbors who've opted in
             </p>
             <Link href="/contacts" className="fairfield-btn fairfield-btn-primary">

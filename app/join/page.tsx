@@ -130,17 +130,19 @@ function JoinPageContent() {
   // Show configuration error if Magic key is missing
   if (!MAGIC_PK) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-6">
-        <div className="max-w-md w-full rounded-2xl border-2 border-red-300 p-6 bg-white shadow-lg">
-          <h2 className="text-xl font-bold mb-2 text-red-800">Configuration Required</h2>
-          <p className="text-sm text-gray-700 mb-4">
-            The Magic authentication service isn't configured. Please contact an administrator to add the
-            <code className="mx-1 px-1 py-0.5 rounded bg-gray-100">NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY</code>
-            environment variable.
-          </p>
-          <p className="text-xs text-gray-500">
-            This is required for secure email-based authentication.
-          </p>
+      <div className="min-h-screen theme-fairfield-voice" style={{background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'}}>
+        <div className="flex items-center justify-center p-6 min-h-screen">
+          <div className="max-w-md w-full fairfield-card backdrop-blur-md">
+            <h2 className="fairfield-heading text-xl mb-2 text-red-600">Configuration Required</h2>
+            <p className="fairfield-body text-sm mb-4">
+              The Magic authentication service isn't configured. Please contact an administrator to add the
+              <code className="mx-1 px-1 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY</code>
+              environment variable.
+            </p>
+            <p className="fairfield-caption text-xs text-[var(--fairfield-text-muted)]">
+              This is required for secure email-based authentication.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -148,39 +150,41 @@ function JoinPageContent() {
   
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-blue-50 px-4 py-8">
-        <div className="max-w-sm mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome to Fairfield Voice
-              </h1>
-              <p className="text-gray-600">
-                {inviteRef ? "You've been invited to join!" : "Make your voice heard in local government"}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                />
+      <div className="min-h-screen theme-fairfield-voice" style={{background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'}}>
+        <div className="px-4 py-8 min-h-screen flex items-center">
+          <div className="max-w-sm mx-auto w-full">
+            <div className="fairfield-card fairfield-card-glass">
+              <div className="text-center mb-8">
+                <h1 className="fairfield-display text-2xl mb-2">
+                  Welcome to Fairfield Voice
+                </h1>
+                <p className="fairfield-body text-[var(--fairfield-text-secondary)]">
+                  {inviteRef ? "You've been invited to join!" : "Make your voice heard in local government"}
+                </p>
               </div>
 
-              <button
-                onClick={handleLogin}
-                disabled={!email || isLoading}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-              >
-                {isLoading ? "Sending..." : "Send Magic Link"}
-              </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block fairfield-caption text-sm font-medium mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-3 border border-[var(--fairfield-glass-border)] bg-[var(--fairfield-glass)] backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[var(--fairfield-accent)] focus:border-[var(--fairfield-accent)] text-lg transition-all"
+                  />
+                </div>
+
+                <button
+                  onClick={handleLogin}
+                  disabled={!email || isLoading}
+                  className="fairfield-btn fairfield-btn-primary w-full"
+                >
+                  {isLoading ? "Sending..." : "Send Magic Link"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -189,41 +193,43 @@ function JoinPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 px-4 py-8">
-      <div className="max-w-sm mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Select Your Ward
-            </h1>
-            <p className="text-gray-600">
-              Choose your neighborhood to connect with local issues
-            </p>
-          </div>
+    <div className="min-h-screen theme-fairfield-voice" style={{background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'}}>
+      <div className="px-4 py-8 min-h-screen flex items-center">
+        <div className="max-w-sm mx-auto w-full">
+          <div className="fairfield-card fairfield-card-accent">
+            <div className="text-center mb-8">
+              <h1 className="fairfield-display text-2xl mb-2">
+                Select Your Ward
+              </h1>
+              <p className="fairfield-body text-[var(--fairfield-text-secondary)]">
+                Choose your neighborhood to connect with local issues
+              </p>
+            </div>
 
-          <div className="space-y-3 mb-6">
-            {wards.map((w) => (
-              <label key={w.id} className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                <input
-                  type="radio"
-                  name="ward"
-                  value={w.id}
-                  checked={ward === w.id}
-                  onChange={(e) => setWard(e.target.value)}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="ml-3 font-medium text-gray-900">{w.name}</span>
-              </label>
-            ))}
-          </div>
+            <div className="space-y-3 mb-6">
+              {wards.map((w) => (
+                <label key={w.id} className="flex items-center p-4 border border-[var(--fairfield-glass-border)] bg-[var(--fairfield-glass)] backdrop-blur-sm rounded-xl cursor-pointer hover:border-[var(--fairfield-accent)] hover:bg-[var(--fairfield-card-hover)] has-[:checked]:border-[var(--fairfield-accent)] has-[:checked]:bg-gradient-to-r has-[:checked]:from-blue-500/10 has-[:checked]:to-blue-600/5 transition-all duration-300">
+                  <input
+                    type="radio"
+                    name="ward"
+                    value={w.id}
+                    checked={ward === w.id}
+                    onChange={(e) => setWard(e.target.value)}
+                    className="w-4 h-4 text-[var(--fairfield-accent)] focus:ring-[var(--fairfield-accent)]"
+                  />
+                  <span className="ml-3 fairfield-body font-medium">{w.name}</span>
+                </label>
+              ))}
+            </div>
 
-          <button
-            onClick={handleComplete}
-            disabled={!ward || isLoading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-          >
-            {isLoading ? "Setting up..." : "Complete Setup"}
-          </button>
+            <button
+              onClick={handleComplete}
+              disabled={!ward || isLoading}
+              className="fairfield-btn fairfield-btn-primary w-full"
+            >
+              {isLoading ? "Setting up..." : "Complete Setup"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
