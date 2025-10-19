@@ -16,6 +16,7 @@ export default function HomePage() {
   const [debugInfo, setDebugInfo] = useState("");
   const [showQR, setShowQR] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [inviteUrl, setInviteUrl] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [profile, setProfile] = useState<{displayName?: string, directoryOptIn?: boolean}>({});
 
@@ -41,7 +42,7 @@ export default function HomePage() {
         setDebugInfo(prev => prev + "\nMagic instance created");
         
         await loadProgress(m);
-        await loadProfile();
+        await loadProfile(m);
       } catch (error) {
         setDebugInfo(prev => prev + `\nError initializing Magic: ${error.message}`);
         setIsLoading(false);
@@ -51,10 +52,10 @@ export default function HomePage() {
     initMagic();
   }, []);
   
-  const loadProfile = async () => {
-    if (!magic) return;
+  const loadProfile = async (magicInstance = magic) => {
+    if (!magicInstance) return;
     try {
-      const token = await magic.user.getIdToken();
+      const token = await magicInstance.user.getIdToken();
       const response = await fetch("/api/contacts/optin", {
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -131,9 +132,28 @@ export default function HomePage() {
   };
 
   const showInviteQR = async () => {
+    if (!magic) return;
+    
     try {
-      const joinUrl = `${window.location.origin}/join`;
-      const qrDataUrl = await QRCode.toDataURL(joinUrl, {
+      // First create a credited invite
+      const token = await magic.user.getIdToken();
+      const inviteResponse = await fetch("/api/invite/create", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+      
+      if (!inviteResponse.ok) {
+        throw new Error("Failed to create invite");
+      }
+      
+      const { url: inviteUrl } = await inviteResponse.json();
+      
+      // Generate QR code with the credited invite URL
+      const qrDataUrl = await QRCode.toDataURL(inviteUrl, {
         width: 300,
         margin: 2,
         color: {
@@ -141,10 +161,16 @@ export default function HomePage() {
           light: '#ffffff'
         }
       });
+      
       setQrCodeUrl(qrDataUrl);
+      setInviteUrl(inviteUrl); // Store the URL for display
       setShowQR(true);
+      
+      // Refresh progress after creating invite
+      setTimeout(loadProgress, 1000);
     } catch (error) {
       console.error("Failed to generate QR code:", error);
+      alert("Failed to create invite. Please try again.");
     }
   };
 
@@ -335,10 +361,17 @@ export default function HomePage() {
                 </p>
                 
                 <div className="fairfield-card">
-                  <p className="fairfield-caption text-xs">
-                    Scans to: {window.location.origin}/join
+                  <p className="fairfield-caption text-xs break-all">
+                    Invite URL: {inviteUrl || `${window.location.origin}/join`}
                   </p>
                 </div>
+                
+                <button
+                  onClick={() => navigator.clipboard.writeText(inviteUrl || `${window.location.origin}/join`)}
+                  className="fairfield-btn fairfield-btn-secondary mt-3 w-full"
+                >
+                  Copy Link
+                </button>
               </div>
             </div>
           </div>

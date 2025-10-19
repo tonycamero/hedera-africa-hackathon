@@ -2,10 +2,9 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
-import { shouldDisableLegacyHCS } from "@/lib/featureFlags"
+import { shouldDisableLegacyHCS, isFairfieldVoice } from "@/lib/featureFlags"
 import { isGenZ } from "@/lib/ui/theme"
 import "./globals.css"
-import "../styles/fairfield-voice.css"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -37,7 +36,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const themeClass = isGenZ() ? 'theme-genz-dark' : 'theme-mesh-dark'
+  // Dynamic theme selection based on mode
+  const getThemeClass = () => {
+    const fairfieldMode = isFairfieldVoice()
+    const genzMode = isGenZ()
+    
+    // Debug logging
+    console.log('[Layout] Theme detection:', {
+      fairfieldMode,
+      genzMode,
+      envVar: process.env.NEXT_PUBLIC_APP_MODE,
+      resultTheme: fairfieldMode ? 'theme-fairfield-voice' : genzMode ? 'theme-genz-dark' : 'theme-mesh-dark'
+    })
+    
+    if (fairfieldMode) return 'theme-fairfield-voice'
+    if (genzMode) return 'theme-genz-dark' 
+    return 'theme-mesh-dark'
+  }
+  
+  const themeClass = getThemeClass()
   
   // Dynamic import of legacy TrustMesh components only when not in Fairfield mode
   const LegacyProviders = shouldDisableLegacyHCS() ? null : (() => {
@@ -52,8 +69,8 @@ export default function RootLayout({
   })()
   
   return (
-    <html lang="en" className={`${playfair.variable} ${sourceSans.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen" style={{background: '#ffffff', color: '#000000'}} data-genz={isGenZ() ? 'true' : 'false'}>
+    <html lang="en" className={`${playfair.variable} ${sourceSans.variable} ${themeClass}`} suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground font-sans antialiased" data-genz={isGenZ() ? 'true' : 'false'}>
         {LegacyProviders}
         {children}
         <Toaster />

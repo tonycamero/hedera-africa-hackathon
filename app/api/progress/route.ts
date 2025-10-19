@@ -1,30 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIssuer } from "@/lib/auth";
-import { signalsStore } from "@/lib/stores/signalsStore";
+import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   try {
-    const issuer = await getIssuer(req);
-    if (!issuer) {
+    const me = await getIssuer(req);
+    if (!me) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Use signalsStore to read bonded contacts from universal recognition system
-    // This follows the same pattern as Professional and GenZ lenses
-    const contactBondEvents = signalsStore.getByType('CONTACT_BOND_CONFIRMED');
-    
-    // Count unique bonded contacts for this user
-    const bondedContacts = new Set<string>();
-    contactBondEvents.forEach(event => {
-      if (event.metadata?.inviter === issuer) {
-        bondedContacts.add(event.metadata.invitee);
-      }
-      if (event.metadata?.invitee === issuer) {
-        bondedContacts.add(event.metadata.inviter);
-      }
+    // Count bonds from DB (instant, no HCS latency)
+    const accepted = await prisma.contactBond.count({ 
+      where: { inviterDid: me } 
     });
-    
-    const accepted = bondedContacts.size;
 
     return NextResponse.json({
       accepted,

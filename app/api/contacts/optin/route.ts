@@ -13,9 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Display name too long" }, { status: 400 });
     }
     
-    const user = await prisma.user.update({
+    const user = await prisma.user.upsert({
       where: { issuer: me },
-      data: { 
+      create: { 
+        issuer: me,
+        displayName: displayName || null,
+        directoryOptIn: !!directoryOptIn 
+      },
+      update: { 
         displayName: displayName || null,
         directoryOptIn: !!directoryOptIn 
       }

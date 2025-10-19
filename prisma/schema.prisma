@@ -1,6 +1,3 @@
-// Fairfield Voice - Prisma Schema
-// PII + operational data only (civic signals go to HCS)
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,41 +7,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id         String   @id @default(cuid())
-  issuer     String   @unique  // Magic DID
-  email      String?  @unique
-  ward       String?           // e.g., "W-3"
-  emailOptIn Boolean  @default(false)
-  
-  // NEW: Contact directory features
-  displayName    String?          // "Alex C." or "Alex Chen"
-  directoryOptIn Boolean @default(false)
-  
-  createdAt  DateTime @default(now())
+model ConsentLog {
+  id      String   @id
+  issuer  String
+  channel String
+  action  String
+  ts      DateTime @default(now())
 }
 
-model Invite {
-  slug       String   @id       // operational convenience for share URL/QR
-  inviterDid String              // issuer of inviter
-  ward       String
-  maxUses    Int      @default(1)
+model ContactBond {
+  id         String   @id
+  inviterDid String
+  inviteeDid String
+  source     String   @default("invite_accept")
   createdAt  DateTime @default(now())
+
+  @@unique([inviterDid, inviteeDid])
+  @@index([inviterDid])
 }
 
 model Event {
-  id         String   @id @default(cuid())
-  title      String
-  startsAt   DateTime
-  location   String
-  details    String?
-  createdAt  DateTime @default(now())
+  id        String   @id
+  title     String
+  startsAt  DateTime
+  location  String
+  details   String?
+  createdAt DateTime @default(now())
 }
 
-model ConsentLog {
-  id         String   @id @default(cuid())
-  issuer     String
-  channel    String   // "sms"
-  action     String   // "opt_in" | "opt_out" | "help"
-  ts         DateTime @default(now())
+model Invite {
+  slug             String             @id
+  inviterDid       String
+  ward             String
+  maxUses          Int                @default(1)
+  createdAt        DateTime           @default(now())
+  usesCount        Int                @default(0)
+  InviteAcceptance InviteAcceptance[]
+}
+
+model InviteAcceptance {
+  id         String   @id
+  slug       String
+  inviteeDid String
+  createdAt  DateTime @default(now())
+  Invite     Invite   @relation(fields: [slug], references: [slug], onDelete: Cascade)
+
+  @@unique([slug, inviteeDid])
+  @@index([slug])
+}
+
+model User {
+  id             String   @id
+  issuer         String   @unique
+  ward           String?
+  createdAt      DateTime @default(now())
+  email          String?  @unique
+  emailOptIn     Boolean  @default(false)
+  directoryOptIn Boolean  @default(false)
+  displayName    String?
 }
