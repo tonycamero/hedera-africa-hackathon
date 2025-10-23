@@ -1,0 +1,92 @@
+---
+ticket:
+  id: P2
+  title: Persona-aware dashboard router, variants & navigation
+  labels: [persona, frontend]
+  description: |
+    Introduce app/(tabs)/page.tsx as router, create 3 dashboard variants,
+    and implement persona-aware navigation so routes are discoverable.
+  prerequisites: [P1]
+  files_out:
+    - app/(tabs)/page.tsx
+    - app/(tabs)/variants/ProfessionalDashboard.tsx
+    - app/(tabs)/variants/GenZDashboard.tsx
+    - app/(tabs)/variants/CivicDashboard.tsx
+    - app/layout.tsx
+    - components/navigation/PersonaNav.tsx
+  steps:
+    - mkdir -p "app/(tabs)/variants" "components/navigation"
+    - |
+      cat > "app/(tabs)/page.tsx" <<'EOF'
+      'use client';
+      import { getPersona } from '@/lib/config/persona';
+      import ProfessionalDashboard from './variants/ProfessionalDashboard';
+      import GenZDashboard from './variants/GenZDashboard';
+      import CivicDashboard from './variants/CivicDashboard';
+      export default function HomePage(){
+        const p = getPersona().type;
+        if(p==='professional') return <ProfessionalDashboard/>;
+        if(p==='genz') return <GenZDashboard/>;
+        return <CivicDashboard/>;
+      }
+      EOF
+    - |
+      cat > "app/(tabs)/variants/ProfessionalDashboard.tsx" <<'EOF'
+      export default function ProfessionalDashboard(){ return <div>Professional Dashboard</div>; }
+      EOF
+    - |
+      cat > "app/(tabs)/variants/GenZDashboard.tsx" <<'EOF'
+      export default function GenZDashboard(){ return <div>GenZ Dashboard</div>; }
+      EOF
+    - |
+      cat > "app/(tabs)/variants/CivicDashboard.tsx" <<'EOF'
+      export default function CivicDashboard(){ return <div>Civic Dashboard</div>; }
+      EOF
+    - |
+      cat > "components/navigation/PersonaNav.tsx" <<'EOF'
+      'use client';
+      import Link from 'next/link';
+      import { getPersona } from '@/lib/config/persona';
+      export default function PersonaNav(){
+        const p = getPersona().type;
+        const common = [{href:'/', label:'Home'}];
+        const pro = [{href:'/contacts', label:'Contacts'}];
+        const genz = [{href:'/signals', label:'Signals'},{href:'/wallet', label:'Wallet'}];
+        const civic = [{href:'/support', label:'Supporters'},{href:'/volunteer', label:'Volunteers'},{href:'/events', label:'Events'}];
+        const links = p==='professional' ? [...common, ...pro] : p==='genz' ? [...common, ...genz] : [...common, ...civic];
+        return <nav className="flex gap-4">{links.map(l=> <Link key={l.href} href={l.href}>{l.label}</Link>)}</nav>;
+      }
+      EOF
+    - |
+      awk '1; END{print ""}' app/layout.tsx > app/layout.tsx.tmp 2>/dev/null || true
+    - |
+      cat > app/layout.tsx <<'EOF'
+      import './globals.css';
+      import PersonaNav from '@/components/navigation/PersonaNav';
+      export default function RootLayout({ children }:{children:React.ReactNode}){
+        return (
+          <html lang="en">
+            <body>
+              <div className="p-4 border-b"><PersonaNav/></div>
+              <main className="p-4">{children}</main>
+            </body>
+          </html>
+        );
+      }
+      EOF
+    - git add app components && git commit -m "feat(ui): persona-aware router + nav"
+  acceptance_criteria:
+    - Persona change updates landing dashboard AND visible nav links
+    - No broken links for each persona
+  verification:
+    - echo "Set NEXT_PUBLIC_TRUSTMESH_PERSONA and run pnpm dev to verify routing + nav"
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

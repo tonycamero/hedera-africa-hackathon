@@ -1,0 +1,77 @@
+---
+ticket:
+  id: P4
+  title: Port Professional metallic theme + service + tokens + card variant
+  labels: [professional, theme, service, data, components]
+  description: |
+    Import metallic theme and enterprise recognition tokens; add Professional recognition service
+    and matching card component variant.
+  prerequisites: [P1, P3]
+  files_out:
+    - lib/themes/metallic.ts
+    - lib/services/recognition/Recognition.Service.Pro.ts
+    - lib/data/recognition-tokens/professional.json
+    - components/persona-aware/variants/ProfessionalRecognitionCard.tsx
+  steps:
+    - mkdir -p lib/themes lib/services/recognition lib/data/recognition-tokens components/persona-aware/variants
+    - |
+      cat > lib/themes/metallic.ts <<'EOF'
+      export const metallicTheme = {
+        name:'metallic',
+        colors:{ primary:'#C0C0C0', secondary:'#808080', accent:'#FFD700', background:'#1A1A1A', surface:'#2D2D2D', text:'#E0E0E0' },
+        effects:{ glow:'drop-shadow(0 0 10px rgba(255,215,0,0.5))', metallic:'linear-gradient(135deg,#C0C0C0 0%,#808080 50%,#C0C0C0 100%)' }
+      };
+      EOF
+    - |
+      cat > lib/services/recognition/Recognition.Service.Pro.ts <<'EOF'
+      import type { RecognitionEnvelopeV1 } from '@/lib/schema/RecognitionEnvelope.V1';
+      export class RecognitionServicePro {
+        listBadges(){ return ['RELIABILITY','MENTORSHIP','DELIVERY','LEADERSHIP']; }
+        encode(note?:string): RecognitionEnvelopeV1 {
+          return { schema:'tm.recognition', version:1, lens:'professional', id: String(Date.now()), timestamp:new Date().toISOString(),
+            issuer:{wallet:'me'}, subject:{wallet:'you'}, features:{enterprise:true},
+            payload:{ type:'pro', badge:'DELIVERY', note } };
+        }
+      }
+      EOF
+    - |
+      cat > lib/data/recognition-tokens/professional.json <<'EOF'
+      {
+        "tokens": [
+          {"badge":"DELIVERY","weight":5},
+          {"badge":"RELIABILITY","weight":5},
+          {"badge":"MENTORSHIP","weight":5},
+          {"badge":"LEADERSHIP","weight":5}
+        ]
+      }
+      EOF
+    - |
+      cat > components/persona-aware/variants/ProfessionalRecognitionCard.tsx <<'EOF'
+      'use client';
+      import { metallicTheme } from '@/lib/themes/metallic';
+      export default function ProfessionalRecognitionCard({title='Delivery', note}:{title?:string; note?:string}){
+        return (
+          <div style={{background: metallicTheme.effects.metallic}} className="rounded-xl p-4 border">
+            <div className="text-sm opacity-80">Professional Badge</div>
+            <div className="text-xl font-bold">{title}</div>
+            {note && <div className="mt-2 text-sm">{note}</div>}
+          </div>
+        );
+      }
+      EOF
+    - git add lib/themes lib/services lib/data components/persona-aware && git commit -m "feat(pro): metallic theme, pro service, tokens, card variant"
+  acceptance_criteria:
+    - Professional persona renders metallic styling
+    - Professional card component can be imported and used without errors
+  verification:
+    - node -e "console.log(require('./lib/data/recognition-tokens/professional.json').tokens.length>0?'ok':'fail')"
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

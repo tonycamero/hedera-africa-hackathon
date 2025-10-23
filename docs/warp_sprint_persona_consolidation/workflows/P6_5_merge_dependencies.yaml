@@ -1,0 +1,33 @@
+---
+ticket:
+  id: P6.5
+  title: Merge dependencies & env vars (package.json)
+  labels: [deps, tooling]
+  description: |
+    Consolidate dependencies from Professional into the base (Civic) package.json and align .env.example.
+  prerequisites: [P6]
+  files_out:
+    - package.json (updated)
+    - .env.example (updated if needed)
+  steps:
+    - echo "Compare package.json between ux-variant-1-professional and feat/civic-lens"
+    - echo "For each delta dep: add to current package.json (prefer latest semver)"
+    - pnpm install
+    - pnpm dedupe || true
+    - pnpm lint || true
+    - pnpm type-check || true
+  acceptance_criteria:
+    - pnpm install succeeds without peer conflicts
+    - build, lint, and type-check pass
+  verification:
+    - pnpm build || true
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

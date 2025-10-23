@@ -4,7 +4,11 @@ import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import { shouldDisableLegacyHCS, isFairfieldVoice } from "@/lib/featureFlags"
 import { isGenZ } from "@/lib/ui/theme"
+import PersonaNav from "@/components/navigation/PersonaNav"
+import PersonaSwitcher from "@/components/dev/PersonaSwitcher"
 import "./globals.css"
+
+const ENABLE_SWITCHER = process.env.NEXT_PUBLIC_ENABLE_PERSONA_SWITCHER === 'true'
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -77,7 +81,11 @@ export default function RootLayout({
     <html lang="en" className={`${playfair.variable} ${sourceSans.variable} ${themeClass}`} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased" data-genz={isGenZ() ? 'true' : 'false'}>
         {LegacyProviders}
-        {children}
+        <div className="p-4 border-b flex items-center justify-between">
+          <PersonaNav/>
+          {ENABLE_SWITCHER && <PersonaSwitcher />}
+        </div>
+        <main className="p-4">{children}</main>
         <Toaster />
       </body>
     </html>

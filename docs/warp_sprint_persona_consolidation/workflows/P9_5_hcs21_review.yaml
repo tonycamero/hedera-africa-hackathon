@@ -1,0 +1,31 @@
+---
+ticket:
+  id: P9.5
+  title: Review HCS-21 standard compatibility (Professional vs Civic)
+  labels: [research, hedera, standards]
+  description: |
+    Investigate Professional branch HCS-21 implementation for conflicts or opportunities with Civic's Hedera usage.
+  prerequisites: [P4]
+  files_out:
+    - docs/consolidation/HCS21_COMPATIBILITY_REPORT.md
+  steps:
+    - mkdir -p docs/consolidation
+    - |
+      echo "Extract docs/HCS-21-Social-Trust-Graph-Standard.md from Professional for review" > docs/consolidation/HCS21_COMPATIBILITY_REPORT.md
+    - echo "Compare against lib/hedera.ts and ingestion/mirror patterns (Civic)" >> docs/consolidation/HCS21_COMPATIBILITY_REPORT.md
+    - echo "Record: Compatible / Minor refactor / Major refactor" >> docs/consolidation/HCS21_COMPATIBILITY_REPORT.md
+    - git add docs/consolidation && git commit -m "docs(research): add HCS-21 compatibility report scaffold"
+  acceptance_criteria:
+    - Report includes a clear recommendation and next steps
+  verification:
+    - test -f docs/consolidation/HCS21_COMPATIBILITY_REPORT.md && echo ok
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

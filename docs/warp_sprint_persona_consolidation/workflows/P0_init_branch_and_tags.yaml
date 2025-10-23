@@ -1,0 +1,31 @@
+---
+ticket:
+  id: P0
+  title: Initialize consolidation branch & safety tags
+  labels: [sprint-merge, safety, git]
+  description: |
+    Create safety tags for all source branches and start the feature branch for persona integration.
+  prerequisites:
+    - git remote updated
+  steps:
+    - git fetch --all --tags
+    - git tag backup-civic-$(date +%Y%m%d) feat/civic-lens
+    - git tag backup-genz-$(date +%Y%m%d) feature/genz-lens
+    - git tag backup-unirec-$(date +%Y%m%d) feature/universal-recognition-v2
+    - git tag backup-pro-$(date +%Y%m%d) ux-variant-1-professional
+    - git push --tags
+    - git checkout feat/civic-lens
+    - git checkout -b feat/persona-integration
+  verification:
+    - git tag | grep backup- | wc -l
+    - git branch --show-current | grep feat/persona-integration
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm
