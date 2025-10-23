@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
 import { WalletFloatingButton } from "@/components/WalletFloatingButton"
+import { useLayoutMode } from "@/lib/layout/useLayoutMode"
+import { ModeShell } from "@/components/layout/ModeShell"
+import type { UserTokens } from "@/lib/layout/token-types"
 import { 
   Circle, 
   Activity, 
@@ -19,6 +22,26 @@ export default function TabsLayout({
 }) {
   const pathname = usePathname()
   const [hasUnseen, setHasUnseen] = useState(false)
+  const [userTokens, setUserTokens] = useState<UserTokens | undefined>()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // TODO: Wire to real auth/token detection
+  // For now, stub with default values
+  useEffect(() => {
+    // Check auth status (replace with real auth check)
+    const checkAuth = async () => {
+      // Placeholder - wire to Magic.link or session cookies
+      setIsAuthenticated(false)
+      
+      // Placeholder - wire to getUserTokens when authenticated
+      // const tokens = await getUserTokens(wallet)
+      // setUserTokens(tokens)
+    }
+    checkAuth()
+  }, [])
+
+  const mode = useLayoutMode({ isAuthenticated, userTokens })
+  const collectionCount = userTokens?.nfts?.length ?? 0
 
   // Update unseen signals indicator
   useEffect(() => {
@@ -72,47 +95,18 @@ export default function TabsLayout({
   ]
 
   return (
-    <div className="min-h-screen theme-professional" style={{background: 'linear-gradient(135deg, #0B1622 0%, #111827 100%)'}}>
-      {/* Header - Minimal Professional */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo space - Left */}
-            <div className="flex-1"></div>
-            
-            {/* TrustMesh Logo - Centered */}
-            <div className="w-14 h-14 flex items-center justify-center opacity-90">
-              <svg 
-                width="36" 
-                height="36"
-                viewBox="0 0 24 24" 
-                fill="none"
-                className="animate-spin-slow-cw"
-              >
-                <circle cx="6" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
-                <circle cx="18" cy="18" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
-                <circle cx="12" cy="6" r="2" stroke="#00F6FF" strokeWidth="1.5" fill="none"/>
-                <path d="M6 18L12 6L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
-                <path d="M6 18L18 18" stroke="#00F6FF" strokeWidth="1.5" opacity="0.6"/>
-              </svg>
-            </div>
-            
-            {/* Spacer for balance - Right */}
-            <div className="flex-1"></div>
-          </div>
-        </div>
-      </header>
-      
-      {/* Floating Wallet Button */}
-      <WalletFloatingButton />
+    <ModeShell mode={mode} collectionCount={collectionCount}>
+      <div className="min-h-screen">
+        {/* Floating Wallet Button */}
+        <WalletFloatingButton />
 
-      {/* Main content - Add bottom padding for fixed navigation */}
-      <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">
-        {children}
-      </main>
+        {/* Main content - Add bottom padding for fixed navigation */}
+        <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">
+          {children}
+        </main>
 
-      {/* Bottom navigation - Glass morphism */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-md border-t border-white/10 z-40">
+        {/* Bottom navigation - Glass morphism */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-md border-t border-white/10 z-40">
         <div className="max-w-2xl mx-auto px-4">
           {/* HeaderModeChips at top of bottom nav */}
           <div className="flex justify-center py-1">
@@ -153,12 +147,12 @@ export default function TabsLayout({
                 </Link>
               )
             })}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Professional Theme CSS Injection */}
-      <style jsx global>{`
+        {/* Professional Theme CSS Injection */}
+        <style jsx global>{`
         .theme-professional {
           --accent-primary: #00F6FF;
           --bg-glass: rgba(30, 41, 59, 0.3);
@@ -205,7 +199,8 @@ export default function TabsLayout({
             transform: rotate(-360deg);
           }
         }
-      `}</style>
-    </div>
+        `}</style>
+      </div>
+    </ModeShell>
   )
 }

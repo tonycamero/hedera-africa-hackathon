@@ -14,11 +14,21 @@ export interface TokenSource {
 /**
  * Default implementation delegates to your existing services.
  * Replace the stubs with real calls when wiring in Hedera/HCS.
+ * 
+ * TESTING STUBS:
+ * - Uncomment lines below to test specific token-gated modes locally
  */
 export const DefaultTokenSource: TokenSource = {
   async getUserNFTs(wallet) {
     // TODO: plug HCS/HTS or your collection service
     // return await hcsAssetCollection.getUserCollection(wallet).then(cs => cs.map(c => c.type_id))
+    
+    // STUB: Uncomment to test VIP mode
+    // return ['networking-goat@1'];
+    
+    // STUB: Uncomment to test Collector mode (10+ NFTs)
+    // return Array.from({ length: 10 }, (_, i) => `nft-${i}`);
+    
     return [];
   },
   async getUserBadges(wallet) {
@@ -27,11 +37,19 @@ export const DefaultTokenSource: TokenSource = {
   },
   async getMemberships(wallet) {
     // TODO: PRO subscription tokens (Stripe/Brale hook)
+    
+    // STUB: Uncomment to test Premium mode
+    // return ['PRO_ANNUAL'];
+    
     return [];
   },
   async getTrustLevel(wallet) {
     // TODO: count of Circle-of-9 allocations
     // return await trustAllocationService.getCircleSize(wallet)
+    
+    // STUB: Uncomment to test Civic Leader mode
+    // return 9;
+    
     return 0;
   },
 };
