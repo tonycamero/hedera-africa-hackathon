@@ -1,0 +1,35 @@
+---
+ticket:
+  id: P8
+  title: Preview environments & PR
+  labels: [deploy, pr, vercel]
+  description: |
+    Set up three preview environments and open a PR for review.
+  prerequisites: [P1, P2, P3, P4, P5, P6]
+  steps:
+    - |
+      echo "Setting up Vercel preview environments..."
+      echo "Manual: In Vercel dashboard, create 3 environment variables:"
+      echo "  - professional environment: NEXT_PUBLIC_TRUSTMESH_PERSONA=professional"
+      echo "  - genz environment: NEXT_PUBLIC_TRUSTMESH_PERSONA=genz"
+      echo "  - civic environment: NEXT_PUBLIC_TRUSTMESH_PERSONA=civic"
+    - |
+      git push origin feat/persona-integration
+      echo "Creating PR..."
+      gh pr create --title "feat: Persona Integration System" \
+        --body "Consolidates Professional, GenZ, and Civic into one codebase with persona switching. See MERGE_STRATEGY_4_BRANCHES.md for details." \
+        --base feat/civic-lens \
+        --head feat/persona-integration || echo "PR may already exist"
+  verification:
+    - gh pr list | grep "Persona Integration" || echo "Check PR manually"
+    - echo "Verify 3 Vercel preview deployments succeed"
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

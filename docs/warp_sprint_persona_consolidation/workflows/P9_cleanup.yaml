@@ -1,0 +1,26 @@
+---
+ticket:
+  id: P9
+  title: Post-merge cleanup (legacy/demo/backups)
+  labels: [cleanup]
+  description: |
+    Remove obsolete demo pages and backups after merge to main.
+  prerequisites: [P8]
+  steps:
+    - git checkout main
+    - git pull
+    - git branch -d feat/persona-integration || true
+    - git push origin --delete feat/persona-integration || true
+    - echo "Optionally remove legacy demo pages when confirmed obsolete"
+  verification:
+    - git branch | grep feat/persona-integration || true
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

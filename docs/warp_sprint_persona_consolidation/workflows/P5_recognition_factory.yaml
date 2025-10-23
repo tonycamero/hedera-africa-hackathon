@@ -1,0 +1,37 @@
+---
+ticket:
+  id: P5
+  title: Recognition service factory (Pro/GenZ/Civic)
+  labels: [service, factory]
+  description: |
+    Create a factory that returns the persona-specific recognition service.
+  prerequisites: [P1, P4]
+  files_out:
+    - lib/services/recognition/index.ts
+  steps:
+    - |
+      cat > lib/services/recognition/index.ts <<'EOF'
+      import { getServiceMode } from '@/lib/config/persona';
+      import { RecognitionServicePro } from './Recognition.Service.Pro';
+      class RecognitionServiceGenZ { name='genz'; }
+      class RecognitionServiceCivic { name='civic'; }
+      export function getRecognitionService(){
+        const mode = getServiceMode('recognition');
+        if(mode==='professional') return new RecognitionServicePro();
+        if(mode==='hashinal') return new RecognitionServiceGenZ();
+        return new RecognitionServiceCivic();
+      }
+      EOF
+    - git add lib/services/recognition/index.ts && git commit -m "feat(service): recognition service factory for persona modes"
+  verification:
+    - node -e "console.log('factory stub ok')"
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

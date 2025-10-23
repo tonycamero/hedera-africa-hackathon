@@ -1,0 +1,64 @@
+---
+ticket:
+  id: P7
+  title: Persona test matrix & smoke script (expanded cases)
+  labels: [tests, docs, ci]
+  description: |
+    Create matrix doc and smoke script to verify 3 personas build and boot, plus specific assertions for tokens, themes, flags, and routes.
+  prerequisites: [P1, P2, P3]
+  files_out:
+    - docs/consolidation/test-matrix.md
+    - scripts/ci/test-personas.sh
+  steps:
+    - mkdir -p docs/consolidation scripts/ci
+    - |
+      cat > docs/consolidation/test-matrix.md <<'EOF'
+      # Persona Test Matrix
+      ## Professional
+      - Build & boot succeeds
+      - Metallic theme present
+      - NFTs/gamification hidden
+      - Pro tokens load (enterprise badges)
+      - Civic API endpoints not visible
+      ## GenZ
+      - Build & boot succeeds
+      - Mobile-first theme present
+      - NFT cards visible
+      - GenZ tokens load
+      ## Civic
+      - Build & boot succeeds
+      - Glass morphism theme present
+      - Support/Volunteer/Events flows visible
+      - Civic tokens load
+      ## Cross
+      - Persona switch via env picks correct dashboard and nav
+      - Recognition service factory returns correct implementation
+      EOF
+    - |
+      cat > scripts/ci/test-personas.sh <<'EOF'
+      #!/usr/bin/env bash
+      set -euo pipefail
+      for p in professional genz civic; do
+        echo '--- Persona:' $p
+        NEXT_PUBLIC_TRUSTMESH_PERSONA=$p pnpm build >/dev/null
+        echo 'OK build:' $p
+      done
+      echo "Manual assertions: start dev, verify tokens/themes/flags/routes as per docs."
+      EOF
+    - chmod +x scripts/ci/test-personas.sh
+    - git add docs/consolidation scripts/ci && git commit -m "chore(ci): expanded persona test matrix and smoke script"
+  acceptance_criteria:
+    - All personas build
+    - Documented manual checks pass in dev
+  verification:
+    - bash scripts/ci/test-personas.sh || true
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

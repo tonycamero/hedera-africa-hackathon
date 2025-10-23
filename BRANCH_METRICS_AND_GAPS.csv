@@ -1,0 +1,40 @@
+Branch,Total Files,TS/JS Files,Components,Services,Pages,API Routes,Commits,Status,Last Updated
+Professional,404,292,82,20,13,34,100,Stable,Moderate Activity
+Universal V2,532,402,114,29,23,56,126,Frozen Snapshot,Oct 14 2025
+GenZ,473,356,112,29,22,43,124,Active Reference,Oct 14 2025
+Civic,573,435,114,30,29,74,134,Production Ready,Oct 23 2025
+
+Feature Category,Professional,Universal V2,GenZ,Civic,Notes
+Core HCS Infrastructure,Yes,Yes,Yes,Yes,All branches have HCS integration
+NFT/Hashinal System,No,Yes,Yes,Yes,Professional lacks NFT features
+3D Trading Cards,No,Yes,Yes,Yes,Universal V2 introduced this
+Mobile-First UX,No,Yes,Yes,Yes,Universal V2 redesign
+Metallic Theme,Yes,No,No,No,Professional unique
+Glass Morphism Theme,No,No,No,Yes,Civic unique
+Campaign Management,No,No,No,Yes,Civic unique
+Event RSVPs,No,No,No,Yes,Civic unique
+Volunteer Management,No,No,No,Yes,Civic unique
+Magic.link Auth,No,Yes,Yes,Yes,Universal V2 introduced
+KNS Integration,No,Yes,Yes,Yes,Universal V2 introduced
+GenZ Telemetry,No,Yes,Yes,Yes,Universal V2 introduced
+Professional Recognition Tokens,Yes,No,No,No,Professional unique
+Civic Signals (Support/Volunteer/Events),No,No,No,Yes,Civic unique
+HCS-21 Standard,Yes,No,No,No,Professional unique
+
+Unique Services,Count,Description
+Professional,1,depsReady.ts (ingestion dependency checker)
+Universal V2,0,All services inherited by downstream branches
+GenZ,0,Same as Universal V2 (shares commit history)
+Civic,1,FairfieldVoiceService.ts (civic engagement signals)
+
+Unique Pages,Count,Description
+Professional,1,Demo page (legacy)
+Universal V2,1,Contacts page (old structure)
+GenZ,0,Same as Universal V2
+Civic,7,"home, join, events, support, volunteer, contacts (restructured), debug-env"
+
+Unique API Routes,Count,Description
+Professional,0,Shares similar API structure
+Universal V2,0,Base API routes
+GenZ,0,Same as Universal V2
+Civic,18,"auth (me, upsert), consent/sms, contacts (6 routes), debug/user, events (3 routes), invite (2 routes), progress, support/save, volunteer/save"

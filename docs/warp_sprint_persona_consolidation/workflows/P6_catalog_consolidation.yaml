@@ -1,0 +1,79 @@
+---
+ticket:
+  id: P6
+  title: Consolidate recognition token & signal catalogs (with data moves)
+  labels: [data, catalogs]
+  description: |
+    Organize catalogs by persona and create routing helpers. Move existing data files into new structure.
+  prerequisites: [P1]
+  files_out:
+    - lib/data/recognition-tokens/{professional,genz,civic}.json
+    - lib/data/recognition-tokens/index.ts
+    - lib/data/signal-types/{professional,genz,civic}.json
+    - lib/data/signal-types/index.ts
+  steps:
+    - mkdir -p lib/data/recognition-tokens lib/data/signal-types
+    - test -f recognition-tokens-clean.json && mv recognition-tokens-clean.json lib/data/recognition-tokens/genz-nft.json || true
+    - test -f data/signal-types.genz.json && mv data/signal-types.genz.json lib/data/signal-types/genz.json || true
+    - |
+      cat > lib/data/recognition-tokens/genz.json <<'EOF'
+      { "tokens": [ { "cardSlug": "networking" }, { "cardSlug": "mentor-boost" } ] }
+      EOF
+    - |
+      cat > lib/data/recognition-tokens/civic.json <<'EOF'
+      { "tokens": [ { "action": "SUPPORT_SAVED" }, { "action": "EVENT_RSVP" } ] }
+      EOF
+    - |
+      cat > lib/data/signal-types/professional.json <<'EOF'
+      { "signals": [ { "type": "TRUST_ALLOCATE" } ] }
+      EOF
+    - |
+      cat > lib/data/signal-types/genz.json <<'EOF'
+      { "signals": [ { "type": "NFT_COLLECTED" } ] }
+      EOF
+    - |
+      cat > lib/data/signal-types/civic.json <<'EOF'
+      { "signals": [ { "type": "VOLUNTEER_SAVED" } ] }
+      EOF
+    - |
+      cat > lib/data/recognition-tokens/index.ts <<'EOF'
+      import pro from './professional.json';
+      import genz from './genz.json';
+      import civic from './civic.json';
+      import { getPersona } from '@/lib/config/persona';
+      export function getRecognitionTokensForPersona(){
+        const p = getPersona().type;
+        if(p==='professional') return (pro as any).tokens;
+        if(p==='genz') return (genz as any).tokens;
+        return (civic as any).tokens;
+      }
+      EOF
+    - |
+      cat > lib/data/signal-types/index.ts <<'EOF'
+      import p from './professional.json';
+      import g from './genz.json';
+      import c from './civic.json';
+      import { getPersona } from '@/lib/config/persona';
+      export function getSignalTypesForPersona(){
+        const t = getPersona().type;
+        if(t==='professional') return (p as any).signals;
+        if(t==='genz') return (g as any).signals;
+        return (c as any).signals;
+      }
+      EOF
+    - git add lib/data && git commit -m "chore(data): consolidate catalogs, add routers, and move existing files"
+  acceptance_criteria:
+    - Catalogs resolvable per persona
+    - No duplicate slugs
+  verification:
+    - node -e "console.log('catalogs consolidated')"
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm

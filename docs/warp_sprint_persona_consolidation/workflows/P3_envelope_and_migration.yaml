@@ -1,0 +1,88 @@
+---
+ticket:
+  id: P3
+  title: Recognition Envelope V1 + migration shim + tests
+  labels: [schema, tests]
+  description: |
+    Create canonical envelope types and migration for legacy branch payloads.
+  prerequisites: [P1]
+  files_out:
+    - lib/schema/RecognitionEnvelope.V1.ts
+    - lib/schema/Recognition.Migrate.ts
+    - lib/schema/__tests__/Recognition.Migrate.spec.ts
+    - tests/fixtures/recognition/{pro,genz,civic}.sample.json
+  steps:
+    - mkdir -p lib/schema/__tests__ tests/fixtures/recognition
+    - |
+      cat > lib/schema/RecognitionEnvelope.V1.ts <<'EOF'
+      export type LensType = 'genz'|'civic'|'professional';
+      export interface RecognitionEnvelopeV1 {
+        schema:'tm.recognition'; version:1; lens:LensType;
+        id:string; timestamp:string;
+        issuer:{wallet:string; name?:string}; subject:{wallet:string; name?:string};
+        tx?:{hcsSeq?:number; topic?:string; mirrorTxId?:string};
+        features?:{nfts?:boolean;civic?:boolean;enterprise?:boolean};
+        payload: GenZPayload | CivicPayload | ProPayload;
+      }
+      export interface GenZPayload { type:'hashinal'; tokenId:string; cardSlug:string; mediaUrl?:string; xp?:number; boost?:{kind:'social'|'mentor'|'impact'; amount:number}; }
+      export interface CivicPayload { type:'civic'; action:'SUPPORT_SAVED'|'VOLUNTEER_SAVED'|'EVENT_RSVP'; campaignId:string; data?:{eventId?:string; ward?:string}; xp?:number; nftCardRef?:{tokenId?:string; cardSlug?:string}; }
+      export interface ProPayload { type:'pro'; badge:'RELIABILITY'|'MENTORSHIP'|'DELIVERY'|'LEADERSHIP'; note?:string; rbac?:{role?:'admin'|'manager'|'member'; scope?:string}; }
+      EOF
+    - |
+      cat > lib/schema/Recognition.Migrate.ts <<'EOF'
+      import type { RecognitionEnvelopeV1, LensType } from './RecognitionEnvelope.V1';
+      export function migrateToV1(input:any, lens:LensType): RecognitionEnvelopeV1 {
+        const base = {
+          schema:'tm.recognition' as const, version:1 as const, lens,
+          id: input.id ?? input.txId ?? String(Date.now()),
+          timestamp: input.timestamp ?? new Date().toISOString(),
+          issuer: input.issuer ?? { wallet: input.from ?? 'unknown' },
+          subject: input.subject ?? { wallet: input.to ?? 'unknown' },
+          tx: input.tx ?? { hcsSeq: input.hcsSeq, topic: input.topic, mirrorTxId: input.mirrorTxId },
+          features: { nfts: lens!=='professional', civic: lens==='civic', enterprise: lens==='professional' }
+        };
+        if(lens==='genz'){
+          return { ...base, payload: { type:'hashinal', tokenId: input.tokenId ?? input.htsId ?? '', cardSlug: input.cardSlug ?? input.signalSlug ?? 'unknown', mediaUrl: input.mediaUrl, xp: input.xp ?? input.points ?? 0, boost: input.boostKind ? { kind: input.boostKind, amount: input.boostAmount ?? 0 } : undefined } };
+        }
+        if(lens==='civic'){
+          return { ...base, payload: { type:'civic', action: input.action ?? input.type ?? 'SUPPORT_SAVED', campaignId: input.campaignId ?? 'default', data:{ eventId: input.eventId, ward: input.ward }, xp: input.xp ?? 0, nftCardRef: input.cardSlug ? { tokenId: input.tokenId, cardSlug: input.cardSlug } : undefined } };
+        }
+        return { ...base, payload: { type:'pro', badge: input.badge ?? 'DELIVERY', note: input.note, rbac: input.rbac } };
+      }
+      EOF
+    - |
+      cat > lib/schema/__tests__/Recognition.Migrate.spec.ts <<'EOF'
+      import { migrateToV1 } from '../Recognition.Migrate';
+      const genz = { tokenId:'0.0.123', cardSlug:'networking', xp:5, boostKind:'social', boostAmount:1 };
+      const civic = { action:'EVENT_RSVP', campaignId:'mayor-2025', eventId:'E1', xp:2 };
+      const pro = { badge:'DELIVERY', note:'Great on-time shipping' };
+      test('genz → V1', ()=>{ const out=migrateToV1(genz,'genz'); expect((out as any).payload.type).toBe('hashinal'); });
+      test('civic → V1', ()=>{ const out=migrateToV1(civic,'civic'); expect((out as any).payload.type).toBe('civic'); });
+      test('pro → V1',   ()=>{ const out=migrateToV1(pro,'professional'); expect((out as any).payload.type).toBe('pro'); });
+      EOF
+    - |
+      cat > tests/fixtures/recognition/genz.sample.json <<'EOF'
+      {"tokenId":"0.0.123","cardSlug":"networking","xp":5,"boostKind":"social","boostAmount":1}
+      EOF
+    - |
+      cat > tests/fixtures/recognition/civic.sample.json <<'EOF'
+      {"action":"EVENT_RSVP","campaignId":"mayor-2025","eventId":"E1","xp":2}
+      EOF
+    - |
+      cat > tests/fixtures/recognition/pro.sample.json <<'EOF'
+      {"badge":"DELIVERY","note":"Great on-time shipping"}
+      EOF
+    - git add lib/schema tests/fixtures || true
+    - git commit -m "feat(schema): Recognition Envelope V1 + migration shim + tests"
+  verification:
+    - pnpm test --silent || echo "ensure test runner configured"
+meta:
+  repo: TrustMesh_hackathon
+  base_branch: feat/civic-lens
+  work_branch: feat/persona-integration
+  runner: warp-jr-dev
+  conventions:
+    commit:
+      - "feat(scope): summary"
+      - "chore(scope): summary"
+    node: pnpm
