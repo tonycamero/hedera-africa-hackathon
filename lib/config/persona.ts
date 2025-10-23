@@ -17,11 +17,26 @@ export const PERSONA_CONFIGS: Record<PersonaType, PersonaConfig> = {
     recognitionTokens:'civic-mixed', defaultSignals:['SUPPORT_SAVED','VOLUNTEER_SAVED','EVENT_RSVP'] }
 };
 let current: PersonaConfig | null = null;
+
+function readCookiePersona(): PersonaType | null {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(/(?:^|;\s*)tm_persona=([^;]+)/);
+  const v = m?.[1];
+  return v === 'professional' || v === 'genz' || v === 'civic' ? (v as PersonaType) : null;
+}
+
 export function getPersona(): PersonaConfig {
   if (!current) {
-    const p = (process.env.NEXT_PUBLIC_TRUSTMESH_PERSONA || 'civic') as PersonaType;
-    current = PERSONA_CONFIGS[p];
-    if (typeof window !== 'undefined') console.log(`[Persona] Loaded: ${current.name}`);
+    // Runtime (browser): cookie has priority; Server: env only
+    let key: PersonaType =
+      (typeof window !== 'undefined' && readCookiePersona()) ||
+      ((process.env.NEXT_PUBLIC_TRUSTMESH_PERSONA || 'civic') as PersonaType);
+
+    current = PERSONA_CONFIGS[key];
+
+    if (typeof window !== 'undefined') {
+      console.log(`[Persona] Loaded: ${current.name}`);
+    }
   }
   return current;
 }
