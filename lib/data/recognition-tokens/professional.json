@@ -1,0 +1,8 @@
+{
+  "tokens": [
+    {"badge":"DELIVERY","weight":5},
+    {"badge":"RELIABILITY","weight":5},
+    {"badge":"MENTORSHIP","weight":5},
+    {"badge":"LEADERSHIP","weight":5}
+  ]
+}
