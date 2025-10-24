@@ -7,7 +7,6 @@
 
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
-import { AppNav } from './AppNav'
 
 interface CollectorShellProps {
   children: React.ReactNode
@@ -28,7 +27,6 @@ export function CollectorShell({ children, collectionCount }: CollectorShellProp
               <span className="text-sm text-pink-200">{collectionCount} Collectibles</span>
             )}
           </div>
-          <AppNav />
         </div>
       </div>
 

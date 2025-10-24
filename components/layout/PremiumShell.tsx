@@ -7,7 +7,6 @@
 
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
-import { AppNav } from './AppNav'
 
 interface PremiumShellProps {
   children: React.ReactNode
@@ -25,7 +24,6 @@ export function PremiumShell({ children }: PremiumShellProps) {
             </Badge>
             <span className="text-sm text-teal-200">Pro Member</span>
           </div>
-          <AppNav />
         </div>
       </div>
 

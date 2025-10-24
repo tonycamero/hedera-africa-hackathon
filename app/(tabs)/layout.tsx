@@ -132,7 +132,12 @@ export default function TabsLayout({
   ]
 
   return (
-    <ModeShell mode={mode} collectionCount={collectionCount}>
+    <ModeShell 
+      mode={mode} 
+      collectionCount={collectionCount}
+      isAuthenticated={isAuthenticated}
+      signalsHasUnseen={hasUnseen}
+    >
       <div className="min-h-screen">
         {/* Floating Wallet Button */}
         <WalletFloatingButton />
@@ -141,52 +146,6 @@ export default function TabsLayout({
         <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">
           {children}
         </main>
-
-        {/* Bottom navigation - Glass morphism */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-md border-t border-white/10 z-40">
-        <div className="max-w-2xl mx-auto px-4">
-          {/* HeaderModeChips at top of bottom nav */}
-          <div className="flex justify-center py-1">
-            <HeaderModeChips />
-          </div>
-          
-          <div className="flex">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = pathname === tab.path
-              
-              return (
-                <Link
-                  key={tab.id}
-                  href={tab.path}
-                  className={`flex-1 flex flex-col items-center justify-center py-3 px-2 text-xs font-medium transition-all duration-300 ${
-                    isActive 
-                      ? "text-white" 
-                      : "text-white/60 hover:text-white/90"
-                  }`}
-                >
-                  <div className="relative">
-                    <Icon className={`w-5 h-5 mb-1 transition-all duration-300 ${
-                      isActive ? "text-[#00F6FF] scale-110" : "text-white/60"
-                    }`} />
-                    {tab.badge && (
-                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#00F6FF] rounded-full pulse-accent" />
-                    )}
-                    {isActive && (
-                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#00F6FF] rounded-full" />
-                    )}
-                  </div>
-                  <span className={`transition-all duration-300 text-xs ${
-                    isActive ? "text-[#00F6FF] font-medium" : "text-white/60"
-                  }`}>
-                    {tab.label}
-                  </span>
-                </Link>
-              )
-            })}
-            </div>
-          </div>
-        </nav>
 
         {/* Professional Theme CSS Injection */}
         <style jsx global>{`

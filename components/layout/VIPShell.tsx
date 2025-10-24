@@ -7,7 +7,6 @@
 
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
-import { AppNav } from './AppNav'
 
 interface VIPShellProps {
   children: React.ReactNode
@@ -25,7 +24,6 @@ export function VIPShell({ children }: VIPShellProps) {
             </Badge>
             <span className="text-sm text-amber-200">Legendary NFT Holder</span>
           </div>
-          <AppNav />
         </div>
       </div>
 

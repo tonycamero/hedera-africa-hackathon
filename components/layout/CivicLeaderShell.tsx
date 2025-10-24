@@ -7,7 +7,6 @@
 
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
-import { AppNav } from './AppNav'
 
 interface CivicLeaderShellProps {
   children: React.ReactNode
@@ -25,7 +24,6 @@ export function CivicLeaderShell({ children }: CivicLeaderShellProps) {
             </Badge>
             <span className="text-sm text-indigo-200">Trust Circle: 9/9</span>
           </div>
-          <AppNav />
         </div>
       </div>
 
