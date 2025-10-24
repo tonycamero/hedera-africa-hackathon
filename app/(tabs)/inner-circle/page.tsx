@@ -10,6 +10,7 @@ import { toLegacyEventArray } from "@/lib/services/HCSDataAdapter"
 import { getBondedContactsFromHCS, getTrustStatsFromHCS, getTrustLevelsPerContact } from "@/lib/services/HCSDataUtils"
 import { getSessionId } from "@/lib/session"
 import { StoicGuideModal } from "@/components/StoicGuideModal"
+import { TrustCircleVisualization } from "@/components/trust/TrustCircleVisualization"
 import { GenZButton, GenZCard, GenZHeading, GenZText, GenZModal, genZClassNames } from '@/components/ui/genz-design-system'
 import { 
   ProfessionalLoading, 
@@ -19,59 +20,7 @@ import {
 } from '@/components/enhancements/professional-ux-enhancements'
 import { trustAllocationService } from '@/lib/services/TrustAllocationService'
 
-// Inner Circle LED Visualization Component - GenZ Style
-function InnerCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: { 
-  allocatedOut: number; 
-  maxSlots: number; 
-  bondedContacts: number;
-}) {
-  const totalSlots = maxSlots
-  const dots = Array.from({ length: totalSlots }, (_, i) => {
-    // Arrange dots in a circle - using exact original positioning
-    const angle = (i * 360) / totalSlots - 90 // Start from top
-    const radian = (angle * Math.PI) / 180
-    const radius = 30 // Distance from center - 50% larger (was 20)
-    const x = Math.cos(radian) * radius + 48 // 48 is center (96/2) - 50% larger
-    const y = Math.sin(radian) * radius + 48
-
-    // Determine LED state: active crew member (trust allocated), available spot
-    let ledStyle = ""
-    let innerStyle = ""
-    
-    if (i < allocatedOut) {
-      // GenZ Primary (Boost) LEDs for active crew members
-      ledStyle = "bg-gradient-to-br from-pri-500 to-pri-600 shadow-glow border-2 border-pri-glow animate-breathe-glow"
-      innerStyle = "bg-gradient-to-br from-pri-glow to-pri-500"
-    } else {
-      // Dimmed LEDs for available spots
-      ledStyle = "bg-gradient-to-br from-genz-text-dim to-genz-border shadow-md shadow-genz-border/20 border-2 border-genz-border opacity-40"
-      innerStyle = "bg-gradient-to-br from-genz-text-dim to-genz-border"
-    }
-
-    return (
-      <div
-        key={i}
-        className={`absolute w-4 h-4 rounded-full transform -translate-x-2 -translate-y-2 ${ledStyle}`}
-        style={{ left: x, top: y }}
-      >
-        {/* LED inner glow effect */}
-        <div className={`absolute inset-1 rounded-full ${innerStyle}`} />
-        {/* LED highlight spot */}
-        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-white opacity-60" />
-      </div>
-    )
-  })
-
-  return (
-    <div className="relative w-24 h-24 flex-shrink-0">
-      {dots}
-      {/* Center inner circle emoji - GenZ style */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center animate-breathe-glow">
-        <span className="text-xl">🔥</span>
-      </div>
-    </div>
-  )
-}
+// Using shared TrustCircleVisualization component from components/trust/
 
 export default function InnerCirclePage() {
   const router = useRouter()
@@ -349,35 +298,38 @@ export default function InnerCirclePage() {
             )}
           </div>
           
-          <div className="flex items-center justify-center gap-8">
-            {/* Inner Circle LED Visualization */}
-            <div className="flex-shrink-0">
-              <InnerCircleVisualization
-                allocatedOut={trustStats.allocatedOut}
-                maxSlots={trustStats.maxSlots}
-                bondedContacts={trustStats.bondedContacts}
-              />
-            </div>
+          <div className="flex flex-col items-center gap-6">
+            {/* Inner Circle LED Visualization - Now tappable */}
+            <TrustCircleVisualization
+              allocatedOut={trustStats.allocatedOut}
+              maxSlots={trustStats.maxSlots}
+              bondedContacts={trustStats.bondedContacts}
+              onPress={handleAddMember}
+            />
             
-            {/* Stats and Actions */}
-            <div className="text-center space-y-4">
-              <div>
-                <div className="text-4xl font-bold text-boost-400 mb-1">{availableSlots}</div>
-                <GenZText size="sm" dim>open slots</GenZText>
+            {/* Circle Stats - Centered below */}
+            <div className="text-center">
+              <div className="flex items-baseline gap-1 justify-center mb-2">
+                <span className="text-2xl font-bold text-white">{trustStats.allocatedOut}</span>
+                <span className="text-white/60 text-sm">active</span>
               </div>
               
-              <div className="space-y-2">
-                <GenZText className="font-medium text-pri-400">Prioritize Strength</GenZText>
-                <GenZButton 
-                  variant="boost" 
-                  glow 
-                  onClick={handleAddMember}
-                  className="w-full"
-                >
-                  Add trusted member →
-                </GenZButton>
+              <div className="text-xs space-y-1">
+                <div className="text-[#00F6FF] font-medium">{availableSlots} open slots</div>
+                <div className="text-white/50">Prioritize Strength</div>
               </div>
             </div>
+            
+            {/* Mobile-optimized CTA Button */}
+            <GenZButton
+              variant="boost"
+              glow
+              onClick={handleAddMember}
+              className="w-full"
+            >
+              <UserPlus className="w-5 h-5 mr-2" />
+              Add trusted member
+            </GenZButton>
           </div>
         </GenZCard>
         
@@ -566,14 +518,68 @@ export default function InnerCirclePage() {
                           glow
                         >
                           Add
+                    </GenZButton>
+                  </div>
+                </GenZCard>
+                ))}
+                
+                {/* Add 3 Challenge - Show only 3 empty slots */}
+                {availableSlots > 0 && (
+                  <>
+                    {/* Challenge Header */}
+                    <div className="text-center py-2 border-t border-white/10 mt-2">
+                      <div className="text-xs text-[#00F6FF] font-medium">Sprint Challenge</div>
+                      <div className="text-xs text-white/60 mt-1">Add 3 trusted members to strengthen your circle</div>
+                    </div>
+                    
+                    {/* Show up to 3 empty slots */}
+                    {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
+                      <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/30 to-slate-900/20 rounded-lg border-2 border-dashed border-[#00F6FF]/30 hover:border-[#00F6FF]/50 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-800/30 hover:shadow-[0_0_12px_rgba(0,246,255,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#00F6FF]/5 before:via-transparent before:to-[#00F6FF]/5 before:-z-10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-[#00F6FF]/10 border border-[#00F6FF]/30 flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-[#00F6FF]/60" />
+                          </div>
+                          <div>
+                            <div className="text-sm text-white/60">Slot {i + 1}</div>
+                            <div className="text-xs text-[#00F6FF]/60">Add trusted contact</div>
+                          </div>
+                        </div>
+                        
+                        <GenZButton
+                          size="sm"
+                          variant="boost"
+                          onClick={handleAddMember}
+                          className="h-7 px-3 text-xs"
+                        >
+                          Add
                         </GenZButton>
                       </div>
-                    </GenZCard>
-                  )
-                })
-              )}
-            </div>
-          </div>
+                    ))}
+                    
+                    {/* Progress indicator if more than 3 slots available */}
+                    {availableSlots > 3 && (
+                      <div className="text-center py-2">
+                        <div className="text-xs text-white/40">
+                          +{availableSlots - 3} more slots available after completing this sprint
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              {/* Stoic Guide Link */}
+              <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
+                <div className="text-center py-2 mt-2 border-t border-white/10">
+                  <div className="text-xs text-[#00F6FF]/80 hover:text-[#00F6FF] transition-all duration-300 cursor-pointer font-medium flex items-center justify-center gap-1">
+                    <span>→</span>
+                    <span>Who should I add?</span>
+                  </div>
+                </div>
+              </StoicGuideModal>
+            </>
+          )}
+        </GenZCard>
         </GenZModal>
 
         {/* Invite Actions Modal - Game-like UI */}
