@@ -521,7 +521,8 @@ export default function InnerCirclePage() {
                     </GenZButton>
                   </div>
                 </GenZCard>
-                ))
+                  )
+                })
               )}
             </div>
           </div>
