@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
-import { WalletFloatingButton } from "@/components/WalletFloatingButton"
 import { useLayoutMode } from "@/lib/layout/useLayoutMode"
 import { ModeShell } from "@/components/layout/ModeShell"
 import type { UserTokens } from "@/lib/layout/token-types"
@@ -139,9 +138,6 @@ export default function TabsLayout({
       signalsHasUnseen={hasUnseen}
     >
       <div className="min-h-screen">
-        {/* Floating Wallet Button */}
-        <WalletFloatingButton />
-
         {/* Main content - Add bottom padding for fixed navigation */}
         <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">
           {children}
