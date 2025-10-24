@@ -1,406 +1,394 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
-import { type SignalEvent } from "@/lib/stores/signalsStore"
-import { getSessionId } from "@/lib/session"
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Sparkles, Zap, Database, Settings, Eye, Collection, Users, Send, Wallet, Share2 } from 'lucide-react'
+import { SignalTypeSelector } from '@/components/signals/SignalTypeSelector'
+import { MintSignalFlow } from '@/components/signals/MintSignalFlow'
+import { RecentActivity } from '@/components/signals/RecentActivity'
+import { SignalType, SignalInstance, SignalAsset } from '@/lib/types/signals-collectible'
+import { GenZButton, GenZCard, GenZHeading, GenZText, GenZChip } from '@/components/ui/genz-design-system'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import { 
-  Activity, 
-  Users, 
-  Shield, 
-  Trophy,
-  Search,
-  RotateCw
-} from "lucide-react"
-import { toast } from "sonner"
-import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh"
-
-interface EnhancedSignal extends SignalEvent {
-  firstName: string
-  onlineStatus: 'online' | 'offline' | 'idle'
-  eventDescription: string
-}
-
-// Mock user recognition token collection - would come from HCS later
-const getUserTokenCollection = () => [
-  {
-    id: 'token-leadership-1',
-    category: 'leadership',
-    name: 'Strategic Vision',
-    description: 'Recognized for exceptional strategic thinking and long-term planning capabilities',
-    trustValue: 25,
-    receivedFrom: 'Sarah Chen',
-    receivedAt: Date.now() - 86400000 * 2, // 2 days ago
-    icon: 'telescope'
-  },
-  {
-    id: 'token-execution-1', 
-    category: 'execution',
-    name: 'Project Delivery',
-    description: 'Outstanding project management and delivery excellence under pressure',
-    trustValue: 20,
-    receivedFrom: 'Michael Rodriguez',
-    receivedAt: Date.now() - 86400000 * 5, // 5 days ago
-    icon: 'truck'
-  },
-  {
-    id: 'token-knowledge-1',
-    category: 'knowledge',
-    name: 'Technical Expertise',
-    description: 'Deep technical knowledge and ability to solve complex problems',
-    trustValue: 30,
-    receivedFrom: 'David Kim',
-    receivedAt: Date.now() - 86400000 * 7, // 7 days ago
-    icon: 'cpu'
-  },
-  {
-    id: 'token-leadership-2',
-    category: 'leadership',
-    name: 'Team Inspiration',
-    description: 'Exceptional ability to motivate and inspire team members',
-    trustValue: 22,
-    receivedFrom: 'Emily Johnson',
-    receivedAt: Date.now() - 86400000 * 10, // 10 days ago
-    icon: 'users'
-  }
-]
+  ProfessionalLoading, 
+  ProfessionalError, 
+  ProfessionalSuccess,
+  ContextualGuide,
+  NetworkStatusIndicator,
+  PullToRefresh 
+} from '@/components/enhancements/professional-ux-enhancements'
+import { getSessionId } from '@/lib/session'
+import { signalsStore, type BondedContact } from '@/lib/stores/signalsStore'
+import { getBondedContactsFromHCS } from '@/lib/services/HCSDataUtils'
+import { PurpleFlame } from '@/components/ui/TrustAgentFlame'
 
 export default function SignalsPage() {
-  const [signals, setSignals] = useState<EnhancedSignal[]>([])
-  const [selectedTab, setSelectedTab] = useState<'feed' | 'tokens'>('feed')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [userTokens] = useState(getUserTokenCollection())
+  const [currentView, setCurrentView] = useState<'dashboard' | 'selector' | 'minting' | 'collection'>('dashboard')
+  const [selectedSignalType, setSelectedSignalType] = useState<SignalType | null>(null)
+  const [recentMints, setRecentMints] = useState<SignalInstance[]>([])
+  const [mySignals, setMySignals] = useState<SignalAsset[]>([])
+  const [contacts, setContacts] = useState<BondedContact[]>([])
+  const [sessionId, setSessionId] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const router = useRouter()
+  
+  // Professional state
+  const [error, setError] = useState<string | null>(null)
+  const [isMinting, setIsMinting] = useState(false)
+  const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(false)
+  const [mintSuccess, setMintSuccess] = useState<SignalInstance | null>(null)
 
-  const getFirstName = (actorId: string): string => {
-    // Smart name extraction
-    if (actorId.startsWith('tm-') && actorId.length > 3) {
-      const namepart = actorId.slice(3).replace(/-/g, ' ')
-      const words = namepart.split(' ')
-      return words[0].charAt(0).toUpperCase() + words[0].slice(1)
-    }
-    return actorId.length > 10 ? actorId.slice(0, 6) : actorId
-  }
-
-  const getOnlineStatus = (signalId: string): 'online' | 'offline' | 'idle' => {
-    // Deterministic status based on signal ID for stability
-    const hash = signalId.split('').reduce((a, b) => (a + b.charCodeAt(0)) % 3, 0)
-    const statuses: ('online' | 'offline' | 'idle')[] = ['online', 'offline', 'idle']
-    return statuses[hash]
-  }
-
-  const getEventDescription = (signal: SignalEvent): string => {
-    const firstName = getFirstName(signal.actor)
-    // Use signal ID for deterministic description selection
-    const hash = signal.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
-    
-    const professionalDescriptions = {
-      'CONTACT_REQUEST': [
-        `🤝 ${firstName} sent a professional connection request`,
-        `📬 ${firstName} wants to expand their trusted network`,
-        `🔗 ${firstName} is building professional relationships`,
-        `🌐 ${firstName} reached out to grow their network`
-      ],
-      'CONTACT_ACCEPT': [
-        `✅ ${firstName} accepted your connection request`,
-        `🤝 ${firstName} confirmed your professional bond`,
-        `🔗 ${firstName} is now part of your trusted network`,
-        `🌟 ${firstName} validated your professional relationship`
-      ],
-      'TRUST_ALLOCATE': [
-        `⭐ ${firstName} allocated trust tokens to recognize excellence`,
-        `🏆 ${firstName} sent professional recognition signals`,
-        `💎 ${firstName} endorsed someone's professional capabilities`,
-        `🎯 ${firstName} distributed trust to acknowledge achievements`
-      ],
-      'RECOGNITION_MINT': [
-        `🏆 ${firstName} earned a Leadership Signal recognition`,
-        `🎖️ ${firstName} received an Execution Signal token`,
-        `🧠 ${firstName} was awarded a Knowledge Signal`,
-        `⚡ ${firstName} unlocked professional recognition tokens`
-      ],
-      'PROFILE_UPDATE': [
-        `📋 ${firstName} updated their professional profile`,
-        `🔄 ${firstName} refreshed their network credentials`,
-        `📈 ${firstName} enhanced their professional presence`,
-        `✨ ${firstName} optimized their trust network profile`
-      ]
-    }
-    
-    const descriptions = professionalDescriptions[signal.type as keyof typeof professionalDescriptions] || [
-      `🔄 ${firstName} engaged in network activity`,
-      `⚡ ${firstName} participated in professional networking`,
-      `🌐 ${firstName} contributed to the trust network`
-    ]
-    
-    return descriptions[hash % descriptions.length]
-  }
-
-  const loadSignals = async () => {
+  // Load user data and signals - memoized to prevent excessive calls
+  const loadSignalsData = useCallback(async () => {
     try {
-      console.log('[SignalsPage] Loading signals from server-side API...')
-      const response = await fetch('/api/signals')
-      const data = await response.json()
+      if (!isRefreshing) setIsLoading(true)
+      setError(null)
       
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to load signals')
+      const currentSessionId = getSessionId() || 'tm-alex-chen'
+      setSessionId(currentSessionId)
+      
+      // Load contacts for signal sending - now with intelligent caching
+      const allEvents = signalsStore.getAll()
+      const bondedContacts = getBondedContactsFromHCS(allEvents, currentSessionId)
+      setContacts(bondedContacts)
+      
+      // Web3-style client-side HCS asset collection query
+      const { hcsAssetCollection } = await import('@/lib/services/HCSAssetCollectionService')
+      const assets = await hcsAssetCollection.getUserCollection(currentSessionId)
+      
+      setMySignals(assets)
+      console.log(`[GenZSignals] ✅ Loaded ${assets.length} assets from HCS`)
+      
+      // Show first-time guide if no signals
+      if (mySignals.length === 0 && contacts.length === 0) {
+        setShowFirstTimeGuide(true)
       }
       
-      const enhancedSignals: EnhancedSignal[] = data.signals.map((signal: SignalEvent) => {
-        return {
-          ...signal,
-          firstName: getFirstName(signal.actor),
-          onlineStatus: getOnlineStatus(signal.id || ''),
-          eventDescription: getEventDescription(signal)
-        }
-      })
-      
-      setSignals(enhancedSignals)
-      setLoading(false)
-      
-      console.log(`[SignalsPage] Loaded ${enhancedSignals.length} enhanced signals from server API`)
-    } catch (err) {
-      console.error(err)
-      setLoading(false)
-      toast.error('Failed to load signals data')
+      // Only log if we actually loaded data, not from cache
+      console.log(`[GenZSignals] ✅ Loaded ${mySignals.length} signals, ${contacts.length} contacts`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load signals data'
+      console.error('[GenZSignals] ❌ Error:', error)
+      setError(message)
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
     }
-  }
+  }, [isRefreshing, mySignals.length, contacts.length])
 
-  const { bind, isPulling, distance } = usePullToRefresh(loadSignals, 70)
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    await loadSignalsData()
+  }, [loadSignalsData])
 
   useEffect(() => {
-    loadSignals()
-    const interval = setInterval(loadSignals, 30000)
-    return () => clearInterval(interval)
+    loadSignalsData()
+    const unsubscribe = signalsStore.subscribe(loadSignalsData)
+    return unsubscribe
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const getStatusColor = (status: 'online' | 'offline' | 'idle') => {
-    switch (status) {
-      case 'online': return 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
-      case 'idle': return 'bg-yellow-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
-      case 'offline': return 'bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+  const handleSignalTypeSelect = (signalType: SignalType) => {
+    setSelectedSignalType(signalType)
+    setCurrentView('minting')
+  }
+
+  const handleMintComplete = (signal: SignalInstance) => {
+    try {
+      setRecentMints(prev => [signal, ...prev])
+      setCurrentView('dashboard')
+      setSelectedSignalType(null)
+      setError(null)
+      setMintSuccess(signal)
+      
+      // Enhanced success feedback
+      toast.success('🎉 Signal Created!', {
+        description: `${signal.metadata.category} signal sent successfully!`,
+        duration: 4000
+      })
+      
+      // Reload data to show new signal
+      setTimeout(() => loadSignalsData(), 1000)
+    } catch (err) {
+      setError('Failed to complete signal creation')
     }
   }
 
-  const getSignalIcon = (type: string) => {
-    switch (type) {
-      case 'CONTACT_REQUEST':
-      case 'CONTACT_ACCEPT':
-        return <Users className="w-4 h-4" />
-      case 'TRUST_ALLOCATE':
-        return <Shield className="w-4 h-4" />
-      case 'RECOGNITION_MINT':
-        return <Trophy className="w-4 h-4" />
-      default:
-        return <Activity className="w-4 h-4" />
-    }
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard')
+    setSelectedSignalType(null)
   }
 
-  const getSignalColor = (type: string) => {
-    switch (type) {
-      case 'CONTACT_REQUEST':
-      case 'CONTACT_ACCEPT':
-        return 'from-blue-500 to-cyan-500'
-      case 'TRUST_ALLOCATE':
-        return 'from-purple-500 to-pink-500'
-      case 'RECOGNITION_MINT':
-        return 'from-yellow-500 to-orange-500'
-      default:
-        return 'from-slate-500 to-gray-500'
-    }
-  }
-
-  const filteredSignals = selectedTab === 'feed' ? signals.filter(signal => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      return signal.firstName.toLowerCase().includes(query) || 
-             signal.eventDescription.toLowerCase().includes(query)
-    }
-    return true
-  }) : []
-
+  const stats = useMemo(() => ({
+    collected: mySignals.length,
+    sent: recentMints.length,
+    connections: contacts.length,
+    rarities: [...new Set(mySignals.map(s => s.metadata.rarity))].length
+  }), [mySignals.length, recentMints.length, contacts.length, mySignals])
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-6" {...bind}>
-      {/* Mobile Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-xl font-medium text-white tracking-tight">
-          Network Signals
-        </h1>
-        <p className="text-white/60 text-sm">Stay connected with your network</p>
-      </div>
-
-      {/* Pull indicator */}
-      {isPulling && (
-        <div className="flex items-center justify-center text-xs text-white/60 -mt-2">
-          <RotateCw className="w-3 h-3 mr-1 animate-spin" />
-          Refreshing…
-        </div>
-      )}
-
-      {/* Mobile Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
-        <Input
-          placeholder="Search signals..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 py-3 bg-white/5 border-white/10 text-white placeholder-white/40 focus:border-[#00F6FF]/50 rounded-lg text-sm"
-        />
-      </div>
-
-      {/* Mobile Tabs */}
-      <div className="grid grid-cols-2 bg-gradient-to-r from-slate-800/60 to-slate-900/60 border-2 border-white/20 rounded-lg p-1 gap-1 shadow-[0_0_20px_rgba(255,255,255,0.08)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSelectedTab('feed')}
-          className={`py-3 rounded-md transition-all duration-300 text-sm ${
-            selectedTab === 'feed'
-              ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
-              : 'text-white/60 hover:text-white/90'
-          }`}
-        >
-          <Activity className="w-4 h-4 mr-1" />
-          Feed
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSelectedTab('tokens')}
-          className={`py-3 rounded-md transition-all duration-300 text-sm ${
-            selectedTab === 'tokens'
-              ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
-              : 'text-white/60 hover:text-white/90'
-          }`}
-        >
-          <Trophy className="w-4 h-4 mr-1" />
-          My Tokens
-        </Button>
-      </div>
-
-      {/* Content Area */}
-      <div className="space-y-3">
-        {selectedTab === 'feed' ? (
-          // Feed View
-          loading ? (
-            <div className="flex justify-center py-12">
-              <div className="text-center space-y-4">
-                <div className="w-12 h-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-[#00F6FF]"></div>
-                <p className="text-white/60">Loading network activity...</p>
-              </div>
-            </div>
-          ) : filteredSignals.length === 0 ? (
-            <div className="text-center py-12">
-              <Activity className="w-16 h-16 mx-auto mb-4 text-white/30" />
-              <h3 className="text-white/80 text-xl font-medium mb-2">No signals found</h3>
-              <p className="text-white/50">Try adjusting your search or check back later</p>
-            </div>
-          ) : (
-            filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/15 backdrop-blur-sm hover:border-[#00F6FF]/40 hover:shadow-[0_0_15px_rgba(0,246,255,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#00F6FF]/10 hover:before:to-[#00F6FF]/10">
-                {/* Compact Feed Item */}
-                <div className="flex items-center gap-2">
-                  {/* Small Avatar with status */}
-                  <div className="relative">
-                    <Avatar className="w-7 h-7">
-                      <AvatarFallback className={`bg-gradient-to-br ${getSignalColor(signal.type)} text-white font-medium text-xs`}>
-                        {signal.firstName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
-                  </div>
-
-                  {/* Signal Info - Compact */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-white text-xs truncate">{signal.firstName}</span>
-                      <div className={`p-0.5 rounded-full bg-gradient-to-br ${getSignalColor(signal.type)}`}>
-                        {getSignalIcon(signal.type)}
-                      </div>
-                    </div>
-                    <p className="text-white/70 text-xs truncate">{signal.eventDescription}</p>
-                  </div>
-                  
-                  <span className="text-white/40 text-xs flex-shrink-0">
-                    {new Date(signal.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-              </div>
-            ))
-          )
-        ) : (
-          // My Tokens View - NFT Style Wallet
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <h3 className="text-lg font-semibold text-white mb-1">My Recognition Collection</h3>
-              <p className="text-white/60 text-sm">{userTokens.length} professional tokens earned</p>
-            </div>
+    <div className="min-h-screen bg-ink">
+      <NetworkStatusIndicator />
+      
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+          {/* Header */}
+          <div className="text-center">
+            <GenZHeading level={1} className="flex items-center justify-center gap-2">
+              <Sparkles className="w-6 h-6 text-pri-500 animate-breathe-glow" />
+              {currentView === 'dashboard' ? 'Signals' : 
+               currentView === 'selector' ? 'Mint Recognition' : 
+               currentView === 'minting' ? 'Mint Recognition' : 'My Props'}
+            </GenZHeading>
             
-            {userTokens.map((token) => {
-              const getCategoryColor = (category: string) => {
-                switch (category) {
-                  case 'leadership': return { bg: 'from-orange-500/20 to-orange-600/10', border: 'border-orange-400/30', text: 'text-orange-400' }
-                  case 'knowledge': return { bg: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-400/30', text: 'text-emerald-400' }
-                  case 'execution': return { bg: 'from-purple-500/20 to-purple-600/10', border: 'border-purple-400/30', text: 'text-purple-400' }
-                  default: return { bg: 'from-[#00F6FF]/20 to-cyan-500/10', border: 'border-[#00F6FF]/30', text: 'text-[#00F6FF]' }
-                }
-              }
-              
-              const colors = getCategoryColor(token.category)
-              
-              return (
-                <div key={token.id} className={`bg-gradient-to-br from-slate-800/60 to-slate-900/50 ${colors.bg} border-2 ${colors.border} rounded-xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 shadow-[0_0_25px_rgba(0,0,0,0.3)] hover:shadow-[0_0_35px_rgba(0,0,0,0.4)] relative before:absolute before:inset-0 before:rounded-xl before:p-[1px] before:bg-gradient-to-r before:${colors.border.replace('border-', 'from-').replace('/30', '/20')} before:via-transparent before:to-${colors.border.replace('border-', '').replace('/30', '/20')} before:-z-10 before:animate-pulse`}>
-                  <div className="flex items-center gap-4">
-                    {/* Left 2/3: Token Info */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium bg-white/10 ${colors.text} border ${colors.border}`}>
-                          {token.category.toUpperCase()} SIGNAL
-                        </div>
+            {currentView === 'dashboard' && (
+              <GenZText className="text-lg text-pri-400 font-medium text-center">
+                Real props between real friends
+              </GenZText>
+            )}
+          </div>
+
+          {/* First Time Guide */}
+          {showFirstTimeGuide && currentView === 'dashboard' && (
+            <ContextualGuide
+              title="Welcome to Signals! 🚀"
+              message="Create collectible recognition tokens to celebrate achievements and build your reputation."
+              tip="Start by creating your first signal or connecting with friends!"
+              actionText="Create First Signal"
+              onAction={() => setCurrentView('selector')}
+              onDismiss={() => setShowFirstTimeGuide(false)}
+              showOnce
+              storageKey="first-signals"
+            />
+          )}
+
+          {/* Error State */}
+          {error && (
+            <ProfessionalError
+              message={error}
+              onAction={handleRefresh}
+              actionText="Try Again"
+              variant="error"
+              dismissible
+              onDismiss={() => setError(null)}
+            />
+          )}
+
+          {/* Success State */}
+          {mintSuccess && (
+            <ProfessionalSuccess
+              title="Signal Created! 🎉"
+              message={`Your ${mintSuccess.metadata.category} signal was successfully created`}
+              details={[
+                `Sent to: ${mintSuccess.recipient_pub}`,
+                `Rarity: ${mintSuccess.metadata.rarity}`,
+                'Now available in their collection'
+              ]}
+              autoHide
+              hideDelay={6000}
+              onHide={() => setMintSuccess(null)}
+            />
+          )}
+
+          {/* Loading State */}
+          {isLoading ? (
+            <ProfessionalLoading 
+              variant="initial"
+              message="Loading signals..."
+              submessage="Syncing from HCS network"
+            />
+          ) : (
+            <div className="space-y-4">
+              {/* Dashboard View */}
+              {currentView === 'dashboard' && (
+                <div className="space-y-6">
+                  {/* Feed Tabs */}
+                  <GenZCard variant="glass" className="p-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <GenZButton variant="boost" size="sm" className="font-bold" glow>
+                        Friends
+                      </GenZButton>
+                      <GenZButton variant="ghost" size="sm" className="font-bold">
+                        Everyone
+                      </GenZButton>
+                    </div>
+                  </GenZCard>
+                  
+                  {/* Live Props Feed */}
+                  <RecentActivity recentMints={recentMints} showTitle={false} />
+                  
+                  {/* Empty State */}
+                  {recentMints.length === 0 && (
+                    <GenZCard variant="glass" className="p-6 text-center">
+                      <div className="text-4xl mb-3">🌟</div>
+                      <GenZText className="mb-2">No recent props activity</GenZText>
+                      <GenZText size="sm" dim>Send your first props to get the feed started!</GenZText>
+                    </GenZCard>
+                  )}
+                  
+                  {/* Stats Overview (moved down) */}
+                  <GenZCard variant="glass" className="p-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-boost-400 mb-1">{stats.collected}</div>
+                        <GenZText size="sm" dim>My Props</GenZText>
                       </div>
-                      
-                      <h4 className="font-bold text-white text-sm">{token.name}</h4>
-                      <p className="text-white/70 text-xs line-clamp-2">{token.description}</p>
-                      
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-white/50">From {token.receivedFrom}</span>
-                        <span className={`font-semibold ${colors.text}`}>{token.trustValue} trust</span>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-pri-400 mb-1">{stats.sent}</div>
+                        <GenZText size="sm" dim>Sent</GenZText>
                       </div>
                     </div>
                     
-                    {/* Right 1/3: NFT Badge */}
-                    <div className="flex-shrink-0">
-                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${colors.bg} border-2 ${colors.border} flex items-center justify-center shadow-lg`}>
-                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center`}>
-                          <Trophy className={`w-6 h-6 ${colors.text}`} />
-                        </div>
+                    <div className="flex justify-center gap-4">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-sec-400 mb-1">{stats.connections}</div>
+                        <GenZText size="sm" dim>Friends</GenZText>
                       </div>
-                      <div className="text-center mt-1">
-                        <span className="text-white/40 text-xs">
-                          {new Date(token.receivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-accent-400 mb-1">{stats.rarities}</div>
+                        <GenZText size="sm" dim>Rarities</GenZText>
                       </div>
                     </div>
-                  </div>
+                  </GenZCard>
+
+                  {/* Quick Actions */}
+                  <GenZCard variant="glass" className="p-4">
+                    <GenZHeading level={4} className="mb-4 text-center">Quick Actions</GenZHeading>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <GenZButton 
+                        variant="boost" 
+                        className="h-20 flex-col gap-2" 
+                        glow
+                        onClick={() => setCurrentView('selector')}
+                      >
+                        <Zap className="w-6 h-6" />
+                        <span className="text-sm">Mint Recognition</span>
+                      </GenZButton>
+                      
+                      <GenZButton 
+                        variant="primary" 
+                        className="h-20 flex-col gap-2"
+                        onClick={() => setCurrentView('collection')}
+                      >
+                        <Wallet className="w-6 h-6" />
+                        <span className="text-sm">My Props</span>
+                      </GenZButton>
+                    </div>
+                    
+                    {contacts.length > 0 && (
+                      <GenZButton 
+                        variant="ghost" 
+                        className="w-full mt-3" 
+                        onClick={() => router.push('/contacts')}
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        View Friends ({contacts.length})
+                      </GenZButton>
+                    )}
+                  </GenZCard>
+
+                  {/* Trust Agent Suggestion */}
+                  <GenZCard variant="glass" className="p-4 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-pri-500/10 to-sec-500/10 opacity-50" />
+                    <div className="relative flex items-center gap-3">
+                      <PurpleFlame size="md" active={true} />
+                      <div className="flex-1">
+                        <GenZText className="font-medium mb-1 text-pri-500">
+                          Trust Agent
+                        </GenZText>
+                        <GenZText size="sm">
+                          {contacts.length === 0 
+                            ? "Add friends to start sending props"
+                            : mySignals.length === 0
+                            ? "Send your first props to friends"
+                            : "Keep the props flowing with your crew"}
+                        </GenZText>
+                      </div>
+                      <GenZButton size="sm" variant="boost" glow onClick={() => setCurrentView('selector')}>
+                        <Sparkles className="w-3 h-3" />
+                      </GenZButton>
+                    </div>
+                  </GenZCard>
+
+                  {/* Recent Activity */}
+                  {(recentMints.length > 0 || mySignals.length > 0) && (
+                    <RecentActivity recentMints={recentMints} />
+                  )}
                 </div>
-              )
-            })}
-            
-            {userTokens.length === 0 && (
-              <div className="text-center py-12">
-                <Trophy className="w-16 h-16 mx-auto mb-4 text-white/30" />
-                <h3 className="text-white/80 text-xl font-medium mb-2">No tokens yet</h3>
-                <p className="text-white/50">Earn recognition from your network to build your collection</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+
+              {/* Signal Type Selector */}
+              {currentView === 'selector' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <GenZButton size="sm" variant="ghost" onClick={handleBackToDashboard}>
+                      ← Back
+                    </GenZButton>
+                    <GenZChip variant="boost">
+                      Choose Signal Type
+                    </GenZChip>
+                  </div>
+                  
+                  <SignalTypeSelector 
+                    onSelect={handleSignalTypeSelect}
+                    selectedType={selectedSignalType}
+                  />
+                </div>
+              )}
+
+              {/* Minting Flow */}
+              {currentView === 'minting' && selectedSignalType && (
+                <MintSignalFlow
+                  selectedType={selectedSignalType}
+                  onBack={handleBackToDashboard}
+                  onComplete={handleMintComplete}
+                />
+              )}
+
+              {/* Collection View */}
+              {currentView === 'collection' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <GenZButton size="sm" variant="ghost" onClick={handleBackToDashboard}>
+                      ← Back
+                    </GenZButton>
+                    <GenZChip variant="primary">
+                      {mySignals.length} signals
+                    </GenZChip>
+                  </div>
+                  
+                  {mySignals.length === 0 ? (
+                    <GenZCard variant="glass" className="p-8 text-center">
+                      <div className="text-6xl mb-4 animate-float">📦</div>
+                      <GenZHeading level={3} className="mb-2">No activity yet</GenZHeading>
+                      <GenZText className="mb-4">Send your first props to get the feed started!</GenZText>
+                      <GenZButton variant="boost" glow onClick={() => setCurrentView('selector')}>
+                        <Zap className="w-4 h-4 mr-2" />
+                        Send your first props
+                      </GenZButton>
+                    </GenZCard>
+                  ) : (
+                    <div className="text-center">
+                      <GenZButton 
+                        variant="outline"
+                        onClick={() => router.push('/signals-trading')}
+                        className="border-pri-500/30 text-pri-500 hover:bg-pri-500/10"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Full Collection
+                      </GenZButton>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </PullToRefresh>
     </div>
   )
 }
