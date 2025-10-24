@@ -30,16 +30,45 @@ export default function TabsLayout({
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // TODO: Wire to real auth/token detection
-  // For now, stub with default values
+  // DEMO MODE: Uncomment below to test token-gated modes
   useEffect(() => {
-    // Check auth status (replace with real auth check)
     const checkAuth = async () => {
-      // Placeholder - wire to Magic.link or session cookies
-      setIsAuthenticated(false)
+      // DEMO: Set to true to see token-gated features
+      setIsAuthenticated(true)
       
-      // Placeholder - wire to getUserTokens when authenticated
-      // const tokens = await getUserTokens(wallet)
-      // setUserTokens(tokens)
+      // DEMO: Uncomment ONE of these to test different modes:
+      
+      // Test Collector mode (10+ NFTs)
+      setUserTokens({
+        nfts: Array.from({ length: 10 }, (_, i) => `nft-${i}`),
+        badges: [],
+        memberships: [],
+        trustLevel: 5
+      })
+      
+      // Test Civic Leader mode (trust 9/9)
+      // setUserTokens({
+      //   nfts: [],
+      //   badges: [],
+      //   memberships: [],
+      //   trustLevel: 9
+      // })
+      
+      // Test VIP mode (legendary NFT)
+      // setUserTokens({
+      //   nfts: ['networking-goat@1'],
+      //   badges: [],
+      //   memberships: [],
+      //   trustLevel: 5
+      // })
+      
+      // Test Premium mode (PRO membership)
+      // setUserTokens({
+      //   nfts: [],
+      //   badges: [],
+      //   memberships: ['PRO_ANNUAL'],
+      //   trustLevel: 5
+      // })
     }
     checkAuth()
   }, [])
