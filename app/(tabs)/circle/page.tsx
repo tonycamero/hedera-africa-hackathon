@@ -521,65 +521,10 @@ export default function InnerCirclePage() {
                     </GenZButton>
                   </div>
                 </GenZCard>
-                ))}
-                
-                {/* Add 3 Challenge - Show only 3 empty slots */}
-                {availableSlots > 0 && (
-                  <>
-                    {/* Challenge Header */}
-                    <div className="text-center py-2 border-t border-white/10 mt-2">
-                      <div className="text-xs text-[#00F6FF] font-medium">Sprint Challenge</div>
-                      <div className="text-xs text-white/60 mt-1">Add 3 trusted members to strengthen your circle</div>
-                    </div>
-                    
-                    {/* Show up to 3 empty slots */}
-                    {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
-                      <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/30 to-slate-900/20 rounded-lg border-2 border-dashed border-[#00F6FF]/30 hover:border-[#00F6FF]/50 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-800/30 hover:shadow-[0_0_12px_rgba(0,246,255,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#00F6FF]/5 before:via-transparent before:to-[#00F6FF]/5 before:-z-10">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#00F6FF]/10 border border-[#00F6FF]/30 flex items-center justify-center">
-                            <Plus className="w-4 h-4 text-[#00F6FF]/60" />
-                          </div>
-                          <div>
-                            <div className="text-sm text-white/60">Slot {i + 1}</div>
-                            <div className="text-xs text-[#00F6FF]/60">Add trusted contact</div>
-                          </div>
-                        </div>
-                        
-                        <GenZButton
-                          size="sm"
-                          variant="boost"
-                          onClick={handleAddMember}
-                          className="h-7 px-3 text-xs"
-                        >
-                          Add
-                        </GenZButton>
-                      </div>
-                    ))}
-                    
-                    {/* Progress indicator if more than 3 slots available */}
-                    {availableSlots > 3 && (
-                      <div className="text-center py-2">
-                        <div className="text-xs text-white/40">
-                          +{availableSlots - 3} more slots available after completing this sprint
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              
-              {/* Stoic Guide Link */}
-              <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
-                <div className="text-center py-2 mt-2 border-t border-white/10">
-                  <div className="text-xs text-[#00F6FF]/80 hover:text-[#00F6FF] transition-all duration-300 cursor-pointer font-medium flex items-center justify-center gap-1">
-                    <span>→</span>
-                    <span>Who should I add?</span>
-                  </div>
-                </div>
-              </StoicGuideModal>
-            </>
-          )}
-        </GenZCard>
+                ))
+              )}
+            </div>
+          </div>
         </GenZModal>
 
         {/* Invite Actions Modal - Game-like UI */}
