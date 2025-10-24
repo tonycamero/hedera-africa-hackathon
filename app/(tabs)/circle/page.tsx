@@ -293,10 +293,10 @@ export default function InnerCirclePage() {
               variant="boost"
               glow
               onClick={handleAddMember}
-              className="w-full"
+              className="w-full border-2 border-white/20 hover:border-white/40"
             >
               <UserPlus className="w-5 h-5 mr-2" />
-              Add trusted member
+              Add to Circle
             </GenZButton>
           </div>
         </GenZCard>
@@ -314,7 +314,7 @@ export default function InnerCirclePage() {
                 onClick={() => setShowStoicGuide(true)}
                 variant="outline"
                 size="lg"
-                className="w-full mb-4 border-2 border-pri-500/40 hover:border-pri-500 text-pri-400 hover:text-pri-300"
+                className="w-full mb-4 border-2 border-white/30 hover:border-white/60 text-white/90 hover:text-white"
               >
                 💡 Who should I add?
               </GenZButton>
