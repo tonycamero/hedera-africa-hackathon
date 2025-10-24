@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus, Heart, Flame, Mail, Smartphone, Send, Copy } from "lucide-react"
+import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus } from "lucide-react"
 import type { BondedContact } from "@/lib/stores/signalsStore" // type only
 import { useHcsEvents } from "@/hooks/useHcsEvents"
 import { toLegacyEventArray } from "@/lib/services/HCSDataAdapter"
@@ -33,7 +33,6 @@ export default function InnerCirclePage() {
   const [sessionId, setSessionId] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [showContactSelection, setShowContactSelection] = useState(false)
-  const [showInviteActions, setShowInviteActions] = useState(false)
   const [showStoicGuide, setShowStoicGuide] = useState(false)
   
   // Professional state
@@ -152,44 +151,12 @@ export default function InnerCirclePage() {
 
   const handleAddMember = () => {
     if (availableContacts.length === 0) {
-      // Show invite options instead of error
-      setShowInviteActions(true)
+      toast.info('No contacts available', {
+        description: 'Go to Contacts page to connect with people first'
+      })
       return
     }
     setShowContactSelection(true)
-  }
-
-  const handleSMSInvite = () => {
-    const inviteText = `Join me on TrustMesh! Build your trust network and earn recognition tokens. Download: https://trustmesh.app/invite`
-    const smsUrl = `sms:?body=${encodeURIComponent(inviteText)}`
-    window.location.href = smsUrl
-    toast.success('SMS invite ready!', {
-      description: 'Choose a contact to send the invite'
-    })
-    setShowInviteActions(false)
-  }
-
-  const handleEmailInvite = () => {
-    const subject = 'Join me on TrustMesh!'
-    const body = `Hey! I'm building my trust network on TrustMesh and would love to connect with you.\n\nTrustMesh lets you:\n• Build your inner circle with trusted friends\n• Earn recognition tokens for your achievements\n• Share trust through your network\n\nJoin me: https://trustmesh.app/invite`
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    window.location.href = mailtoUrl
-    toast.success('Email invite ready!', {
-      description: 'Your email app will open with the invite'
-    })
-    setShowInviteActions(false)
-  }
-
-  const handleCopyInvite = async () => {
-    const inviteText = `Join me on TrustMesh! Build your trust network and earn recognition tokens. https://trustmesh.app/invite`
-    try {
-      await navigator.clipboard.writeText(inviteText)
-      toast.success('Invite link copied!', {
-        description: 'Share it anywhere you want'
-      })
-    } catch (err) {
-      toast.error('Failed to copy link')
-    }
   }
 
   const handleSelectContact = async (contactId: string, contactName: string) => {
@@ -346,33 +313,24 @@ export default function InnerCirclePage() {
                   Who should I add?
                 </button>
                 
-                {/* Action buttons for building circle */}
-                <div className="space-y-3">
-                  {/* Add from existing contacts */}
-                  {availableContacts.length > 0 && (
-                    <GenZButton 
-                      onClick={() => setShowContactSelection(true)}
-                      variant="boost"
-                      size="lg"
-                      glow
-                      className="w-full py-4"
-                    >
-                      <UserPlus className="w-5 h-5 mr-2" />
-                      Choose from Friends ({availableContacts.length})
-                    </GenZButton>
-                  )}
-                  
-                  {/* Invite new people */}
+                {/* Action button for building circle - only from existing contacts */}
+                {availableContacts.length > 0 ? (
                   <GenZButton 
-                    onClick={() => setShowInviteActions(true)}
-                    variant="outline"
+                    onClick={() => setShowContactSelection(true)}
+                    variant="boost"
                     size="lg"
-                    className="w-full py-4 border-pri-500/30 text-pri-500 hover:bg-pri-500/10"
+                    glow
+                    className="w-full py-4"
                   >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Invite New People
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Choose from Contacts ({availableContacts.length})
                   </GenZButton>
-                </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <GenZText dim className="mb-2">No contacts available to add</GenZText>
+                    <GenZText size="sm" dim>Go to Contacts page to connect with people first</GenZText>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -436,31 +394,18 @@ export default function InnerCirclePage() {
                             <GenZText>Open spot #{i + 1}</GenZText>
                           </div>
                           
-                          <div className="flex gap-2">
-                            {/* Add from existing contacts button */}
-                            {availableContacts.length > 0 && (
-                              <GenZButton 
-                                size="sm"
-                                variant="boost"
-                                onClick={() => setShowContactSelection(true)}
-                                className="animate-pulse-glow"
-                              >
-                                <UserPlus className="w-3 h-3 mr-1" />
-                                Add
-                              </GenZButton>
-                            )}
-                            
-                            {/* Invite new people button */}
+                          {/* Add from existing contacts button only */}
+                          {availableContacts.length > 0 && (
                             <GenZButton 
                               size="sm"
-                              variant={availableContacts.length > 0 ? "outline" : "boost"}
-                              onClick={() => setShowInviteActions(true)}
-                              className={availableContacts.length === 0 ? "animate-pulse-glow" : "border-pri-500/30"}
+                              variant="boost"
+                              onClick={() => setShowContactSelection(true)}
+                              className="animate-pulse-glow"
                             >
-                              <Plus className="w-3 h-3 mr-1" />
-                              Invite
+                              <UserPlus className="w-3 h-3 mr-1" />
+                              Add
                             </GenZButton>
-                          </div>
+                          )}
                         </div>
                       </GenZCard>
                     ))}
@@ -531,98 +476,6 @@ export default function InnerCirclePage() {
                 })
               )}
             </div>
-          </div>
-        </GenZModal>
-
-        {/* Invite Actions Modal - Game-like UI */}
-        <GenZModal 
-          isOpen={showInviteActions} 
-          onClose={() => setShowInviteActions(false)}
-          title="Recruit New Members"
-        >
-          <div className="space-y-6">
-            {/* Header with game-like messaging */}
-            <div className="text-center">
-              <div className="text-4xl mb-2">🎯</div>
-              <GenZText className="mb-2">Your inner circle needs more trusted allies!</GenZText>
-              <GenZText size="sm" dim>
-                Invite friends and family to join your network. They'll become part of your trust ecosystem.
-              </GenZText>
-            </div>
-
-            {/* Invite Action Cards - Game-style */}
-            <div className="space-y-3">
-              {/* SMS Invite */}
-              <GenZCard 
-                variant="glass" 
-                className="p-4 cursor-pointer hover:bg-pri-500/5 hover:border-pri-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                onClick={handleSMSInvite}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 flex items-center justify-center">
-                    <Smartphone className="w-6 h-6 text-green-400" />
-                  </div>
-                  <div className="flex-1">
-                    <GenZText className="font-semibold mb-1">SMS Invite</GenZText>
-                    <GenZText size="sm" dim>Send a text message invite</GenZText>
-                  </div>
-                  <Send className="w-4 h-4 text-pri-500 opacity-60" />
-                </div>
-              </GenZCard>
-
-              {/* Email Invite */}
-              <GenZCard 
-                variant="glass" 
-                className="p-4 cursor-pointer hover:bg-pri-500/5 hover:border-pri-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                onClick={handleEmailInvite}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <Mail className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <GenZText className="font-semibold mb-1">Email Invite</GenZText>
-                    <GenZText size="sm" dim>Send a detailed email invitation</GenZText>
-                  </div>
-                  <Send className="w-4 h-4 text-pri-500 opacity-60" />
-                </div>
-              </GenZCard>
-
-              {/* Copy Link */}
-              <GenZCard 
-                variant="glass" 
-                className="p-4 cursor-pointer hover:bg-pri-500/5 hover:border-pri-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                onClick={handleCopyInvite}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 flex items-center justify-center">
-                    <Copy className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <GenZText className="font-semibold mb-1">Copy Invite Link</GenZText>
-                    <GenZText size="sm" dim>Share on social media or messaging apps</GenZText>
-                  </div>
-                  <Copy className="w-4 h-4 text-pri-500 opacity-60" />
-                </div>
-              </GenZCard>
-            </div>
-
-            {/* Pro Tips Section */}
-            <GenZCard variant="glass" className="p-4 bg-sec-500/5 border-sec-500/20">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sec-500/20 to-sec-600/20 border border-sec-500/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm">💡</span>
-                </div>
-                <div>
-                  <GenZText className="font-medium mb-2">Pro Tips for Building Your Circle:</GenZText>
-                  <div className="space-y-1 text-xs">
-                    <GenZText size="sm" dim>• Start with people you trust most</GenZText>
-                    <GenZText size="sm" dim>• Quality matters more than quantity</GenZText>
-                    <GenZText size="sm" dim>• They'll earn recognition tokens too!</GenZText>
-                  </div>
-                </div>
-              </div>
-            </GenZCard>
           </div>
         </GenZModal>
 
