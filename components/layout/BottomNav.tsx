@@ -18,7 +18,7 @@ export function BottomNav({
 
   const tabs = [
     { id: 'contacts', label: 'Friends', path: route('/contacts'), icon: Users },
-    { id: 'inner-circle', label: 'Circle', path: route('/inner-circle'), icon: Circle },
+    { id: 'circle', label: 'Circle', path: route('/circle'), icon: Circle },
     {
       id: 'signals',
       label: 'Signals',

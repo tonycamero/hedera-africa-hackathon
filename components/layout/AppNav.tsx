@@ -19,9 +19,9 @@ export function AppNav() {
       icon: Users,
     },
     {
-      id: "inner-circle",
+      id: "circle",
       label: "Circle",
-      path: "/inner-circle",
+      path: "/circle",
       icon: Circle,
     },
     {
