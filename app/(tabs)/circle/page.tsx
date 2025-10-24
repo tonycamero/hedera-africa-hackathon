@@ -34,6 +34,7 @@ export default function InnerCirclePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showContactSelection, setShowContactSelection] = useState(false)
   const [showInviteActions, setShowInviteActions] = useState(false)
+  const [showStoicGuide, setShowStoicGuide] = useState(false)
   
   // Professional state
   const [error, setError] = useState<string | null>(null)
@@ -624,6 +625,14 @@ export default function InnerCirclePage() {
             </GenZCard>
           </div>
         </GenZModal>
+
+        {/* Stoic Guide Modal */}
+        <StoicGuideModal
+          isOpen={showStoicGuide}
+          onClose={() => setShowStoicGuide(false)}
+          availableSlots={trustStats.maxSlots - trustStats.allocatedOut}
+          onAddMember={handleAddMember}
+        />
 
       </div>
     </div>
