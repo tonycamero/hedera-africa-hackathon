@@ -338,7 +338,12 @@ export default function InnerCirclePage() {
             {innerCircleMembers.length === 0 ? (
             <div className="space-y-6">
               <div className="text-center py-6">
-                <GenZHeading level={4} className="mb-4">Who should I add?</GenZHeading>
+                <button
+                  onClick={() => setShowStoicGuide(true)}
+                  className="text-pri-400 hover:text-pri-300 text-base font-medium mb-4 underline decoration-dotted underline-offset-4 transition-colors"
+                >
+                  Who should I add?
+                </button>
                 
                 {/* Action buttons for building circle */}
                 <div className="space-y-3">
