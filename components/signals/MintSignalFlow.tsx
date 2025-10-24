@@ -133,7 +133,7 @@ export function MintSignalFlow({ selectedType, onBack, onComplete }: MintSignalF
       case 'recipient':
         return recipient.trim().length > 0
       case 'inscription':
-        return inscription.trim().length > 10
+        return true // Inscription is optional
       case 'preview':
         return true
       default:
@@ -258,20 +258,20 @@ export function MintSignalFlow({ selectedType, onBack, onComplete }: MintSignalF
         {step === 'inscription' && (
           <div className="space-y-4">
             <div>
-              <GenZHeading level={4} className="mb-2">Add Inscription</GenZHeading>
-              <GenZText size="sm" dim>Describe why {recipient} deserves this {selectedType.category} signal</GenZText>
+              <GenZHeading level={4} className="mb-2">Write Props (Optional)</GenZHeading>
+              <GenZText size="sm" dim>Why does {recipient} deserve this {selectedType.category} recognition?</GenZText>
             </div>
 
             <div className="space-y-3">
               <Textarea
-                placeholder={`Example: "${selectedType.example_usage || `Amazing ${selectedType.category.toLowerCase()} moment!`}"`}
+                placeholder={`Be specific. What did they do? What context? (optional, max 280)`}
                 value={inscription}
                 onChange={(e) => setInscription(e.target.value)}
                 className="min-h-24"
                 maxLength={280}
               />
               <div className="flex justify-between text-xs text-gray-500">
-                <span>Make it personal and specific</span>
+                <span>This message is permanently attached to the NFT</span>
                 <span>{inscription.length}/280</span>
               </div>
             </div>

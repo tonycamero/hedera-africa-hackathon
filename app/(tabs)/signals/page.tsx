@@ -140,8 +140,8 @@ export default function SignalsPage() {
             <GenZHeading level={1} className="flex items-center justify-center gap-2">
               <Sparkles className="w-6 h-6 text-pri-500 animate-breathe-glow" />
               {currentView === 'dashboard' ? 'Signals' : 
-               currentView === 'selector' ? 'Send Props' : 
-               currentView === 'minting' ? 'Send Props' : 'My Props'}
+               currentView === 'selector' ? 'Mint Recognition' : 
+               currentView === 'minting' ? 'Mint Recognition' : 'My Props'}
             </GenZHeading>
             
             {currentView === 'dashboard' && (
@@ -266,7 +266,7 @@ export default function SignalsPage() {
                         onClick={() => setCurrentView('selector')}
                       >
                         <Zap className="w-6 h-6" />
-                        <span className="text-sm">Send Props</span>
+                        <span className="text-sm">Mint Recognition</span>
                       </GenZButton>
                       
                       <GenZButton 

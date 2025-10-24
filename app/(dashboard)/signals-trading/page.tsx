@@ -1,6 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, Suspense } from 'react'
+
+// Disable static generation for this page (uses client-side data)
+export const dynamic = 'force-dynamic'
 import { SignalAsset, SignalType } from '@/lib/types/signals-collectible'
 import { GlassTradingCard } from '@/components/signals/GlassTradingCard'
 import { TradingSpotlight } from '@/components/signals/TradingSpotlight'
@@ -10,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Database, Zap, Sparkles } from 'lucide-react'
 import '@/styles/glass-cards.css'
 
-export default function SignalsTradingView() {
+function SignalsTradingViewInner() {
   const [types, setTypes] = useState<SignalType[]>([])
   const [owned, setOwned] = useState<SignalAsset[]>([])
   const [selected, setSelected] = useState<{ asset: SignalAsset; type: SignalType } | null>(null)
@@ -226,5 +229,17 @@ export default function SignalsTradingView() {
         </div>
       </div>
     </>
+  )
+}
+
+export default function SignalsTradingView() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[radial-gradient(120%_80%_at_10%_0%,#0d0e12_0%,#050509_60%,#030306_100%)] text-white flex items-center justify-center">
+        <div className="text-6xl animate-pulse">🎴</div>
+      </div>
+    }>
+      <SignalsTradingViewInner />
+    </Suspense>
   )
 }

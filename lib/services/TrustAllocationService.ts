@@ -62,7 +62,7 @@ export class TrustAllocationService {
         opId
       }
 
-      // Submit to HCS via trust submission API
+      // Submit to HCS via trust submission API (match Envelope format)
       const response = await fetch(`${this.baseUrl}/submit`, {
         method: 'POST',
         headers: {
@@ -71,18 +71,16 @@ export class TrustAllocationService {
         body: JSON.stringify({
           type: 'TRUST_ALLOCATE',
           from: sessionId,
-          to: contactId,
-          data: {
+          nonce: Date.now(),
+          ts: Math.floor(Date.now() / 1000),
+          payload: {
+            to: contactId,
             level,
             trustType: 'professional',
             relationship: 'trusted_contact',
             context: `Trust allocation level ${level}`,
             stakeAmount,
             opId
-          },
-          metadata: {
-            source: 'trust_allocation_service',
-            timestamp: allocation.allocatedAt
           }
         })
       })
@@ -140,14 +138,12 @@ export class TrustAllocationService {
         body: JSON.stringify({
           type: 'TRUST_REVOKE',
           from: sessionId,
-          to: contactId,
-          data: {
+          nonce: Date.now(),
+          ts: Math.floor(Date.now() / 1000),
+          payload: {
+            to: contactId,
             reason: 'manual_revocation',
             opId
-          },
-          metadata: {
-            source: 'trust_allocation_service',
-            timestamp: new Date().toISOString()
           }
         })
       })
@@ -198,15 +194,13 @@ export class TrustAllocationService {
         body: JSON.stringify({
           type: 'TRUST_UPDATE',
           from: sessionId,
-          to: contactId,
-          data: {
+          nonce: Date.now(),
+          ts: Math.floor(Date.now() / 1000),
+          payload: {
+            to: contactId,
             level: newLevel,
             context: `Trust level updated to ${newLevel}`,
             opId
-          },
-          metadata: {
-            source: 'trust_allocation_service',
-            timestamp: new Date().toISOString()
           }
         })
       })

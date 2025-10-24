@@ -1,11 +1,14 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { signalsStore, type BondedContact } from '@/lib/stores/signalsStore'
 import { getBondedContactsFromHCS, getTrustLevelsPerContact } from '@/lib/services/HCSDataUtils'
 import { getSessionId } from '@/lib/session'
-import { SendSignalModal } from '@/components/SendSignalModal'
 import { toast } from 'sonner'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { MintSignalFlow } from '@/components/signals/MintSignalFlow'
+import { SignalTypeSelector } from '@/components/signals/SignalTypeSelector'
+import { SignalType } from '@/lib/types/signals-collectible'
 import { shareSignal } from "@/lib/utils/shareUtils"
 import { trackSignalSent } from '@/lib/services/GenZTelemetryService'
 import { GenZAddFriendModal } from '@/components/GenZAddFriendModal'
@@ -330,7 +333,7 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
             <div className="flex items-center gap-2">
               <GenZText size="sm" className="text-boost-400 font-medium">Bonded</GenZText>
               <span className="text-genz-text-dim">•</span>
-              <GenZText size="sm" dim>{friend.propsReceived || 0} props sent · {Math.floor(Math.random() * 5)} received</GenZText>
+              <GenZText size="sm" dim>{friend.propsReceived || 0} props sent</GenZText>
             </div>
           )}
         </div>
@@ -351,47 +354,6 @@ function FriendCard({ friend, onSignalClick, onAllocateTrust, showActivity = fal
               Trust
             </GenZButton>
           )}
-          
-          <GenZButton
-            size="sm"
-            variant="boost"
-            onClick={(e) => {
-              e.stopPropagation()
-              onSignalClick(friend)
-            }}
-            glow
-          >
-            <Zap className="w-3 h-3 mr-1" />
-            Props
-          </GenZButton>
-          
-          <GenZButton
-            size="sm"
-            variant="ghost"
-            className="w-8 h-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation()
-              // Share friend profile
-              const shareText = `Check out ${friend.name} on TrustMesh! 🔥`
-              const shareUrl = `${window.location.origin}/u/${friend.id}`
-              
-              if (navigator.share) {
-                navigator.share({ title: friend.name, text: shareText, url: shareUrl })
-              } else {
-                navigator.clipboard.writeText(`${shareText} ${shareUrl}`)
-                toast.success('Link copied! 🚀')
-              }
-            }}
-          >
-            <Share2 className="w-3 h-3" />
-          </GenZButton>
-          
-          <XMTPMessageButton
-            recipient={{
-              address: friend.id,
-              name: friend.name
-            }}
-          />
         </div>
       </div>
     </GenZCard>
@@ -499,19 +461,26 @@ export default function YourCrewPage() {
   const [isLoading, setIsLoading] = useState(true)
   
   // GenZ UI state (simplified)
-  const [sendSignalModalOpen, setSendSignalModalOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
   const [allocateTrustModalOpen, setAllocateTrustModalOpen] = useState(false)
   const [selectedContactForTrust, setSelectedContactForTrust] = useState<Friend | null>(null)
+  const [mintSheetOpen, setMintSheetOpen] = useState(false)
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
+  const [selectedSignalType, setSelectedSignalType] = useState<SignalType | null>(null)
+  const [showSignalSelector, setShowSignalSelector] = useState(true)
   
   // Professional state management
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(false)
   
-  // Professional data loading with enhanced error handling
-  const loadContacts = async () => {
+  // Track load sequence to prevent stale updates
+  const loadIdRef = useRef(0)
+  
+  // Professional data loading with enhanced error handling + race guards
+  const loadContacts = useCallback(async () => {
+    const myLoadId = ++loadIdRef.current
+    
     try {
       if (!isRefreshing) setIsLoading(true)
       setError(null)
@@ -534,24 +503,34 @@ export default function YourCrewPage() {
       
       const { contacts, trustData } = await Promise.race([loadPromise, timeoutPromise]) as any
       
-      setBondedContacts(contacts)
-      setTrustLevels(trustData)
-      
-      // Show first-time guide if no contacts
-      if (contacts.length === 0) {
-        setShowFirstTimeGuide(true)
+      // Only update if this is still the latest load (prevent stale updates)
+      if (myLoadId === loadIdRef.current) {
+        setBondedContacts(contacts)
+        setTrustLevels(trustData)
+        
+        // Show first-time guide if no contacts
+        if (contacts.length === 0) {
+          setShowFirstTimeGuide(true)
+        }
+        
+        console.log(`[GenZContacts] ✅ Loaded ${contacts.length} connections`)
+      } else {
+        console.log(`[GenZContacts] ⏭️ Skipping stale load ${myLoadId} (current: ${loadIdRef.current})`)
       }
-      
-      console.log(`[GenZContacts] ✅ Loaded ${contacts.length} connections`)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load your crew'
-      console.error('[GenZContacts] ❌ Error:', error)
-      setError(message)
+      // Only show error if this is still the latest load
+      if (myLoadId === loadIdRef.current) {
+        const message = error instanceof Error ? error.message : 'Failed to load your crew'
+        console.error('[GenZContacts] ❌ Error:', error)
+        setError(message)
+      }
     } finally {
-      setIsLoading(false)
-      setIsRefreshing(false)
+      if (myLoadId === loadIdRef.current) {
+        setIsLoading(false)
+        setIsRefreshing(false)
+      }
     }
-  }
+  }, [isRefreshing])
   
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -559,11 +538,23 @@ export default function YourCrewPage() {
   }
   
   useEffect(() => {
-
-    loadContacts()
-    const unsubscribe = signalsStore.subscribe(loadContacts)
-    return unsubscribe
-  }, [])
+    let active = true
+    
+    // Wrapper to check if still mounted
+    const safeLoad = async () => {
+      if (active) await loadContacts()
+    }
+    
+    safeLoad()
+    const unsubscribe = signalsStore.subscribe(safeLoad)
+    
+    return () => {
+      active = false
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
+  }, [loadContacts])
 
   // Convert HCS contacts to Friend format (no fake data)
   const friends: Friend[] = bondedContacts.map(contact => {
@@ -601,9 +592,16 @@ export default function YourCrewPage() {
   }
 
 
-  const handleSignalClick = (friend: Friend) => {
+  const handleSignalClick = async (friend: Friend) => {
     setSelectedFriend(friend)
-    setSendSignalModalOpen(true)
+    setShowSignalSelector(true) // Show selector first
+    setSelectedSignalType(null)
+    setMintSheetOpen(true)
+  }
+  
+  const handleSignalTypeSelect = (signalType: SignalType) => {
+    setSelectedSignalType(signalType)
+    setShowSignalSelector(false) // Move to mint flow
   }
 
   const handleAllocateTrustClick = (friend: Friend) => {
@@ -694,21 +692,51 @@ export default function YourCrewPage() {
         </div>
       </PullToRefresh>
       
-      {/* Send Signal Modal */}
-      {selectedFriend && (
-        <SendSignalModal 
-          isOpen={sendSignalModalOpen}
-          onClose={() => {
-            setSendSignalModalOpen(false)
-            setSelectedFriend(null)
-          }}
-          recipient={{
-            accountId: selectedFriend.id,
-            knsName: selectedFriend.name,
-            publicKey: '' // TODO: Get from contact data
-          }}
-        />
-      )}
+      {/* Modals */}
+      
+      {/* Mint Signal Bottom Sheet */}
+      <Sheet open={mintSheetOpen} onOpenChange={(open) => {
+        setMintSheetOpen(open)
+        if (!open) {
+          // Reset state when closing
+          setShowSignalSelector(true)
+          setSelectedSignalType(null)
+          setSelectedFriend(null)
+        }
+      }}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          {selectedFriend && (
+            <>
+              {showSignalSelector ? (
+                <div className="space-y-4">
+                  <SheetHeader>
+                    <SheetTitle className="text-center">
+                      Send Recognition to {selectedFriend.name}
+                    </SheetTitle>
+                  </SheetHeader>
+                  <SignalTypeSelector 
+                    onSelect={handleSignalTypeSelect}
+                    selectedType={selectedSignalType}
+                  />
+                </div>
+              ) : selectedSignalType ? (
+                <MintSignalFlow
+                  selectedType={selectedSignalType}
+                  onBack={() => setShowSignalSelector(true)}
+                  onComplete={() => {
+                    setMintSheetOpen(false)
+                    setSelectedFriend(null)
+                    setSelectedSignalType(null)
+                    setShowSignalSelector(true)
+                    toast.success('Recognition sent! 🎉')
+                    loadContacts() // Refresh
+                  }}
+                />
+              ) : null}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
       
       {/* Professional Add Contact Modal with Phone/Email Integration */}
       <AddContactModal>

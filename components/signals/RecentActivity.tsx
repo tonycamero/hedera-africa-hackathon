@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useHcsEvents } from '@/hooks/useHcsEvents'
-import { recognitionItemsToActivity } from './transform'
+import { signalsStore } from '@/lib/stores/signalsStore'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,10 +30,32 @@ interface RecentActivityProps {
 export function RecentActivity({ recentMints = [], showTitle = true }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
-  const recognition = useHcsEvents('recognition', 2500)
 
   useEffect(() => {
-    const live = recognitionItemsToActivity(recognition.items) as any as ActivityItem[]
+    // Read recognition mints from signalsStore (already populated by ingestor)
+    const recognitionEvents = signalsStore.getByType('RECOGNITION_MINT')
+    
+    const live = recognitionEvents.map((event, idx) => ({
+      id: event.id || `live_${idx}`,
+      type: 'mint' as const,
+      signal: {
+        instance_id: event.id || `sig_${idx}`,
+        type_id: event.metadata?.definitionId || 'unknown',
+        issuer_pub: event.actor,
+        recipient_pub: event.target || event.metadata?.to || 'unknown',
+        issued_at: new Date(event.ts).toISOString(),
+        metadata: {
+          category: event.metadata?.category || event.metadata?.name || 'Signal',
+          rarity: event.metadata?.rarity || 'Regular',
+          inscription: event.metadata?.note || event.metadata?.inscription || '',
+          labels: event.metadata?.labels || [],
+        }
+      },
+      actor: event.actor.replace('tm-', '').replace('-', ' '),
+      timestamp: new Date(event.ts),
+      isFromNetwork: true
+    }))
+    
     const mine = (recentMints || []).map((signal, idx) => ({
       id: `recent_${idx}`,
       type: 'mint' as const,
@@ -43,10 +64,22 @@ export function RecentActivity({ recentMints = [], showTitle = true }: RecentAct
       timestamp: new Date(signal.issued_at),
       isFromNetwork: true
     }))
+    
     const all = [...live, ...mine].sort((a,b)=>b.timestamp.getTime()-a.timestamp.getTime()).slice(0,8)
     setActivities(all)
     setLoading(false)
-  }, [recognition.watermark, recentMints])
+    
+    // Subscribe to store updates
+    const unsubscribe = signalsStore.subscribe(() => {
+      const updated = signalsStore.getByType('RECOGNITION_MINT')
+      if (updated.length !== recognitionEvents.length) {
+        // Trigger re-render by updating effect dependencies
+        setLoading(false)
+      }
+    })
+    
+    return unsubscribe
+  }, [recentMints])
 
 
   const getActivityIcon = (type: ActivityItem['type']) => {

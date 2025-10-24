@@ -33,6 +33,9 @@ export const getAllTemplateIds = (): string[] => {
 };
 
 // Re-export everything from library for convenience
-export * from './SignalTemplateLibrary';
+// Note: SignalTemplateLibrary exports a class also named SignalTemplateService
+// We only export the actual SignalTemplateService file to avoid conflicts
 export * from './TemplateManager';
 export * from './SignalTemplateService';
+export { SIGNAL_TEMPLATE_LIBRARY } from './SignalTemplateLibrary';
+export type * from './SignalTemplateLibrary';

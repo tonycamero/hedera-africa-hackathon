@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus, Heart, Flame, Mail, Smartphone, Send, Copy } from "lucide-react"
@@ -17,6 +17,7 @@ import {
   ProfessionalSuccess,
   ContextualGuide 
 } from '@/components/enhancements/professional-ux-enhancements'
+import { trustAllocationService } from '@/lib/services/TrustAllocationService'
 
 // Inner Circle LED Visualization Component - GenZ Style
 function InnerCircleVisualization({ allocatedOut, maxSlots, bondedContacts }: { 
@@ -89,10 +90,16 @@ export default function InnerCirclePage() {
   const [error, setError] = useState<string | null>(null)
   const [isAllocatingTrust, setIsAllocatingTrust] = useState(false)
   const [recentTrustAllocation, setRecentTrustAllocation] = useState<{name: string, amount: number} | null>(null)
+  
+  // Track load sequence to prevent stale updates
+  const loadIdRef = useRef(0)
 
   // Load real data from HCS
   useEffect(() => {
+    let active = true
+    
     const loadCircleData = async () => {
+      const myLoadId = ++loadIdRef.current
       try {
         setIsLoading(true)
         const currentSessionId = getSessionId()
@@ -110,34 +117,47 @@ export default function InnerCirclePage() {
         // Get bonded contacts
         const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
         console.log('🔥 [InnerCirclePage] Bonded contacts:', contacts)
-        setBondedContacts(contacts)
         
         // Get trust statistics
         const hcsTrustStats = getTrustStatsFromHCS(allEvents, effectiveSessionId)
         console.log('🔥 [InnerCirclePage] Trust stats:', hcsTrustStats)
-        setTrustStats({
-          allocatedOut: hcsTrustStats.allocatedOut,
-          maxSlots: hcsTrustStats.cap, // Configurable capacity from HCS
-          bondedContacts: contacts.length
-        })
         
         // Get trust levels per contact
         const trustData = getTrustLevelsPerContact(allEvents, effectiveSessionId)
         console.log('🔥 [InnerCirclePage] Trust levels:', trustData)
-        setTrustLevels(trustData)
         
-        console.log(`[InnerCirclePage] Loaded ${contacts.length} bonded contacts with ${hcsTrustStats.allocatedOut}/${hcsTrustStats.cap} trust allocated`)
+        // Only update if this is still the latest load (prevent stale updates)
+        if (active && myLoadId === loadIdRef.current) {
+          setBondedContacts(contacts)
+          setTrustStats({
+            allocatedOut: hcsTrustStats.allocatedOut,
+            maxSlots: hcsTrustStats.cap,
+            bondedContacts: contacts.length
+          })
+          setTrustLevels(trustData)
+          console.log(`[InnerCirclePage] ✅ Loaded ${contacts.length} bonded contacts with ${hcsTrustStats.allocatedOut}/${hcsTrustStats.cap} trust allocated`)
+        } else {
+          console.log(`[InnerCirclePage] ⏭️ Skipping stale load ${myLoadId} (current: ${loadIdRef.current})`)
+        }
       } catch (error) {
-        console.error('[InnerCirclePage] Failed to load inner circle data:', error)
+        if (active && myLoadId === loadIdRef.current) {
+          console.error('[InnerCirclePage] Failed to load inner circle data:', error)
+          setError(error instanceof Error ? error.message : 'Failed to load circle data')
+        }
       } finally {
-        setIsLoading(false)
+        if (active && myLoadId === loadIdRef.current) {
+          setIsLoading(false)
+        }
       }
     }
 
     loadCircleData()
     
+    return () => {
+      active = false
+    }
+    
     // Re-run when feeds advance (watermarks change)
-    // (No subscription object needed—SWR revalidates)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trustFeed.watermark, contactFeed.watermark])
   
@@ -236,11 +256,28 @@ export default function InnerCirclePage() {
       // Default allocation amount = 1 (or next available)
       const allocationAmount = 1
       
-      // TODO: integrate trustAllocationService if available here
-      // await trustAllocationService.submitTrustAllocation(contactId, allocationAmount)
+      // Submit trust allocation via HCS
+      const result = await trustAllocationService.submitTrustAllocation(contactId, allocationAmount)
       
-      // Optimistic UI update
+      if (!result.success) {
+        throw new Error(result.error || 'Trust allocation failed')
+      }
+      
+      // Update UI state
       setRecentTrustAllocation({ name: contactName, amount: allocationAmount })
+      
+      // Update trust stats optimistically
+      setTrustStats(prev => ({
+        ...prev,
+        allocatedOut: prev.allocatedOut + allocationAmount
+      }))
+      
+      // Update trust levels map
+      const updatedTrustLevels = new Map(trustLevels)
+      const currentTrust = updatedTrustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
+      updatedTrustLevels.set(contactId, { ...currentTrust, allocatedTo: allocationAmount })
+      setTrustLevels(updatedTrustLevels)
+      
       toast.success(`${contactName} added to your inner circle! 🔥`)
       setShowContactSelection(false)
     } catch (err) {
@@ -343,26 +380,6 @@ export default function InnerCirclePage() {
             </div>
           </div>
         </GenZCard>
-      
-        {/* First Achievement Encouragement */}
-        {trustStats.allocatedOut === 0 && (
-          <GenZCard variant="glass" className="p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-boost-500/10 to-pri-500/10 opacity-70" />
-            <div className="relative text-center">
-              <div className="text-4xl mb-3 animate-float">🏆</div>
-              <GenZHeading level={3} className="mb-2 text-boost-400">
-                First Achievement
-              </GenZHeading>
-              <GenZText className="mb-4">
-                Add 3 trusted members to unlock your Inner Circle power!
-              </GenZText>
-              <GenZText size="sm" dim className="mb-4">
-                Quality over quantity • These are your ride-or-dies
-              </GenZText>
-              <div className="w-16 h-1 bg-gradient-to-r from-boost-500 to-pri-500 mx-auto rounded-full" />
-            </div>
-          </GenZCard>
-        )}
         
         {/* Inner Circle Members List */}
         <GenZCard variant="glass" className="p-4">

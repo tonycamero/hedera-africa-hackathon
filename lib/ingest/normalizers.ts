@@ -31,6 +31,9 @@ export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): Sig
       return null
     }
 
+    // Enrich metadata for SIGNAL_MINT with normalized fields
+    const metadata = enrichMetadata(type, payload)
+
     return {
       id,
       type,
@@ -38,7 +41,7 @@ export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): Sig
       target,
       ts: timestamp,
       topicId,
-      metadata: payload,
+      metadata,
       source,
     }
   } catch (error) {
@@ -186,6 +189,29 @@ function extractTarget(payload: any): string | undefined {
   if (payload.contactId) return String(payload.contactId)
   
   return undefined
+}
+
+/**
+ * Enrich metadata for specific event types
+ * @param type Signal type
+ * @param payload Original payload
+ * @returns Enriched metadata
+ */
+function enrichMetadata(type: string, payload: any): Record<string, any> {
+  // For SIGNAL_MINT, normalize category/kind field and extract key fields
+  if (type === 'SIGNAL_MINT') {
+    return {
+      ...payload,
+      category: payload.kind || payload.category || 'social', // Lens category
+      name: payload.name || payload.recognition || 'Untitled',
+      definitionId: payload.tokenId || payload.id,
+      note: payload.subtitle || payload.note || '',
+      emoji: payload.emoji || '🏆',
+    }
+  }
+  
+  // For other types, return payload as-is
+  return payload
 }
 
 /**

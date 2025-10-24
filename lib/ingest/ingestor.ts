@@ -6,12 +6,9 @@
 import { HCS_ENABLED, MIRROR_REST, MIRROR_WS, TOPICS, TopicKey, INGEST_DEBUG } from '@/lib/env'
 import { signalsStore } from '@/lib/stores/signalsStore'
 import { normalizeHcsMessage } from './normalizers'
-import { decodeRecognition, isRecognitionDefinition, isRecognitionInstance } from './recognition/decodeRecognition'
-import { recognitionCache } from './recognition/cache'
 import { backfillTopic } from './restBackfill'
 import { connectTopicWs } from './wsStream'
 import { loadCursor, saveCursor } from './cursor'
-import { compareConsensusNs } from './time'
 import { syncState } from '@/lib/sync/syncState'
 
 interface IngestStats {
@@ -21,9 +18,6 @@ interface IngestStats {
   failed: number
   lastConsensusNs?: string
   lastActivity?: number
-  recognitionDefinitions?: number
-  recognitionInstances?: number
-  recognitionPending?: number
 }
 
 // Global stats tracking
@@ -32,7 +26,7 @@ const stats: Record<TopicKey, IngestStats> = {
   trust: { backfilled: 0, streamed: 0, duplicates: 0, failed: 0 },
   profile: { backfilled: 0, streamed: 0, duplicates: 0, failed: 0 },
   signal: { backfilled: 0, streamed: 0, duplicates: 0, failed: 0 },
-  recognition: { backfilled: 0, streamed: 0, duplicates: 0, failed: 0, recognitionDefinitions: 0, recognitionInstances: 0, recognitionPending: 0 },
+  recognition: { backfilled: 0, streamed: 0, duplicates: 0, failed: 0 },
 }
 
 // Track active connections for cleanup
@@ -184,12 +178,7 @@ async function backfillAllTopics(): Promise<void> {
     })
   }
   
-  // After backfill, process any pending recognition instances
-  if (recognitionCache.debug().pendingInstancesCount > 0) {
-    console.info('[Ingest] Processing pending recognition instances after backfill')
-    recognitionCache.reprocessPending(signalsStore)
-    updateRecognitionStats()
-  }
+  // Backfill complete - all events normalized and added to store
 }
 
 /**
@@ -270,18 +259,13 @@ function startStreamingAllTopics(): void {
 
 /**
  * Handle incoming message for a specific topic
+ * All topics now use standard normalization (no special recognition handling)
  */
 function handleMessage(topic: TopicKey, raw: any, source: 'hcs' | 'hcs-cached', consensusNs?: string): void {
   try {
     stats[topic].lastActivity = Date.now()
     
-    // Special handling for recognition topic (two-phase processing)
-    if (topic === 'recognition') {
-      handleRecognitionMessage(raw, source)
-      return
-    }
-
-    // Standard message processing
+    // Standard message processing for all topics
     const normalizedEvent = normalizeHcsMessage(raw, source)
     if (normalizedEvent) {
       signalsStore.add(normalizedEvent)
@@ -302,69 +286,6 @@ function handleMessage(topic: TopicKey, raw: any, source: 'hcs' | 'hcs-cached', 
   }
 }
 
-/**
- * Handle recognition message with two-phase processing
- */
-function handleRecognitionMessage(raw: any, source: 'hcs' | 'hcs-cached'): void {
-  try {
-    const decoded = decodeRecognition(raw)
-    
-    if (isRecognitionDefinition(decoded)) {
-      // Phase A: Store definition
-      recognitionCache.upsertDefinition(decoded)
-      stats.recognition.recognitionDefinitions = (stats.recognition.recognitionDefinitions || 0) + 1
-      
-      // Try to resolve any pending instances
-      recognitionCache.reprocessPending(signalsStore)
-      updateRecognitionStats()
-      
-    } else if (isRecognitionInstance(decoded)) {
-      // Phase B: Try to resolve instance
-      const resolved = recognitionCache.resolveInstance(decoded)
-      
-      if (resolved) {
-        // Successfully resolved - convert to SignalEvent
-        const signalEvent = {
-          id: raw.sequence_number ? `${raw.topic_id}/${raw.sequence_number}` : `${raw.topic_id}/${Date.now()}-${Math.random()}`,
-          type: 'RECOGNITION_MINT',
-          actor: decoded.actor || 'unknown',
-          target: decoded.owner,
-          timestamp: decoded.timestamp || Date.now(),
-          topicId: raw.topic_id || raw.topicId || '',
-          metadata: resolved,
-          source,
-        }
-        
-        signalsStore.add(signalEvent)
-        stats.recognition.recognitionInstances = (stats.recognition.recognitionInstances || 0) + 1
-      } else {
-        // Queue for later resolution
-        recognitionCache.queueInstance(decoded)
-        updateRecognitionStats()
-      }
-    } else {
-      // Unknown recognition message - try standard normalization as fallback
-      const normalizedEvent = normalizeHcsMessage(raw, source)
-      if (normalizedEvent) {
-        signalsStore.add(normalizedEvent)
-      } else {
-        stats.recognition.failed++
-      }
-    }
-    
-  } catch (error) {
-    stats.recognition.failed++
-    console.error('[Ingest] Recognition message processing failed:', error, { raw })
-  }
-}
-
-/**
- * Update recognition-specific statistics
- */
-function updateRecognitionStats(): void {
-  const cacheStats = recognitionCache.getStats()
-  stats.recognition.recognitionPending = cacheStats.pendingInstances
-}
 
 /**
  * Expose debug interface to global scope
@@ -374,7 +295,6 @@ function exposeDebugInterface(): void {
     // Browser environment
     (window as any).trustmeshIngest = {
       stats: () => ({ ...stats }),
-      recognitionCache: () => recognitionCache.debug(),
       signalsStore: () => {
         try {
           return signalsStore.getSummary();
@@ -389,7 +309,6 @@ function exposeDebugInterface(): void {
         await startIngestion()
       },
       clearCaches: () => {
-        recognitionCache.clear()
         signalsStore.clear()
         Object.keys(stats).forEach(key => {
           const topicKey = key as TopicKey
@@ -400,7 +319,6 @@ function exposeDebugInterface(): void {
   } else {
     // Node environment (for API endpoints)
     (global as any).__ingest_stats__ = stats
-    (global as any).__recognition_cache__ = recognitionCache
   }
 }
 
@@ -429,7 +347,6 @@ export function getIngestionStats() {
     totalErrors: Object.values(stats).reduce((sum, s) => sum + s.failed, 0),
     isRunning: ingestionStarted,
     activeConnections: activeConnections.size,
-    recognitionCache: recognitionCache.getStats(),
     signalsStore: signalsStoreSummary,
   }
 }

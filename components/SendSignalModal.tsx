@@ -1,5 +1,7 @@
 // components/SendSignalModal.tsx
-// TODO: T2 - Send Signal Modal with GenZ templates
+// DEPRECATED: Simple "Send Props" flow is no longer used.
+// All recognition flows now use MintSignalFlow (NFT-based with optional inscription).
+// This component is kept for backward compatibility but returns null.
 
 'use client'
 
@@ -23,6 +25,11 @@ interface SendSignalModalProps {
 }
 
 export function SendSignalModal({ isOpen, onClose, recipient }: SendSignalModalProps) {
+  // DEPRECATED: This component is no longer used.
+  // All "Send Props" flows now redirect to MintSignalFlow.
+  return null
+
+  /* ORIGINAL CODE PRESERVED FOR REFERENCE
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [fillText, setFillText] = useState('')
   const [note, setNote] = useState('')
@@ -269,6 +276,7 @@ export function SendSignalModal({ isOpen, onClose, recipient }: SendSignalModalP
       </div>
     </Modal>
   )
+  */
 }
 
 export default SendSignalModal
