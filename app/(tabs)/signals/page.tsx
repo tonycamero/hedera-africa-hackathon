@@ -255,7 +255,7 @@ export default function SignalsPage() {
           placeholder="Search signals..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 py-3 bg-white/5 border-white/10 text-white placeholder-white/40 focus:border-[#00F6FF]/50 rounded-lg text-sm"
+          className="pl-10 py-3 bg-white/5 border-white/10 text-white placeholder-white/40 focus:border-[#22D3EE]/50 rounded-lg text-sm"
         />
       </div>
 
@@ -267,7 +267,7 @@ export default function SignalsPage() {
           onClick={() => setSelectedTab('feed')}
           className={`py-3 rounded-md transition-all duration-300 text-sm ${
             selectedTab === 'feed'
-              ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
+              ? 'bg-[#22D3EE]/20 text-[#22D3EE] border border-[#22D3EE]/30'
               : 'text-white/60 hover:text-white/90'
           }`}
         >
@@ -280,7 +280,7 @@ export default function SignalsPage() {
           onClick={() => setSelectedTab('tokens')}
           className={`py-3 rounded-md transition-all duration-300 text-sm ${
             selectedTab === 'tokens'
-              ? 'bg-[#00F6FF]/20 text-[#00F6FF] border border-[#00F6FF]/30'
+              ? 'bg-[#22D3EE]/20 text-[#22D3EE] border border-[#22D3EE]/30'
               : 'text-white/60 hover:text-white/90'
           }`}
         >
@@ -295,7 +295,7 @@ export default function SignalsPage() {
           loading ? (
             <div className="flex justify-center py-12">
               <div className="text-center space-y-4">
-                <div className="w-12 h-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-[#00F6FF]"></div>
+                <div className="w-12 h-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-[#22D3EE]"></div>
                 <p className="text-white/60">Loading network activity...</p>
               </div>
             </div>
@@ -307,7 +307,7 @@ export default function SignalsPage() {
             </div>
           ) : (
             filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/15 backdrop-blur-sm hover:border-[#00F6FF]/40 hover:shadow-[0_0_15px_rgba(0,246,255,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#00F6FF]/10 hover:before:to-[#00F6FF]/10">
+              <div key={signal.id} className="bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/15 backdrop-blur-sm hover:border-[#22D3EE]/40 hover:shadow-[0_0_15px_rgba(0,246,255,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#22D3EE]/10 hover:before:to-[#22D3EE]/10">
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <Avatar className="w-7 h-7">
@@ -348,7 +348,7 @@ export default function SignalsPage() {
                   case 'leadership': return { bg: 'from-orange-500/20 to-orange-600/10', border: 'border-orange-400/30', text: 'text-orange-400' }
                   case 'knowledge': return { bg: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-400/30', text: 'text-emerald-400' }
                   case 'execution': return { bg: 'from-purple-500/20 to-purple-600/10', border: 'border-purple-400/30', text: 'text-purple-400' }
-                  default: return { bg: 'from-[#00F6FF]/20 to-cyan-500/10', border: 'border-[#00F6FF]/30', text: 'text-[#00F6FF]' }
+                  default: return { bg: 'from-[#22D3EE]/20 to-cyan-500/10', border: 'border-[#22D3EE]/30', text: 'text-[#22D3EE]' }
                 }
               }
               

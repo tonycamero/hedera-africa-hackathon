@@ -130,15 +130,15 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 2: Send Recognition Signal */}
-      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-2 border-[#00F6FF]/40 hover:border-[#00F6FF]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(0,246,255,0.2),0_0_60px_rgba(0,246,255,0.1)] hover:shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#00F6FF]/30 before:via-transparent before:to-[#00F6FF]/30 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-2 border-[#22D3EE]/40 hover:border-[#22D3EE]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(0,246,255,0.2),0_0_60px_rgba(0,246,255,0.1)] hover:shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/30 before:via-transparent before:to-[#22D3EE]/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-cyan-500/20 flex items-center justify-center border border-[#00F6FF]/30">
-              <Trophy className="w-5 h-5 text-[#00F6FF]" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#22D3EE]/30 to-cyan-500/20 flex items-center justify-center border border-[#22D3EE]/30">
+              <Trophy className="w-5 h-5 text-[#22D3EE]" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Send Recognition Signals to Peers</h3>
-              <div className="text-xs text-[#00F6FF] font-medium">Increases their trust score!</div>
+              <div className="text-xs text-[#22D3EE] font-medium">Increases their trust score!</div>
             </div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function ContactsPage() {
           {bondedContacts.length} contacts • Recognition signals available
         </div>
         <PeerRecommendationModal>
-          <Button className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium shadow-[0_0_20px_rgba(0,246,255,0.3)] hover:shadow-[0_0_25px_rgba(0,246,255,0.4)] transition-all duration-300">
+          <Button className="w-full bg-gradient-to-r from-[#22D3EE]/80 to-cyan-500/80 hover:from-[#22D3EE] hover:to-cyan-500 text-white font-medium shadow-[0_0_20px_rgba(0,246,255,0.3)] hover:shadow-[0_0_25px_rgba(0,246,255,0.4)] transition-all duration-300">
             <Award className="w-4 h-4 mr-2" />
             Send Signal
           </Button>
@@ -164,7 +164,7 @@ export default function ContactsPage() {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />
             <Input
               placeholder="Search contacts..."
-              className="pl-7 h-8 w-32 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#00F6FF] text-xs rounded"
+              className="pl-7 h-8 w-32 bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#22D3EE] text-xs rounded"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -191,12 +191,12 @@ export default function ContactsPage() {
                 return (
                   <div
                     key={contactId}
-                    className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-all border border-white/10 hover:border-[#00F6FF]/30"
+                    className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-all border border-white/10 hover:border-[#22D3EE]/30"
                     onClick={() => handleContactClick(contact)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00F6FF]/20 to-cyan-500/20 border border-[#00F6FF]/30 flex items-center justify-center">
-                        <User className="w-5 h-5 text-[#00F6FF]" />
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#22D3EE]/20 to-cyan-500/20 border border-[#22D3EE]/30 flex items-center justify-center">
+                        <User className="w-5 h-5 text-[#22D3EE]" />
                       </div>
                       <div>
                         <div className="text-sm font-medium text-white">{displayName}</div>
@@ -208,7 +208,7 @@ export default function ContactsPage() {
                             <span className="text-white/40 mx-1">•</span>
                           )}
                           {trustData.receivedFrom > 0 && (
-                            <span className="text-[#00F6FF]">Received: {trustData.receivedFrom}</span>
+                            <span className="text-[#22D3EE]">Received: {trustData.receivedFrom}</span>
                           )}
                           {trustData.allocatedTo === 0 && trustData.receivedFrom === 0 && (
                             <span className="text-white/40">Contact</span>
@@ -219,7 +219,7 @@ export default function ContactsPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-white/70 hover:text-[#00F6FF] hover:bg-[#00F6FF]/10"
+                      className="text-white/70 hover:text-[#22D3EE] hover:bg-[#22D3EE]/10"
                       onClick={(e) => {
                         e.stopPropagation()
                         toast.info(`Message ${displayName}`)
