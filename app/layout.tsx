@@ -4,6 +4,7 @@ import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import BootHCSClient from "@/app/providers/BootHCSClient"
 import { BootRegistryClient } from "@/lib/registry/BootRegistryClient"
+import { LensProvider } from "@/components/providers/LensProvider"
 import { isGenZ } from "@/lib/ui/theme"
 import "./globals.css"
 
@@ -42,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfair.variable} ${sourceSans.variable} ${themeClass}`} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased" data-genz={isGenZ() ? 'true' : 'false'}>
+        <LensProvider />
         <BootRegistryClient />
         <BootHCSClient />
         {children}

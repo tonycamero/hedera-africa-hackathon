@@ -240,6 +240,74 @@ body[data-genz="true"] {
 
 /*
 =============================================================================
+  CIVIC LENS THEME - Community & Trust Focus
+  
+  Warm, trustworthy palette for civic/community engagement
+  Balanced between Professional (calm) and GenZ (energetic)
+=============================================================================
+*/
+
+:root.theme-civic-dark,
+.theme-civic-dark,
+html.theme-civic-dark,
+html.theme-civic-dark * {
+  /* ==> BACKGROUND SURFACES - Warm dark tones */
+  --background: #0d1117 !important;           /* Slightly warm dark */
+  --card: #161b22 !important;                 /* Card backgrounds */
+  --popover: #161b22 !important;              /* Popovers/dropdowns */
+  --muted: #21262d !important;                /* Muted backgrounds */
+  --secondary: #21262d !important;            /* Secondary backgrounds */
+  --input: #2d333b !important;                /* Input field backgrounds */
+  
+  /* ==> TEXT HIERARCHY - Clear & accessible */
+  --foreground: #f0f6fc !important;           /* Primary text */
+  --card-foreground: #f0f6fc !important;      /* Card text */
+  --popover-foreground: #f0f6fc !important;   /* Popover text */
+  
+  /* Civic text hierarchy */
+  --text-primary: #ffffff !important;         /* Headings */
+  --text-secondary: #e6edf3 !important;       /* Body text */
+  --text-muted: #c9d1d9 !important;           /* Labels */
+  --text-subtle: #8b949e !important;          /* Helper text */
+  --text-placeholder: #6e7681 !important;     /* Placeholders */
+  
+  /* Legacy compatibility */
+  --muted-foreground: #c9d1d9 !important;
+  --secondary-foreground: #e6edf3 !important;
+  
+  /* ==> INTERACTIVE ELEMENTS - Trust blue + community green */
+  --primary: #58a6ff !important;              /* Trust blue (primary) */
+  --primary-foreground: #0d1117 !important;
+  --accent: #3fb950 !important;               /* Community green (accent) */
+  --accent-foreground: #0d1117 !important;
+  
+  /* ==> BORDERS & OUTLINES */
+  --border: #30363d !important;               /* Subtle borders */
+  --ring: #58a6ff !important;                 /* Blue focus rings */
+  
+  /* Civic card borders - trust blue */
+  --card-border: #58a6ff !important;
+  
+  /* ==> SYSTEM COLORS */
+  --destructive: #f85149 !important;          /* Error red */
+  --destructive-foreground: #ffffff !important;
+  
+  /* ==> CIVIC PALETTE - Trust & community colors */
+  --civic-blue: #58a6ff !important;           /* Trust/leadership */
+  --civic-green: #3fb950 !important;          /* Community/growth */
+  --civic-purple: #a371f7 !important;         /* Recognition/achievement */
+  --civic-orange: #f0883e !important;         /* Events/energy */
+  --civic-teal: #39c5cf !important;           /* Engagement */
+  
+  /* ==> CIVIC ACTION COLORS */
+  --trust: #3fb950 !important;                /* Trust actions */
+  --civic-action: #58a6ff !important;         /* Civic participation */
+  --achievement: #a371f7 !important;          /* Achievements */
+  --community: #39c5cf !important;            /* Community building */
+}
+
+/*
+=============================================================================
   UNIVERSAL ELEMENT OVERRIDES - Forces theme on all components
 =============================================================================
 */
