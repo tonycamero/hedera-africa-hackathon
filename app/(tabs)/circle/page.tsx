@@ -248,7 +248,7 @@ export default function InnerCirclePage() {
         )}
       
         {/* Inner Circle - Visual Centerpiece */}
-        <GenZCard variant="glass" className="p-6">
+        <GenZCard variant="glass" className="p-6 relative">
           <div className="text-center mb-6">
             <GenZHeading level={2} className="mb-3">Inner Circle Members</GenZHeading>
             <GenZHeading level={1} className="mb-2 font-mono">
@@ -293,11 +293,19 @@ export default function InnerCirclePage() {
               variant="boost"
               glow
               onClick={handleAddMember}
-              className="w-full border-2 border-white/20 hover:border-white/40"
+              className="w-full"
             >
               <UserPlus className="w-5 h-5 mr-2" />
-              Add to Circle
+              Add trusted member
             </GenZButton>
+          </div>
+          
+          {/* Tooltip-style hint positioned in bottom right of card */}
+          <div className="absolute -bottom-1 right-3 text-xs text-pri-400/80 hover:text-pri-400 transition-all duration-300 cursor-pointer font-medium flex items-center gap-1 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] hover:scale-105"
+            onClick={() => setShowStoicGuide(true)}
+          >
+            <span className="text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]">→</span>
+            <span className="drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] hover:drop-shadow-[0_0_12px_rgba(255,255,255,1.0)]">Who should I add?</span>
           </div>
         </GenZCard>
         
@@ -305,38 +313,13 @@ export default function InnerCirclePage() {
         <GenZCard variant="glass" className="p-4">
             {innerCircleMembers.length === 0 ? (
             <div className="text-center py-8">
-              <GenZText className="text-lg mb-6" dim>
-                Your inner circle is empty
+              <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-3">
+                <Plus className="w-6 h-6 text-white/40" />
+              </div>
+              <GenZText className="mb-2">No members yet</GenZText>
+              <GenZText size="sm" dim>
+                Allocate trust to contacts to add them to your circle
               </GenZText>
-              
-              {/* Who should I add? - Styled as a card button */}
-              <GenZButton
-                onClick={() => setShowStoicGuide(true)}
-                variant="outline"
-                size="lg"
-                className="w-full mb-4 border-2 border-white/30 hover:border-white/60 text-white/90 hover:text-white"
-              >
-                💡 Who should I add?
-              </GenZButton>
-              
-              {/* Action button for building circle - only from existing contacts */}
-              {availableContacts.length > 0 ? (
-                <GenZButton 
-                  onClick={() => setShowContactSelection(true)}
-                  variant="boost"
-                  size="lg"
-                  glow
-                  className="w-full"
-                >
-                  <UserPlus className="w-5 h-5 mr-2" />
-                  Choose from Contacts ({availableContacts.length})
-                </GenZButton>
-              ) : (
-                <div className="mt-6">
-                  <GenZText dim className="mb-2">No contacts available</GenZText>
-                  <GenZText size="sm" dim>Go to Contacts to connect with people first</GenZText>
-                </div>
-              )}
             </div>
           ) : (
             <>
