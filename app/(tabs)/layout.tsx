@@ -9,6 +9,10 @@ import { WalletFloatingButton } from "@/components/WalletFloatingButton"
 import { useLayoutMode } from "@/lib/layout/useLayoutMode"
 import { ModeShell } from "@/components/layout/ModeShell"
 import type { UserTokens } from "@/lib/layout/token-types"
+import { TokenGatedProgress } from "@/components/gating/TokenGatedProgress"
+import { UnlockModal } from "@/components/gating/UnlockModal"
+import { useModeUpgrade } from "@/lib/layout/useModeUpgrade"
+import { modeToUnlockKind } from "@/lib/layout/upgrade-map"
 import { 
   Circle, 
   Activity, 
@@ -42,6 +46,10 @@ export default function TabsLayout({
 
   const mode = useLayoutMode({ isAuthenticated, userTokens })
   const collectionCount = userTokens?.nfts?.length ?? 0
+  
+  // Track mode upgrades and show unlock modal
+  const { upgraded } = useModeUpgrade(mode)
+  const unlockKind = upgraded ? modeToUnlockKind(mode) : null
 
   // Update unseen signals indicator
   useEffect(() => {
@@ -201,6 +209,12 @@ export default function TabsLayout({
         }
         `}</style>
       </div>
+      
+      {/* Progress HUD (only when authenticated) */}
+      {isAuthenticated && <TokenGatedProgress tokens={userTokens} />}
+
+      {/* Unlock modal (fires on upgrade) */}
+      <UnlockModal showFor={unlockKind} />
     </ModeShell>
   )
 }
