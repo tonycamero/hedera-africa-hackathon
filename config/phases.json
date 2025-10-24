@@ -1,0 +1,61 @@
+{
+  "currentPhase": "",
+  "phases": {
+    "phase1-genz": {
+      "name": "GenZ Community Launch",
+      "lenses": [
+        "genz"
+      ],
+      "enabled": true,
+      "cutoverDate": "2025-10-16T16:56:25.285Z",
+      "readinessChecks": [
+        "genz-ui-components-tested",
+        "genz-context-rules-validated",
+        "genz-user-onboarding-ready",
+        "settlement-adapter-stable"
+      ],
+      "dependencies": []
+    },
+    "phase2-professional": {
+      "name": "Professional Organizations",
+      "lenses": [
+        "professional"
+      ],
+      "enabled": false,
+      "cutoverDate": null,
+      "readinessChecks": [
+        "professional-rbac-tested",
+        "professional-limits-configured",
+        "corporate-onboarding-ready",
+        "audit-logging-verified"
+      ],
+      "dependencies": [
+        "phase1-genz"
+      ]
+    },
+    "phase3-cannabis": {
+      "name": "Cannabis Pilot (Full Production)",
+      "lenses": [
+        "cannabis"
+      ],
+      "enabled": false,
+      "cutoverDate": null,
+      "readinessChecks": [
+        "cannabis-compliance-engine-hardened",
+        "kyc-kyb-integration-complete",
+        "facility-license-verification",
+        "treasury-limits-cannabis-configured",
+        "jurisdiction-deny-list-loaded",
+        "business-hours-validation",
+        "audit-trail-regulatory-ready"
+      ],
+      "dependencies": [
+        "phase1-genz",
+        "phase2-professional"
+      ]
+    }
+  },
+  "lastUpdated": "2025-10-16T17:15:51.658Z",
+  "updatedBy": "tonycamero",
+  "version": 1
+}

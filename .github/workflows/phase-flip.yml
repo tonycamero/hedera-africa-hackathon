@@ -1,0 +1,73 @@
+name: Phase Flip
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        type: choice
+        description: 'Phase to enable'
+        options: 
+          - genz
+          - professional
+          - cannabis
+        required: true
+      environment:
+        type: choice
+        description: 'Target environment'
+        options:
+          - staging
+          - production
+        required: true
+        default: staging
+
+jobs:
+  flip:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install
+          
+      - name: Enable phase
+        run: |
+          pnpm phase enable ${{ inputs.phase }}
+          
+      - name: Run phase guard
+        run: |
+          ./scripts/ci-guard.sh ${{ inputs.environment }}
+          
+      - name: Commit phase change
+        run: |
+          git config user.name "phase-bot"
+          git config user.email "phase-bot@trustmesh.local"
+          git add config/phases.json .env.phases
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "phase: enable ${{ inputs.phase }} for ${{ inputs.environment }}"
+            git push
+          fi
+          
+      - name: Summary
+        run: |
+          echo "🚀 Phase flip completed:" >> $GITHUB_STEP_SUMMARY
+          echo "- Phase: ${{ inputs.phase }}" >> $GITHUB_STEP_SUMMARY  
+          echo "- Environment: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Timestamp: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Current Phase Status" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          pnpm --silent phase status --json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
