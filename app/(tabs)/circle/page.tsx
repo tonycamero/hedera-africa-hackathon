@@ -304,34 +304,39 @@ export default function InnerCirclePage() {
         {/* Inner Circle Members List */}
         <GenZCard variant="glass" className="p-4">
             {innerCircleMembers.length === 0 ? (
-            <div className="space-y-6">
-              <div className="text-center py-6">
-                <button
-                  onClick={() => setShowStoicGuide(true)}
-                  className="text-pri-400 hover:text-pri-300 text-base font-medium mb-4 underline decoration-dotted underline-offset-4 transition-colors"
+            <div className="text-center py-8">
+              <GenZText className="text-lg mb-6" dim>
+                Your inner circle is empty
+              </GenZText>
+              
+              {/* Who should I add? - Styled as a card button */}
+              <GenZButton
+                onClick={() => setShowStoicGuide(true)}
+                variant="outline"
+                size="lg"
+                className="w-full mb-4 border-2 border-pri-500/40 hover:border-pri-500 text-pri-400 hover:text-pri-300"
+              >
+                💡 Who should I add?
+              </GenZButton>
+              
+              {/* Action button for building circle - only from existing contacts */}
+              {availableContacts.length > 0 ? (
+                <GenZButton 
+                  onClick={() => setShowContactSelection(true)}
+                  variant="boost"
+                  size="lg"
+                  glow
+                  className="w-full"
                 >
-                  Who should I add?
-                </button>
-                
-                {/* Action button for building circle - only from existing contacts */}
-                {availableContacts.length > 0 ? (
-                  <GenZButton 
-                    onClick={() => setShowContactSelection(true)}
-                    variant="boost"
-                    size="lg"
-                    glow
-                    className="w-full py-4"
-                  >
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    Choose from Contacts ({availableContacts.length})
-                  </GenZButton>
-                ) : (
-                  <div className="text-center py-4">
-                    <GenZText dim className="mb-2">No contacts available to add</GenZText>
-                    <GenZText size="sm" dim>Go to Contacts page to connect with people first</GenZText>
-                  </div>
-                )}
-              </div>
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Choose from Contacts ({availableContacts.length})
+                </GenZButton>
+              ) : (
+                <div className="mt-6">
+                  <GenZText dim className="mb-2">No contacts available</GenZText>
+                  <GenZText size="sm" dim>Go to Contacts to connect with people first</GenZText>
+                </div>
+              )}
             </div>
           ) : (
             <>
