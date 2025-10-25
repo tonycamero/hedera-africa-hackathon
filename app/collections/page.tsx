@@ -5,6 +5,10 @@ import { ArrowLeft, Star, X, Users, BookOpen, Briefcase } from 'lucide-react'
 import RecognitionCard3D from '@/components/RecognitionCard3D'
 import type { EnhancedSignalType } from '@/lib/services/RecognitionEnrichmentService'
 
+// Force dynamic rendering to avoid SSR issues
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+
 // Simple API-based approach without signalStore complexity
 
 type CategoryFilter = 'all' | 'social' | 'academic' | 'professional'
