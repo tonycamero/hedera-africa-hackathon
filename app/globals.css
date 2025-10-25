@@ -181,12 +181,12 @@ html.theme-genz-dark,
 html.theme-genz-dark *,
 body[data-genz="true"] {
   /* ==> BACKGROUND SURFACES - Deeper blacks for GenZ aesthetic */
-  --background: #0a0a0a !important;           /* Ultra-dark background */
-  --card: #111111 !important;                 /* Dark card backgrounds */
-  --popover: #111111 !important;              /* Popovers/dropdowns */
-  --muted: #1a1a1a !important;                /* Muted backgrounds */
-  --secondary: #1a1a1a !important;            /* Secondary backgrounds */
-  --input: #222222 !important;                /* Input field backgrounds */
+  --background: #050505 !important;           /* Nearly black background for max contrast */
+  --card: #0a0a0a !important;                 /* Very dark card backgrounds */
+  --popover: #0a0a0a !important;              /* Popovers/dropdowns */
+  --muted: #0f0f0f !important;                /* Muted backgrounds */
+  --secondary: #0f0f0f !important;            /* Secondary backgrounds */
+  --input: #151515 !important;                /* Input field backgrounds */
   
   /* ==> TEXT HIERARCHY - High contrast for GenZ readability */
   --foreground: #ffffff !important;           /* Pure white text */
