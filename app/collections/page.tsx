@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { ArrowLeft, Star, X, Users, BookOpen, Briefcase } from 'lucide-react'
 import RecognitionCard3D from '@/components/RecognitionCard3D'
 import type { EnhancedSignalType } from '@/lib/services/RecognitionEnrichmentService'
