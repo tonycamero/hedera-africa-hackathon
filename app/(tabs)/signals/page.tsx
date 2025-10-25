@@ -217,7 +217,7 @@ export default function SignalsPage() {
       case 'RECOGNITION_MINT':
         return 'from-yellow-500 to-orange-500'
       default:
-        return 'from-slate-500 to-gray-500'
+        return 'from-panel to-gray-500'
     }
   }
 
@@ -260,7 +260,7 @@ export default function SignalsPage() {
       </div>
 
       {/* Mobile Tabs */}
-      <div className="grid grid-cols-2 bg-gradient-to-r from-slate-800/60 to-slate-900/60 border-2 border-white/20 rounded-lg p-1 gap-1 shadow-[0_0_20px_rgba(255,255,255,0.08)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
+      <div className="grid grid-cols-2 bg-gradient-to-r from-panel/60 to-panel/60 border-2 border-white/20 rounded-lg p-1 gap-1 shadow-[0_0_20px_rgba(255,255,255,0.08)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <Button
           variant="ghost"
           size="sm"
@@ -307,7 +307,7 @@ export default function SignalsPage() {
             </div>
           ) : (
             filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/15 backdrop-blur-sm hover:border-[#22D3EE]/40 hover:shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#22D3EE]/10 hover:before:to-[#22D3EE]/10">
+              <div key={signal.id} className="bg-gradient-to-r from-panel/20 to-panel2/30 border border-white/15 backdrop-blur-sm hover:border-[#22D3EE]/40 hover:shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#22D3EE]/10 hover:before:to-[#22D3EE]/10">
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <Avatar className="w-7 h-7">
@@ -315,7 +315,7 @@ export default function SignalsPage() {
                         {signal.firstName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-slate-900 ${getStatusColor(signal.onlineStatus)}`} />
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-panel ${getStatusColor(signal.onlineStatus)}`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -355,7 +355,7 @@ export default function SignalsPage() {
               const colors = getCategoryColor(token.category)
               
               return (
-                <div key={token.id} className={`bg-gradient-to-br from-slate-800/60 to-slate-900/50 ${colors.bg} border-2 ${colors.border} rounded-xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 shadow-[0_0_25px_rgba(0,0,0,0.3)] hover:shadow-[0_0_35px_rgba(0,0,0,0.4)] relative`}>
+                <div key={token.id} className={`bg-gradient-to-br from-panel/60 to-panel/50 ${colors.bg} border-2 ${colors.border} rounded-xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 shadow-[0_0_25px_rgba(0,0,0,0.3)] hover:shadow-[0_0_35px_rgba(0,0,0,0.4)] relative`}>
                   <div className="flex items-center gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">

@@ -73,7 +73,7 @@ function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts, onPr
       <button
         type="button"
         onClick={onPress}
-        className="active:scale-95 transition-transform duration-150 focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/50 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-full"
+        className="active:scale-95 transition-transform duration-150 focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/50 focus:ring-offset-2 focus:ring-offset-panel rounded-full"
         aria-label="Manage circle members"
       >
         {CircleContent}
@@ -212,7 +212,7 @@ export default function CirclePage() {
       </div>
       
       {/* Inner Circle Campfire - Visual Centerpiece */}
-      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
+      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
         <CardContent className="p-6 relative z-10">
           <div className="text-center mb-4">
             <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
@@ -274,7 +274,7 @@ export default function CirclePage() {
       </Card>
       
       {/* Circle Members List */}
-      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
+      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
         <CardContent className="p-5 relative z-10">
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -295,7 +295,7 @@ export default function CirclePage() {
               </div>
             ) : (
               circleMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/40 to-slate-900/30 border border-green-400/20 rounded-lg hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-800/40 hover:border-green-400/30 hover:shadow-[0_0_15px_rgba(52,211,153,0.15)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-green-400/10 before:via-transparent before:to-green-400/10 before:-z-10">
+              <div key={member.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/40 to-panel/30 border border-green-400/20 rounded-lg hover:bg-gradient-to-r hover:from-panel/50 hover:to-panel/40 hover:border-green-400/30 hover:shadow-[0_0_15px_rgba(52,211,153,0.15)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-green-400/10 before:via-transparent before:to-green-400/10 before:-z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#22D3EE]/20 to-cyan-500/20 border border-[#22D3EE]/30 flex items-center justify-center">
                     <User className="w-4 h-4 text-[#22D3EE]" />
@@ -341,7 +341,7 @@ export default function CirclePage() {
                 
                 {/* Show up to 3 empty slots */}
                 {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
-                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/30 to-slate-900/20 rounded-lg border-2 border-dashed border-[#22D3EE]/30 hover:border-[#22D3EE]/50 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-800/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#22D3EE]/5 before:via-transparent before:to-[#22D3EE]/5 before:-z-10">
+                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/30 to-panel/20 rounded-lg border-2 border-dashed border-[#22D3EE]/30 hover:border-[#22D3EE]/50 hover:bg-gradient-to-r hover:from-panel/40 hover:to-panel/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#22D3EE]/5 before:via-transparent before:to-[#22D3EE]/5 before:-z-10">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center">
                         <Plus className="w-4 h-4 text-[#22D3EE]/60" />
@@ -386,7 +386,7 @@ export default function CirclePage() {
           />
           
           {/* Modal */}
-          <div className="relative bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#22D3EE]/30 rounded-xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
+          <div className="relative bg-gradient-to-br from-panel/95 to-panel/95 backdrop-blur-xl border border-[#22D3EE]/30 rounded-xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Add to Circle</h3>
               <button 

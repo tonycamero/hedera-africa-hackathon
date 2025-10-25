@@ -98,7 +98,7 @@ export default function ContactsPage() {
     <div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
       {/* Card 1: QR Contact Exchange - Network Growth Engine */}
-      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border-2 border-emerald-500/40 hover:border-emerald-500/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(52,211,153,0.2),0_0_60px_rgba(52,211,153,0.1)] hover:shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-emerald-400/30 before:via-transparent before:to-emerald-400/30 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-panel/20 to-panel2/30 border-2 border-emerald-500/40 hover:border-emerald-500/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(52,211,153,0.2),0_0_60px_rgba(52,211,153,0.1)] hover:shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-emerald-400/30 before:via-transparent before:to-emerald-400/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/30 to-green-500/20 flex items-center justify-center border border-emerald-500/30">
@@ -130,7 +130,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 2: Send Recognition Signal */}
-      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border-2 border-[#22D3EE]/40 hover:border-[#22D3EE]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.2),0_0_60px_rgba(34,211,238,0.1)] hover:shadow-[0_0_40px_rgba(34,211,238,0.3),0_0_80px_rgba(34,211,238,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/30 before:via-transparent before:to-[#22D3EE]/30 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-panel/20 to-panel2/30 border-2 border-[#22D3EE]/40 hover:border-[#22D3EE]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.2),0_0_60px_rgba(34,211,238,0.1)] hover:shadow-[0_0_40px_rgba(34,211,238,0.3),0_0_80px_rgba(34,211,238,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/30 before:via-transparent before:to-[#22D3EE]/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#22D3EE]/30 to-cyan-500/20 flex items-center justify-center border border-[#22D3EE]/30">
@@ -154,7 +154,7 @@ export default function ContactsPage() {
       </div>
 
       {/* All Contacts with Trust Levels */}
-      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border-2 border-white/20 rounded-lg p-4 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] backdrop-blur-sm relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-panel/20 to-panel2/30 border-2 border-white/20 rounded-lg p-4 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] backdrop-blur-sm relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-white">All Contacts</h3>
