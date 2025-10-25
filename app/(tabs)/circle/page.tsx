@@ -34,8 +34,8 @@ function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts, onPr
     
     if (i < allocatedOut) {
       // CYAN LEDs for trust allocations - enhanced with metallic glow
-      ledStyle = "bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-[0_0_12px_rgba(34,211,238,0.6),0_0_24px_rgba(34,211,238,0.3)] border-2 border-cyan-300"
-      innerStyle = "bg-gradient-to-br from-cyan-300 to-cyan-500"
+      ledStyle = "bg-gradient-to-br from-yellow-400 to-cyan-600 shadow-[0_0_12px_rgba(255,107,53,0.6),0_0_24px_rgba(255,107,53,0.3)] border-2 border-cyan-300"
+      innerStyle = "bg-gradient-to-br from-cyan-300 to-yellow-500"
       pulseEffect = "animate-pulse"
     } else {
       // Gray LEDs for available trust slots - slightly more visible
@@ -73,7 +73,7 @@ function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts, onPr
       <button
         type="button"
         onClick={onPress}
-        className="active:scale-95 transition-transform duration-150 focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/50 focus:ring-offset-2 focus:ring-offset-panel rounded-full"
+        className="active:scale-95 transition-transform duration-150 focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/50 focus:ring-offset-2 focus:ring-offset-panel rounded-full"
         aria-label="Manage circle members"
       >
         {CircleContent}
@@ -205,14 +205,14 @@ export default function CirclePage() {
       {/* Streamlined Header */}
       <div className="text-center mb-6">
         <h1 className="text-xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
-          <Circle className="w-5 h-5 text-[#22D3EE]" />
+          <Circle className="w-5 h-5 text-[#FF6B35]" />
           Circle of Trust
         </h1>
         <p className="text-sm text-white/70 mt-1">Your Inner Circle Dashboard</p>
       </div>
       
       {/* Inner Circle Campfire - Visual Centerpiece */}
-      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
+      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
         <CardContent className="p-6 relative z-10">
           <div className="text-center mb-4">
             <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
@@ -221,7 +221,7 @@ export default function CirclePage() {
                 <span className="text-white/60 animate-pulse">Loading circle data...</span>
               ) : (
                 <>
-                  <span className="text-[#22D3EE] font-medium">{trustStats.allocatedOut}/{trustStats.maxSlots} Slots</span>
+                  <span className="text-[#FF6B35] font-medium">{trustStats.allocatedOut}/{trustStats.maxSlots} Slots</span>
                   <span className="text-white/60 mx-2">•</span>
                   <span className="text-white/60">Choose Wisely</span>
                   <span className="text-white/60 mx-2">•</span>
@@ -248,14 +248,14 @@ export default function CirclePage() {
               </div>
               
               <div className="text-xs space-y-1">
-                <div className="text-[#22D3EE] font-medium">{availableSlots} open slots</div>
+                <div className="text-[#FF6B35] font-medium">{availableSlots} open slots</div>
                 <div className="text-white/50">Prioritize Strength</div>
               </div>
             </div>
             
             {/* Mobile-optimized CTA Button */}
             <Button
-              className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#22D3EE] to-cyan-400 text-black hover:from-[#22D3EE]/90 hover:to-cyan-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4),0_0_40px_rgba(34,211,238,0.2)] hover:shadow-[0_0_25px_rgba(34,211,238,0.5),0_0_50px_rgba(34,211,238,0.3)]"
+              className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]"
               onClick={handleAddMember}
             >
               <UserPlus className="w-5 h-5 mr-2" />
@@ -265,7 +265,7 @@ export default function CirclePage() {
           
           {/* Tooltip-style hint positioned in bottom right of card */}
           <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
-            <div className="absolute -bottom-1 right-3 text-xs text-[#22D3EE]/80 hover:text-[#22D3EE] transition-all duration-300 cursor-pointer font-medium flex items-center gap-1 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] hover:scale-105">
+            <div className="absolute -bottom-1 right-3 text-xs text-[#FF6B35]/80 hover:text-[#FF6B35] transition-all duration-300 cursor-pointer font-medium flex items-center gap-1 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] hover:scale-105">
               <span className="text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]">→</span>
               <span className="drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] hover:drop-shadow-[0_0_12px_rgba(255,255,255,1.0)]">Who should I add?</span>
             </div>
@@ -274,11 +274,11 @@ export default function CirclePage() {
       </Card>
       
       {/* Circle Members List */}
-      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
+      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
         <CardContent className="p-5 relative z-10">
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#22D3EE]" />
+              <Users className="w-4 h-4 text-[#FF6B35]" />
               <span>Current Circle Members</span>
             </div>
             <span className="text-xs text-white/60">{circleMembers.length} members</span>
@@ -295,15 +295,15 @@ export default function CirclePage() {
               </div>
             ) : (
               circleMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/40 to-panel/30 border border-green-400/20 rounded-lg hover:bg-gradient-to-r hover:from-panel/50 hover:to-panel/40 hover:border-green-400/30 hover:shadow-[0_0_15px_rgba(52,211,153,0.15)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-green-400/10 before:via-transparent before:to-green-400/10 before:-z-10">
+              <div key={member.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/40 to-panel/30 border border-green-400/20 rounded-lg hover:bg-gradient-to-r hover:from-panel/50 hover:to-panel/40 hover:border-green-400/30 hover:shadow-[0_0_15px_rgba(255,107,53,0.15)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-green-400/10 before:via-transparent before:to-green-400/10 before:-z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#22D3EE]/20 to-cyan-500/20 border border-[#22D3EE]/30 flex items-center justify-center">
-                    <User className="w-4 h-4 text-[#22D3EE]" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35]/20 to-yellow-500/20 border border-[#FF6B35]/30 flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#FF6B35]" />
                   </div>
                   <div>
                     <div className="text-sm font-medium text-white">{member.name}</div>
                     <div className="text-xs text-white/60">
-                      {member.role} • <span className="text-[#22D3EE]">{member.trustAllocated} trust</span>
+                      {member.role} • <span className="text-[#FF6B35]">{member.trustAllocated} trust</span>
                     </div>
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function CirclePage() {
                   <Button 
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-xs text-white/70 hover:text-[#22D3EE] hover:bg-[#22D3EE]/10"
+                    className="h-7 px-2 text-xs text-white/70 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10"
                     onClick={() => handleMemberClick(member.id)}
                   >
                     <MessageCircle className="w-3 h-3" />
@@ -335,26 +335,26 @@ export default function CirclePage() {
               <>
                 {/* Challenge Header */}
                 <div className="text-center py-2 border-t border-white/10 mt-2">
-                  <div className="text-xs text-[#22D3EE] font-medium">Sprint Challenge</div>
+                  <div className="text-xs text-[#FF6B35] font-medium">Sprint Challenge</div>
                   <div className="text-xs text-white/60 mt-1">Add 3 trusted members to strengthen your circle</div>
                 </div>
                 
                 {/* Show up to 3 empty slots */}
                 {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
-                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/30 to-panel/20 rounded-lg border-2 border-dashed border-[#22D3EE]/30 hover:border-[#22D3EE]/50 hover:bg-gradient-to-r hover:from-panel/40 hover:to-panel/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#22D3EE]/5 before:via-transparent before:to-[#22D3EE]/5 before:-z-10">
+                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/30 to-panel/20 rounded-lg border-2 border-dashed border-[#FF6B35]/30 hover:border-[#FF6B35]/50 hover:bg-gradient-to-r hover:from-panel/40 hover:to-panel/30 hover:shadow-[0_0_12px_rgba(255,107,53,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#FF6B35]/5 before:via-transparent before:to-[#FF6B35]/5 before:-z-10">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center">
-                        <Plus className="w-4 h-4 text-[#22D3EE]/60" />
+                      <div className="w-8 h-8 rounded-full bg-[#FF6B35]/10 border border-[#FF6B35]/30 flex items-center justify-center">
+                        <Plus className="w-4 h-4 text-[#FF6B35]/60" />
                       </div>
                       <div>
                         <div className="text-sm text-white/60">Slot {i + 1}</div>
-                        <div className="text-xs text-[#22D3EE]/60">Add trusted contact</div>
+                        <div className="text-xs text-[#FF6B35]/60">Add trusted contact</div>
                       </div>
                     </div>
                     
                     <Button 
                       size="sm"
-                      className="h-7 px-3 text-xs bg-[#22D3EE]/20 hover:bg-[#22D3EE]/30 text-[#22D3EE] border border-[#22D3EE]/30"
+                      className="h-7 px-3 text-xs bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] border border-[#FF6B35]/30"
                       onClick={handleAddMember}
                     >
                       Add
@@ -386,7 +386,7 @@ export default function CirclePage() {
           />
           
           {/* Modal */}
-          <div className="relative bg-gradient-to-br from-panel/95 to-panel/95 backdrop-blur-xl border border-[#22D3EE]/30 rounded-xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
+          <div className="relative bg-gradient-to-br from-panel/95 to-panel/95 backdrop-blur-xl border border-[#FF6B35]/30 rounded-xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Add to Circle</h3>
               <button 
@@ -414,12 +414,12 @@ export default function CirclePage() {
                   return (
                     <div 
                       key={contact.peerId}
-                      className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-colors border border-white/10 hover:border-[#22D3EE]/30"
+                      className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-colors border border-white/10 hover:border-[#FF6B35]/30"
                       onClick={() => handleSelectContact(contact.peerId || '', displayName)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#22D3EE]/20 to-cyan-500/20 border border-[#22D3EE]/30 flex items-center justify-center">
-                          <User className="w-4 h-4 text-[#22D3EE]" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35]/20 to-yellow-500/20 border border-[#FF6B35]/30 flex items-center justify-center">
+                          <User className="w-4 h-4 text-[#FF6B35]" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-white">{displayName}</div>
@@ -428,7 +428,7 @@ export default function CirclePage() {
                       </div>
                       <Button 
                         size="sm"
-                        className="h-7 px-3 text-xs bg-[#22D3EE]/20 hover:bg-[#22D3EE]/30 text-[#22D3EE] border border-[#22D3EE]/30"
+                        className="h-7 px-3 text-xs bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] border border-[#FF6B35]/30"
                       >
                         Add
                       </Button>
