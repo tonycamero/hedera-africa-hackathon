@@ -34,28 +34,28 @@ export function StoicGuideModal({ children, availableSlots, onAddMember }: Stoic
             <div className="pointer-events-auto animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
               <div className="
                 max-w-md w-full max-h-[85vh] overflow-y-auto 
-                bg-gradient-to-br from-slate-900/85 to-slate-800/80 
+                bg-gradient-to-br from-[#1a0a1f]/95 to-[#2a1030]/90 
                 backdrop-blur-xl 
-                border-2 border-[#00F6FF]/40 
-                shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] 
+                border-2 border-[#FF6B35]/40 
+                shadow-[0_0_40px_rgba(255,107,53,0.3),0_0_80px_rgba(255,107,53,0.1)] 
                 rounded-[10px] p-4
                 relative
                 before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
-                before:bg-gradient-to-r before:from-[#00F6FF]/50 before:via-transparent before:to-[#00F6FF]/50
+                before:bg-gradient-to-r before:from-[#FF6B35]/50 before:via-transparent before:to-[#FF6B35]/50
                 before:-z-10 before:animate-pulse
               ">
                 {/* Close Button */}
                 <button
                   onClick={() => setOpen(false)}
-                  className="absolute top-3 right-3 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-[#00F6FF]/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  className="absolute top-3 right-3 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/50 focus:ring-offset-2 focus:ring-offset-[#1a0a1f]"
                 >
                   <X className="w-4 h-4 text-white" />
                   <span className="sr-only">Close</span>
                 </button>
 
                 {/* Modal Header */}
-                <div className="mb-4 pb-3 border-b border-[#00F6FF]/20">
-                  <h2 className="text-white text-lg font-bold bg-gradient-to-r from-white to-[#00F6FF] bg-clip-text text-transparent text-center">
+                <div className="mb-4 pb-3 border-b border-[#FF6B35]/20">
+                  <h2 className="text-white text-lg font-bold bg-gradient-to-r from-white to-[#FF6B35] bg-clip-text text-transparent text-center">
                     Who Should You Add?
                   </h2>
                   <p className="text-xs text-white/60 text-center mt-1">(Stoic Guide)</p>
@@ -63,7 +63,7 @@ export function StoicGuideModal({ children, availableSlots, onAddMember }: Stoic
 
                 {/* 3-Column Grid */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="p-2 bg-slate-800 rounded-lg border border-emerald-500/20">
+                  <div className="p-2 bg-black/30 rounded-lg border border-emerald-500/30">
                     <div className="text-center mb-2">
                       <span className="text-xs font-medium text-emerald-400 block mb-1">Mentors</span>
                       <span className="text-xs text-emerald-400/80">Wisdom Anchors</span>
@@ -81,7 +81,7 @@ export function StoicGuideModal({ children, availableSlots, onAddMember }: Stoic
                     </Button>
                   </div>
                   
-                  <div className="p-2 bg-slate-800 rounded-lg border border-blue-500/20">
+                  <div className="p-2 bg-black/30 rounded-lg border border-blue-500/30">
                     <div className="text-center mb-2">
                       <span className="text-xs font-medium text-blue-400 block mb-1">Collaborators</span>
                       <span className="text-xs text-blue-400/80">Execution Partners</span>
@@ -99,15 +99,15 @@ export function StoicGuideModal({ children, availableSlots, onAddMember }: Stoic
                     </Button>
                   </div>
                   
-                  <div className="p-2 bg-slate-800 rounded-lg border border-amber-500/20">
+                  <div className="p-2 bg-black/30 rounded-lg border border-yellow-500/30">
                     <div className="text-center mb-2">
-                      <span className="text-xs font-medium text-amber-400 block mb-1">Allies</span>
-                      <span className="text-xs text-amber-400/80">Discipline Enforcers</span>
+                      <span className="text-xs font-medium text-yellow-400 block mb-1">Allies</span>
+                      <span className="text-xs text-yellow-400/80">Discipline Enforcers</span>
                     </div>
                     <p className="text-xs text-white/60 text-center mb-2">Peers who hold you to standards</p>
                     <Button 
                       size="sm"
-                      className="w-full h-6 text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30"
+                      className="w-full h-6 text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30"
                       onClick={() => {
                         onAddMember('ally')
                         setOpen(false)
@@ -141,8 +141,8 @@ export function StoicGuideModal({ children, availableSlots, onAddMember }: Stoic
                 )}
                 
                 {/* Remember Section */}
-                <div className="p-2 bg-[#00F6FF]/10 rounded-lg border border-[#00F6FF]/20">
-                  <p className="text-xs text-[#00F6FF] font-medium">Remember:</p>
+                <div className="p-2 bg-[#FF6B35]/10 rounded-lg border border-[#FF6B35]/20">
+                  <p className="text-xs text-[#FF6B35] font-medium">Remember:</p>
                   <p className="text-xs text-white/70 mt-1">With only 9 slots, each addition is a calculated investment. Choose people who amplify your capabilities and support your goals.</p>
                 </div>
               </div>

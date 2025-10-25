@@ -95,10 +95,10 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]"><div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
       {/* Card 1: QR Contact Exchange - Network Growth Engine */}
-      <div className="bg-gradient-to-br from-transparent to-transparent border-2 border-orange-500/40 hover:border-orange-500/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(255,107,53,0.2),0_0_60px_rgba(255,107,53,0.1)] hover:shadow-[0_0_40px_rgba(255,107,53,0.3),0_0_80px_rgba(255,107,53,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-yellow-400/30 before:via-transparent before:to-orange-500/30 before:-z-10 before:animate-pulse">
+      <div className="sheen-sweep bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg p-4 relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400/30 to-yellow-500/20 flex items-center justify-center border border-orange-500/30">
@@ -115,7 +115,7 @@ export default function ContactsPage() {
         </div>
         <div className="flex gap-2">
           <AddContactDialog>
-            <Button className="flex-1 bg-gradient-to-r from-yellow-400/80 to-yellow-500/80 hover:from-yellow-400 hover:to-yellow-500 text-white font-medium shadow-[0_0_20px_rgba(255,107,53,0.3)] hover:shadow-[0_0_25px_rgba(255,107,53,0.4)] transition-all duration-300">
+            <Button className="flex-1 h-9 text-sm font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]">
               <QrCode className="w-4 h-4 mr-2" />
               QR Exchange
             </Button>
@@ -130,7 +130,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 2: Send Recognition Signal */}
-      <div className="bg-gradient-to-br from-transparent to-transparent border-2 border-[#FF6B35]/40 hover:border-[#FF6B35]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(255,107,53,0.2),0_0_60px_rgba(255,107,53,0.1)] hover:shadow-[0_0_40px_rgba(255,107,53,0.3),0_0_80px_rgba(255,107,53,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/30 before:via-transparent before:to-[#FF6B35]/30 before:-z-10 before:animate-pulse">
+      <div className="sheen-sweep bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg p-4 relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B35]/30 to-yellow-500/20 flex items-center justify-center border border-[#FF6B35]/30">
@@ -146,15 +146,15 @@ export default function ContactsPage() {
           {bondedContacts.length} contacts • Recognition signals available
         </div>
         <PeerRecommendationModal>
-          <Button className="w-full bg-gradient-to-r from-[#FF6B35]/80 to-yellow-500/80 hover:from-[#FF6B35] hover:to-yellow-500 text-white font-medium shadow-[0_0_20px_rgba(255,107,53,0.3)] hover:shadow-[0_0_25px_rgba(255,107,53,0.4)] transition-all duration-300">
-            <Award className="w-4 h-4 mr-2" />
+          <Button className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]">
+            <Award className="w-5 h-5 mr-2" />
             Send Signal
           </Button>
         </PeerRecommendationModal>
       </div>
 
       {/* All Contacts with Trust Levels */}
-      <div className="bg-gradient-to-br from-transparent to-transparent border-2 border-white/20 rounded-lg p-4 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] backdrop-blur-sm relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
+      <div className="sheen-sweep bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] rounded-lg p-4 relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-white">All Contacts</h3>
@@ -244,6 +244,7 @@ export default function ContactsPage() {
           trustData={trustLevels.get(sheetContact.peerId || '') || { allocatedTo: 0, receivedFrom: 0 }}
         />
       )}
+    </div>
     </div>
   )
 }

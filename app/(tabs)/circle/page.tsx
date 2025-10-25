@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus } from "lucide-react"
@@ -201,7 +200,7 @@ export default function CirclePage() {
   const availableSlots = trustStats.maxSlots - trustStats.allocatedOut
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]"><div className="max-w-md mx-auto px-4 py-4 space-y-6">
       {/* Streamlined Header */}
       <div className="text-center mb-6">
         <h1 className="text-xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
@@ -212,8 +211,8 @@ export default function CirclePage() {
       </div>
       
       {/* Inner Circle Campfire - Visual Centerpiece */}
-      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
-        <CardContent className="p-6 relative z-10">
+      <div className="sheen-sweep overflow-hidden bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
+        <div className="p-6 relative z-10">
           <div className="text-center mb-4">
             <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
             <div className="text-xs">
@@ -242,13 +241,7 @@ export default function CirclePage() {
             
             {/* Circle Stats - Centered below */}
             <div className="text-center">
-              <div className="flex items-baseline gap-1 justify-center mb-2">
-                <span className="text-2xl font-bold text-white">{trustStats.allocatedOut}</span>
-                <span className="text-white/60 text-sm">active</span>
-              </div>
-              
-              <div className="text-xs space-y-1">
-                <div className="text-[#FF6B35] font-medium">{availableSlots} open slots</div>
+              <div className="text-xs">
                 <div className="text-white/50">Prioritize Strength</div>
               </div>
             </div>
@@ -270,12 +263,12 @@ export default function CirclePage() {
               <span className="drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] hover:drop-shadow-[0_0_12px_rgba(255,255,255,1.0)]">Who should I add?</span>
             </div>
           </StoicGuideModal>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       
       {/* Circle Members List */}
-      <Card className="bg-gradient-to-br from-panel/60 to-panel/50 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
-        <CardContent className="p-5 relative z-10">
+      <div className="sheen-sweep overflow-hidden bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
+        <div className="p-5 relative z-10">
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#FF6B35]" />
@@ -373,9 +366,8 @@ export default function CirclePage() {
               </>
             )}
           </div>
-        </CardContent>
-      </Card>
-
+        </div>
+      </div>
       {/* Contact Selection Modal */}
       {showContactSelection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -441,6 +433,7 @@ export default function CirclePage() {
         </div>
       )}
 
+    </div>
     </div>
   )
 }

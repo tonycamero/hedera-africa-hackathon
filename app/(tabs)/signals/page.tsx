@@ -231,6 +231,7 @@ export default function SignalsPage() {
   }) : []
 
   return (
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]">
     <div className="max-w-md mx-auto px-4 py-4 space-y-6" {...bind}>
       {/* Mobile Header */}
       <div className="text-center space-y-2">
@@ -260,7 +261,7 @@ export default function SignalsPage() {
       </div>
 
       {/* Mobile Tabs */}
-      <div className="grid grid-cols-2 bg-gradient-to-r from-panel/60 to-panel/60 border-2 border-white/20 rounded-lg p-1 gap-1 shadow-[0_0_20px_rgba(255,255,255,0.08)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
+      <div className="sheen-sweep grid grid-cols-2 bg-gradient-to-r from-panel/90 to-panel/80 border-2 border-white/20 rounded-lg p-1 gap-1 shadow-[0_0_20px_rgba(255,255,255,0.08)] relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <Button
           variant="ghost"
           size="sm"
@@ -400,6 +401,7 @@ export default function SignalsPage() {
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

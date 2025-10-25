@@ -180,8 +180,8 @@ html.theme-mesh-dark * {
 html.theme-genz-dark,
 html.theme-genz-dark *,
 body[data-genz="true"] {
-  /* ==> BACKGROUND SURFACES - Deeper blacks for GenZ aesthetic */
-  --background: #050505 !important;           /* Nearly black background for max contrast */
+  /* ==> BACKGROUND SURFACES - Magenta blend gradient for GenZ aesthetic */
+  --background: #1a0a1f !important;           /* Deep purple-magenta base */
   --card: #0a0a0a !important;                 /* Very dark card backgrounds */
   --popover: #0a0a0a !important;              /* Popovers/dropdowns */
   --muted: #0f0f0f !important;                /* Muted backgrounds */
@@ -780,6 +780,26 @@ html.theme-mesh-dark.hc {
   50%  { transform: translateX(120%) rotate(12deg); opacity: .25; }
   60%  { opacity: 0; }
   100% { transform: translateX(120%) rotate(12deg); opacity: 0; }
+}
+
+/* Brushed aluminum pulsating sheen overlay */
+.sheen-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.sheen-sweep::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -120%;
+  width: 120%;
+  height: 200%;
+  background: linear-gradient(120deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0) 65%);
+  filter: blur(0.5px);
+  transform: translateX(-120%) rotate(12deg);
+  animation: sheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
 }
 
 /* Respect reduced motion */

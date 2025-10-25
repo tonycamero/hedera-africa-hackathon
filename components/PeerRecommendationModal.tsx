@@ -38,7 +38,7 @@ import {
   UserCheck
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { professionalRecognitionService, type RecognitionRequest } from '@/lib/professionalRecognitionService'
+import { genzRecognitionService, type RecognitionRequest } from '@/lib/genzRecognitionService'
 import { getSessionId } from '@/lib/session'
 import { getBondedContactsAdapter } from '@/lib/adapters/hcsContactsAdapter'
 // Removed EnhancedHCSDataService - using pure HCS data flow
@@ -50,69 +50,52 @@ interface PeerRecommendationModalProps {
   children: React.ReactNode
 }
 
-// Icon mapping for professional tokens
+// Icon mapping for GenZ tokens (icons are emojis, but we'll map categories to Lucide icons)
 const iconMap: Record<string, any> = {
-  // Leadership icons
-  telescope: Target,
-  users: Users,
-  target: Target,
-  heart: Award,
-  'trending-up': TrendingUp,
-  'user-plus': Users,
-  shield: Shield,
-  
-  // Knowledge icons
-  cpu: Shield,
-  network: Globe,
-  'bar-chart': TrendingUp,
-  'book-open': BookOpen,
-  'graduation-cap': BookOpen,
-  search: Target,
-  'shield-check': Shield,
-  
-  // Execution icons  
-  truck: Send,
-  settings: Star,
-  'heart-handshake': Award,
-  puzzle: Star,
-  'git-branch': Handshake,
-  'alert-triangle': Shield,
+  // Social category fallback
+  social: Users,
+  // Academic category fallback
+  academic: BookOpen,
+  // Professional category fallback
+  professional: Briefcase,
+  // Default fallback
+  default: Star
 }
 
-// Style mapping for categories - Earth tones
+// Style mapping for GenZ categories
 const categoryStyles: Record<string, any> = {
-  leadership: {
-    color: 'from-orange-600 to-orange-500',
-    bgColor: 'bg-orange-500/15',
-    borderColor: 'border-orange-500/40',
-    filterColor: 'bg-orange-500 text-white',
-    filterHover: 'bg-orange-500/20 text-orange-200'
+  social: {
+    color: 'from-cyan-600 to-cyan-500',
+    bgColor: 'bg-cyan-500/15',
+    borderColor: 'border-cyan-500/40',
+    filterColor: 'bg-cyan-500 text-white',
+    filterHover: 'bg-cyan-500/20 text-cyan-200'
   },
-  knowledge: {
-    color: 'from-emerald-600 to-teal-500', 
-    bgColor: 'bg-emerald-500/15',
-    borderColor: 'border-emerald-500/40',
-    filterColor: 'bg-emerald-600 text-white',
-    filterHover: 'bg-emerald-500/20 text-emerald-200'
-  },
-  execution: {
+  academic: {
     color: 'from-purple-600 to-purple-500',
-    bgColor: 'bg-purple-500/15', 
+    bgColor: 'bg-purple-500/15',
     borderColor: 'border-purple-500/40',
-    filterColor: 'bg-purple-500 text-white',
+    filterColor: 'bg-purple-600 text-white',
     filterHover: 'bg-purple-500/20 text-purple-200'
+  },
+  professional: {
+    color: 'from-blue-600 to-blue-500',
+    bgColor: 'bg-blue-500/15', 
+    borderColor: 'border-blue-500/40',
+    filterColor: 'bg-blue-500 text-white',
+    filterHover: 'bg-blue-500/20 text-blue-200'
   }
 }
 
-// Get professional recognition tokens with UI styling
-const getProfessionalRecognitions = () => {
-  const tokensByCategory = professionalRecognitionService.getTokensByCategory()
+// Get GenZ recognition tokens with UI styling
+const getGenZRecognitions = () => {
+  const tokensByCategory = genzRecognitionService.getTokensByCategory()
   const allTokens = Object.values(tokensByCategory).flat()
   
   return allTokens.map(token => ({
     ...token,
     icon: iconMap[token.icon] || Star,
-    ...categoryStyles[token.category] || categoryStyles.execution
+    ...categoryStyles[token.category] || categoryStyles.professional
   }))
 }
 
@@ -133,21 +116,21 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
   const [enhancedContacts, setEnhancedContacts] = useState<any[]>([])
   const [loadingContacts, setLoadingContacts] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('leadership')
+  const [selectedCategory, setSelectedCategory] = useState<string>('social')
   const [detailToken, setDetailToken] = useState<any | null>(null)
   
-  // Get professional recognition tokens
-  const allProfessionalRecognitions = getProfessionalRecognitions()
-  const professionalRecognitions = selectedCategory === 'all' 
-    ? allProfessionalRecognitions.sort((a, b) => a.trustValue - b.trustValue)
-    : allProfessionalRecognitions.filter(token => token.category === selectedCategory).sort((a, b) => a.trustValue - b.trustValue)
+// Get GenZ recognition tokens
+  const allGenZRecognitions = getGenZRecognitions()
+  const genZRecognitions = selectedCategory === 'all' 
+    ? allGenZRecognitions.sort((a, b) => a.trustValue - b.trustValue)
+    : allGenZRecognitions.filter(token => token.category === selectedCategory).sort((a, b) => a.trustValue - b.trustValue)
   
-  // Category definitions - Leadership first, All last
+  // Category definitions - GenZ categories
   const categories = [
-    { id: 'leadership', name: 'Leadership', count: allProfessionalRecognitions.filter(t => t.category === 'leadership').length },
-    { id: 'knowledge', name: 'Knowledge', count: allProfessionalRecognitions.filter(t => t.category === 'knowledge').length },
-    { id: 'execution', name: 'Execution', count: allProfessionalRecognitions.filter(t => t.category === 'execution').length },
-    { id: 'all', name: 'All', count: allProfessionalRecognitions.length }
+    { id: 'social', name: 'Social', count: allGenZRecognitions.filter(t => t.category === 'social').length },
+    { id: 'academic', name: 'Academic', count: allGenZRecognitions.filter(t => t.category === 'academic').length },
+    { id: 'professional', name: 'Professional', count: allGenZRecognitions.filter(t => t.category === 'professional').length },
+    { id: 'all', name: 'All', count: allGenZRecognitions.length }
   ]
   
   // Load bonded contacts when modal opens
@@ -240,7 +223,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
           senderName
         }
         
-        const result = await professionalRecognitionService.sendRecognition(request)
+        const result = await genzRecognitionService.sendRecognition(request)
         results.push(result)
         
         if (result.success) {
@@ -286,7 +269,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
     }
   }
 
-  const selectedTokens = allProfessionalRecognitions.filter(r => 
+  const selectedTokens = allGenZRecognitions.filter(r => 
     selectedRecognitions.includes(r.id)
   )
   const totalTrust = selectedTokens.reduce((sum, token) => sum + token.trustValue, 0)
@@ -297,11 +280,11 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         {children}
       </DialogTrigger>
       
-        <DialogContent className="w-80 max-w-[20rem] mx-auto bg-gradient-to-br from-slate-900/85 to-slate-800/80 backdrop-blur-xl border-2 border-[#00F6FF]/40 shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+        <DialogContent className="w-80 max-w-[20rem] mx-auto bg-gradient-to-br from-[#1a0a1f]/95 to-[#2a1030]/90 backdrop-blur-xl border-2 border-[#FF6B35]/40 shadow-[0_0_40px_rgba(255,107,53,0.3),0_0_80px_rgba(255,107,53,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
         {/* Compact Header */}
-        <div className="p-4 pb-3 border-b border-[#00F6FF]/20">
+        <div className="p-4 pb-3 border-b border-[#FF6B35]/20">
           <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
-            <Award className="w-4 h-4 text-[#00F6FF]" />
+            <Award className="w-4 h-4 text-[#FF6B35]" />
             Send this Signal!
           </DialogTitle>
         </div>
@@ -312,19 +295,19 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
             <Label className="text-sm font-medium text-white">Pick from your trusted contacts list:</Label>
             {(bondedContacts.length > 0 || enhancedContacts.length > 0) ? (
               <Select value={selectedContactId} onValueChange={handleContactSelection}>
-                <SelectTrigger className="bg-slate-800 border-white/20 text-white focus:border-[#00F6FF]">
+                <SelectTrigger className="bg-black/30 border-white/20 text-white focus:border-[#FF6B35]">
                   <SelectValue placeholder={loadingContacts ? "Loading..." : "Select contact"} />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/20">
+                <SelectContent className="bg-[#1a0a1f] border-white/20">
                   {/* Bonded contacts first */}
                   {bondedContacts.map((contact) => (
-                    <SelectItem key={contact.id || contact.peerId} value={contact.id || contact.peerId} className="text-white hover:bg-slate-700">
+                    <SelectItem key={contact.id || contact.peerId} value={contact.id || contact.peerId} className="text-white hover:bg-[#FF6B35]/20">
                       {contact.handle || `User ${(contact.id || contact.peerId).slice(-6)}`}
                     </SelectItem>
                   ))}
                   {/* Enhanced contacts */}
                   {enhancedContacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-slate-700">
+                    <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-[#FF6B35]/20">
                       {contact.name} - {contact.role}
                     </SelectItem>
                   ))}
@@ -335,7 +318,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                 placeholder="Enter recipient name"
                 value={peerName}
                 onChange={(e) => setPeerName(e.target.value)}
-                className="bg-slate-800 border-white/20 text-white placeholder:text-white/40 focus:border-[#00F6FF]"
+                className="bg-black/30 border-white/20 text-white placeholder:text-white/40 focus:border-[#FF6B35]"
               />
             )}
           </div>
@@ -345,7 +328,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-white">Browse tokens by category:</Label>
               {selectedRecognitions.length > 0 && (
-                <span className="text-xs text-[#00F6FF]">{totalTrust.toFixed(1)} trust units</span>
+                <span className="text-xs text-[#FF6B35]">{totalTrust.toFixed(1)} trust units</span>
               )}
             </div>
             
@@ -361,7 +344,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                     onClick={() => setSelectedCategory(category.id)}
                     className={`px-2 py-1 rounded text-xs font-medium transition ${
                       isActive 
-                        ? (category.id === 'all' ? 'bg-[#00F6FF] text-black' : categoryStyle.filterColor)
+                        ? (category.id === 'all' ? 'bg-yellow-500 text-black' : categoryStyle.filterColor)
                         : (category.id === 'all' ? 'bg-white/10 text-white/70 hover:bg-white/20' : `${categoryStyle.filterHover} hover:${categoryStyle.filterHover}`)
                     }`}
                   >
@@ -373,7 +356,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
             
             {/* Compact Token Grid */}
             <div className="grid grid-cols-3 gap-1">
-              {professionalRecognitions.map((recognition) => {
+              {genZRecognitions.map((recognition) => {
                 const Icon = recognition.icon
                 const isSelected = selectedRecognitions.includes(recognition.id)
                 
@@ -384,7 +367,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                     className={`cursor-pointer p-1.5 rounded border transition-all ${
                       isSelected 
                         ? `${recognition.bgColor} ${recognition.borderColor}` 
-                        : 'bg-slate-800 border-white/10 hover:border-white/30'
+                        : 'bg-black/30 border-white/10 hover:border-white/30'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-0.5">
@@ -419,7 +402,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
               placeholder="Why are you recognizing them?"
               value={personalMessage}
               onChange={(e) => setPersonalMessage(e.target.value)}
-              className="bg-slate-800 border-white/20 text-white placeholder:text-white/40 focus:border-[#00F6FF] resize-none"
+              className="bg-black/30 border-white/20 text-white placeholder:text-white/40 focus:border-[#FF6B35] resize-none"
               rows={2}
             />
           </div>
@@ -428,7 +411,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
           <Button
             onClick={handleSendRecommendation}
             disabled={!peerName || selectedRecognitions.length === 0 || sending}
-            className="w-full bg-gradient-to-r from-[#00F6FF] to-cyan-500 hover:from-[#00F6FF]/90 hover:to-cyan-500/90 text-black font-medium py-3"
+            className="w-full bg-gradient-to-r from-[#FF6B35] to-yellow-400 hover:from-[#FF6B35]/90 hover:to-yellow-400/90 text-black font-medium py-3"
           >
             {sending ? (
               <>
