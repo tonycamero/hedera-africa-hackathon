@@ -34,7 +34,7 @@ function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts, onPr
     
     if (i < allocatedOut) {
       // CYAN LEDs for trust allocations - enhanced with metallic glow
-      ledStyle = "bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-[0_0_12px_rgba(0,246,255,0.6),0_0_24px_rgba(0,246,255,0.3)] border-2 border-cyan-300"
+      ledStyle = "bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-[0_0_12px_rgba(34,211,238,0.6),0_0_24px_rgba(34,211,238,0.3)] border-2 border-cyan-300"
       innerStyle = "bg-gradient-to-br from-cyan-300 to-cyan-500"
       pulseEffect = "animate-pulse"
     } else {
@@ -212,7 +212,7 @@ export default function CirclePage() {
       </div>
       
       {/* Inner Circle Campfire - Visual Centerpiece */}
-      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(0,246,255,0.15),0_0_60px_rgba(0,246,255,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
+      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
         <CardContent className="p-6 relative z-10">
           <div className="text-center mb-4">
             <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
@@ -255,7 +255,7 @@ export default function CirclePage() {
             
             {/* Mobile-optimized CTA Button */}
             <Button
-              className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#22D3EE] to-cyan-400 text-black hover:from-[#22D3EE]/90 hover:to-cyan-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,246,255,0.4),0_0_40px_rgba(0,246,255,0.2)] hover:shadow-[0_0_25px_rgba(0,246,255,0.5),0_0_50px_rgba(0,246,255,0.3)]"
+              className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#22D3EE] to-cyan-400 text-black hover:from-[#22D3EE]/90 hover:to-cyan-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4),0_0_40px_rgba(34,211,238,0.2)] hover:shadow-[0_0_25px_rgba(34,211,238,0.5),0_0_50px_rgba(34,211,238,0.3)]"
               onClick={handleAddMember}
             >
               <UserPlus className="w-5 h-5 mr-2" />
@@ -274,7 +274,7 @@ export default function CirclePage() {
       </Card>
       
       {/* Circle Members List */}
-      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(0,246,255,0.15),0_0_60px_rgba(0,246,255,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
+      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/50 border-2 border-[#22D3EE]/20 shadow-[0_0_30px_rgba(34,211,238,0.15),0_0_60px_rgba(34,211,238,0.05)] relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/20 before:via-transparent before:to-[#22D3EE]/20 before:-z-10 before:animate-pulse">
         <CardContent className="p-5 relative z-10">
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -341,7 +341,7 @@ export default function CirclePage() {
                 
                 {/* Show up to 3 empty slots */}
                 {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
-                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/30 to-slate-900/20 rounded-lg border-2 border-dashed border-[#22D3EE]/30 hover:border-[#22D3EE]/50 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-800/30 hover:shadow-[0_0_12px_rgba(0,246,255,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#22D3EE]/5 before:via-transparent before:to-[#22D3EE]/5 before:-z-10">
+                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/30 to-slate-900/20 rounded-lg border-2 border-dashed border-[#22D3EE]/30 hover:border-[#22D3EE]/50 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-800/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#22D3EE]/5 before:via-transparent before:to-[#22D3EE]/5 before:-z-10">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center">
                         <Plus className="w-4 h-4 text-[#22D3EE]/60" />
