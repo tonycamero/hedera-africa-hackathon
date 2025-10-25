@@ -307,7 +307,7 @@ export default function SignalsPage() {
             </div>
           ) : (
             filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-gradient-to-r from-panel/20 to-panel2/30 border border-white/15 backdrop-blur-sm hover:border-[#22D3EE]/40 hover:shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#22D3EE]/10 hover:before:to-[#22D3EE]/10">
+              <div key={signal.id} className="bg-gradient-to-r from-transparent to-transparent border border-white/15 backdrop-blur-sm hover:border-[#22D3EE]/40 hover:shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#22D3EE]/10 hover:before:to-[#22D3EE]/10">
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <Avatar className="w-7 h-7">

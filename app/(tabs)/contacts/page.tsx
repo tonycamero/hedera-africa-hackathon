@@ -98,15 +98,15 @@ export default function ContactsPage() {
     <div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
       {/* Card 1: QR Contact Exchange - Network Growth Engine */}
-      <div className="bg-gradient-to-br from-panel/20 to-panel2/30 border-2 border-emerald-500/40 hover:border-emerald-500/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(52,211,153,0.2),0_0_60px_rgba(52,211,153,0.1)] hover:shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-emerald-400/30 before:via-transparent before:to-emerald-400/30 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-transparent to-transparent border-2 border-pri-500/40 hover:border-pri-500/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(52,211,153,0.2),0_0_60px_rgba(52,211,153,0.1)] hover:shadow-[0_0_40px_rgba(52,211,153,0.3),0_0_80px_rgba(52,211,153,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-pri-500/30 before:via-transparent before:to-pri-500/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/30 to-green-500/20 flex items-center justify-center border border-emerald-500/30">
-              <UserCheck className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pri-500/30 to-pri-600/20 flex items-center justify-center border border-pri-500/30">
+              <UserCheck className="w-5 h-5 text-pri-500" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Grow Your Trusted Network</h3>
-              <div className="text-xs text-emerald-400 font-medium">Add professional contacts to increase your Trust Score!</div>
+              <div className="text-xs text-pri-500 font-medium">Add professional contacts to increase your Trust Score!</div>
             </div>
           </div>
         </div>
@@ -115,13 +115,13 @@ export default function ContactsPage() {
         </div>
         <div className="flex gap-2">
           <AddContactDialog>
-            <Button className="flex-1 bg-gradient-to-r from-emerald-500/80 to-green-500/80 hover:from-emerald-500 hover:to-green-500 text-white font-medium shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:shadow-[0_0_25px_rgba(52,211,153,0.4)] transition-all duration-300">
+            <Button className="flex-1 bg-gradient-to-r from-pri-500/80 to-pri-600/80 hover:from-pri-500 hover:to-pri-600 text-white font-medium shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:shadow-[0_0_25px_rgba(52,211,153,0.4)] transition-all duration-300">
               <QrCode className="w-4 h-4 mr-2" />
               QR Exchange
             </Button>
           </AddContactDialog>
           <AddContactModal>
-            <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
+            <Button variant="outline" className="border-pri-500/30 text-pri-500 hover:bg-emerald-500/20">
               <UserPlus className="w-4 h-4 mr-1" />
               Invite
             </Button>
@@ -130,7 +130,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Card 2: Send Recognition Signal */}
-      <div className="bg-gradient-to-br from-panel/20 to-panel2/30 border-2 border-[#22D3EE]/40 hover:border-[#22D3EE]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.2),0_0_60px_rgba(34,211,238,0.1)] hover:shadow-[0_0_40px_rgba(34,211,238,0.3),0_0_80px_rgba(34,211,238,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/30 before:via-transparent before:to-[#22D3EE]/30 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-transparent to-transparent border-2 border-[#22D3EE]/40 hover:border-[#22D3EE]/60 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-lg p-4 relative overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.2),0_0_60px_rgba(34,211,238,0.1)] hover:shadow-[0_0_40px_rgba(34,211,238,0.3),0_0_80px_rgba(34,211,238,0.15)] backdrop-blur-sm before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#22D3EE]/30 before:via-transparent before:to-[#22D3EE]/30 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#22D3EE]/30 to-cyan-500/20 flex items-center justify-center border border-[#22D3EE]/30">
@@ -154,7 +154,7 @@ export default function ContactsPage() {
       </div>
 
       {/* All Contacts with Trust Levels */}
-      <div className="bg-gradient-to-br from-panel/20 to-panel2/30 border-2 border-white/20 rounded-lg p-4 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] backdrop-blur-sm relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
+      <div className="bg-gradient-to-br from-transparent to-transparent border-2 border-white/20 rounded-lg p-4 shadow-[0_0_25px_rgba(255,255,255,0.1),0_0_50px_rgba(255,255,255,0.05)] backdrop-blur-sm relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-white/10 before:via-transparent before:to-white/10 before:-z-10 before:animate-pulse">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-white">All Contacts</h3>
@@ -202,7 +202,7 @@ export default function ContactsPage() {
                         <div className="text-sm font-medium text-white">{displayName}</div>
                         <div className="text-xs text-white/60">
                           {trustData.allocatedTo > 0 && (
-                            <span className="text-emerald-400">Given: {trustData.allocatedTo}</span>
+                            <span className="text-pri-500">Given: {trustData.allocatedTo}</span>
                           )}
                           {trustData.allocatedTo > 0 && trustData.receivedFrom > 0 && (
                             <span className="text-white/40 mx-1">•</span>
