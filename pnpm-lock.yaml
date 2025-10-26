@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@hashgraph/sdk':
-        specifier: ^2.73.1
+        specifier: ^2.72.0
         version: 2.73.2(bn.js@5.2.2)(react-native@0.81.4(@babel/core@7.28.4)(@types/react@18.3.26)(react@18.3.1))
       '@hashgraphonline/standards-sdk':
         specifier: ^0.1.106
@@ -6188,7 +6188,7 @@ snapshots:
 
   '@hashgraph/cryptography@1.9.0(react-native@0.81.4(@babel/core@7.28.4)(@types/react@18.3.26)(react@18.3.1))':
     dependencies:
-      '@noble/curves': 1.8.1
+      '@noble/curves': 1.9.7
       asn1js: 3.0.6
       bignumber.js: 9.3.1
       bn.js: 5.2.2
