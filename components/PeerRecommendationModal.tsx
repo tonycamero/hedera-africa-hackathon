@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { 
   Award,
   Trophy,
@@ -62,28 +63,28 @@ const iconMap: Record<string, any> = {
   default: Star
 }
 
-// Style mapping for GenZ categories
+// Style mapping for GenZ categories - magenta base theme
 const categoryStyles: Record<string, any> = {
   social: {
-    color: 'from-cyan-600 to-cyan-500',
-    bgColor: 'bg-cyan-500/15',
-    borderColor: 'border-cyan-500/40',
-    filterColor: 'bg-cyan-500 text-white',
-    filterHover: 'bg-cyan-500/20 text-cyan-200'
+    color: 'from-fuchsia-500 to-pink-500',
+    bgColor: 'bg-fuchsia-500/15',
+    borderColor: 'border-fuchsia-500/40',
+    filterColor: 'bg-fuchsia-500 text-white',
+    filterHover: 'bg-fuchsia-500/20 text-fuchsia-200'
   },
   academic: {
-    color: 'from-purple-600 to-purple-500',
+    color: 'from-purple-500 to-fuchsia-500',
     bgColor: 'bg-purple-500/15',
     borderColor: 'border-purple-500/40',
-    filterColor: 'bg-purple-600 text-white',
+    filterColor: 'bg-purple-500 text-white',
     filterHover: 'bg-purple-500/20 text-purple-200'
   },
   professional: {
-    color: 'from-blue-600 to-blue-500',
-    bgColor: 'bg-blue-500/15', 
-    borderColor: 'border-blue-500/40',
-    filterColor: 'bg-blue-500 text-white',
-    filterHover: 'bg-blue-500/20 text-blue-200'
+    color: 'from-pink-500 to-rose-500',
+    bgColor: 'bg-pink-500/15', 
+    borderColor: 'border-pink-500/40',
+    filterColor: 'bg-pink-500 text-white',
+    filterHover: 'bg-pink-500/20 text-pink-200'
   }
 }
 
@@ -100,7 +101,8 @@ const getGenZRecognitions = () => {
 }
 
 interface BondedContact {
-  id: string
+  id?: string
+  peerId: string
   handle: string
   bondedAt?: number
 }
@@ -147,15 +149,19 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
       const effectiveSessionId = sessionId || 'tm-alex-chen'
       console.log('[PeerRecommendationModal] Loading contacts for session:', effectiveSessionId)
       
-      // Load bonded contacts from HCS (same as contacts page)
-      const allEvents = signalsStore.getAll()
-      const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
-      setBondedContacts(contacts)
+      // Load bonded contacts from server API (same as contacts page)
+      const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
+      const data = await response.json()
+      
+      if (data.success && data.bondedContacts) {
+        setBondedContacts(data.bondedContacts)
+        console.log(`[PeerRecommendationModal] Loaded ${data.bondedContacts.length} bonded contacts from server API`)
+      } else {
+        console.error('[PeerRecommendationModal] Failed to load contacts:', data.error)
+      }
       
       // Pure HCS data flow - no enhanced contacts needed
       setEnhancedContacts([])
-      
-      console.log(`[PeerRecommendationModal] Loaded ${contacts.length} bonded contacts (pure HCS data)`)
     } catch (error) {
       console.error('Failed to load contacts:', error)
     } finally {
@@ -178,9 +184,9 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
   const handleContactSelection = (contactId: string) => {
     setSelectedContactId(contactId)
     // Check bonded contacts first
-    const bondedContact = bondedContacts.find(c => (c.id || c.peerId) === contactId)
+    const bondedContact = bondedContacts.find(c => c.peerId === contactId)
     if (bondedContact) {
-      setPeerName(bondedContact.handle || bondedContact.id || bondedContact.peerId)
+      setPeerName(bondedContact.handle)
       setPeerEmail('') // Clear email since we have wallet address
       return
     }
@@ -210,9 +216,9 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
       const successfulTokens = []
       
       for (const tokenId of selectedRecognitions) {
-        // Determine recipient ID - use wallet address for bonded contacts, fallback to email or generated ID
-        const selectedContact = bondedContacts.find(c => c.id === selectedContactId)
-        const recipientId = selectedContact?.id || peerEmail || `peer-${peerName.toLowerCase().replace(/\s+/g, '-')}`
+        // Determine recipient ID - use peerId for bonded contacts, fallback to email or generated ID
+        const selectedContact = bondedContacts.find(c => c.peerId === selectedContactId)
+        const recipientId = selectedContact?.peerId || peerEmail || `peer-${peerName.toLowerCase().replace(/\s+/g, '-')}`
         
         const request: RecognitionRequest = {
           recipientId,
@@ -280,11 +286,14 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         {children}
       </DialogTrigger>
       
-        <DialogContent className="w-80 max-w-[20rem] mx-auto bg-gradient-to-br from-[#1a0a1f]/95 to-[#2a1030]/90 backdrop-blur-xl border-2 border-[#FF6B35]/40 shadow-[0_0_40px_rgba(255,107,53,0.3),0_0_80px_rgba(255,107,53,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
-        {/* Compact Header */}
-        <div className="p-4 pb-3 border-b border-[#FF6B35]/20">
-          <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
-            <Award className="w-4 h-4 text-[#FF6B35]" />
+        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 w-80 max-w-[calc(100vw-2rem)] z-[100] bg-gradient-to-br from-slate-900/85 to-slate-800/80 backdrop-blur-xl border-2 border-fuchsia-500/40 shadow-[0_0_40px_rgba(217,70,239,0.3),0_0_80px_rgba(217,70,239,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] relative before:absolute before:inset-0 before:rounded-[10px] before:p-[2px] before:bg-gradient-to-r before:from-fuchsia-500/50 before:via-transparent before:to-fuchsia-500/50 before:-z-10 before:animate-pulse">
+          <VisuallyHidden>
+            <DialogDescription>Send recognition signals to your contacts</DialogDescription>
+          </VisuallyHidden>
+          {/* Compact Header */}
+        <div className="p-4 pb-3 border-b border-fuchsia-500/20">
+          <DialogTitle className="bg-gradient-to-r from-white via-fuchsia-400 to-pink-500 bg-clip-text text-transparent text-lg font-bold flex items-center gap-2">
+            <Award className="w-4 h-4 text-fuchsia-500" />
             Send this Signal!
           </DialogTitle>
         </div>
@@ -295,19 +304,19 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
             <Label className="text-sm font-medium text-white">Pick from your trusted contacts list:</Label>
             {(bondedContacts.length > 0 || enhancedContacts.length > 0) ? (
               <Select value={selectedContactId} onValueChange={handleContactSelection}>
-                <SelectTrigger className="bg-black/30 border-white/20 text-white focus:border-[#FF6B35]">
+                <SelectTrigger className="bg-black/30 border-white/20 text-white focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/50 transition-all">
                   <SelectValue placeholder={loadingContacts ? "Loading..." : "Select contact"} />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a0a1f] border-white/20">
+                <SelectContent className="z-[200] max-h-[300px] overflow-y-auto bg-slate-900/95 border-fuchsia-500/30">
                   {/* Bonded contacts first */}
                   {bondedContacts.map((contact) => (
-                    <SelectItem key={contact.id || contact.peerId} value={contact.id || contact.peerId} className="text-white hover:bg-[#FF6B35]/20">
-                      {contact.handle || `User ${(contact.id || contact.peerId).slice(-6)}`}
+                    <SelectItem key={contact.peerId} value={contact.peerId} className="text-white hover:bg-fuchsia-500/20">
+                      {contact.handle}
                     </SelectItem>
                   ))}
                   {/* Enhanced contacts */}
                   {enhancedContacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-[#FF6B35]/20">
+                    <SelectItem key={contact.id} value={contact.id} className="text-white hover:bg-fuchsia-500/20">
                       {contact.name} - {contact.role}
                     </SelectItem>
                   ))}
@@ -318,7 +327,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                 placeholder="Enter recipient name"
                 value={peerName}
                 onChange={(e) => setPeerName(e.target.value)}
-                className="bg-black/30 border-white/20 text-white placeholder:text-white/40 focus:border-[#FF6B35]"
+                className="bg-black/30 border-white/20 text-white placeholder:text-white/40 focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/50 transition-all"
               />
             )}
           </div>
@@ -328,7 +337,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-white">Browse tokens by category:</Label>
               {selectedRecognitions.length > 0 && (
-                <span className="text-xs text-[#FF6B35]">{totalTrust.toFixed(1)} trust units</span>
+                <span className="text-xs text-fuchsia-400">{totalTrust.toFixed(1)} trust units</span>
               )}
             </div>
             
@@ -364,29 +373,29 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                   <div
                     key={recognition.id}
                     onClick={() => handleTokenDetail(recognition)}
-                    className={`cursor-pointer p-1.5 rounded border transition-all ${
+                    className={`cursor-pointer p-1.5 rounded border transition-all hover:scale-105 ${
                       isSelected 
-                        ? `${recognition.bgColor} ${recognition.borderColor}` 
-                        : 'bg-black/30 border-white/10 hover:border-white/30'
+                        ? `${recognition.bgColor} ${recognition.borderColor} shadow-[0_0_10px_rgba(217,70,239,0.3)]` 
+                        : 'bg-black/30 border-white/10 hover:border-fuchsia-500/30'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-0.5">
                       <div className={`p-1 rounded border ${
                         recognition.category === 'leadership' ? 'border-orange-400/50 bg-orange-400/10' :
                         recognition.category === 'knowledge' ? 'border-emerald-400/50 bg-emerald-400/10' :
-                        recognition.category === 'execution' ? 'border-purple-400/50 bg-purple-400/10' : 'border-[#00F6FF]/50 bg-[#00F6FF]/10'
+                        recognition.category === 'execution' ? 'border-purple-400/50 bg-purple-400/10' : 'border-fuchsia-500/50 bg-fuchsia-500/10'
                       }`}>
                         <Icon className={`w-2.5 h-2.5 ${
                           recognition.category === 'leadership' ? 'text-orange-400' :
                           recognition.category === 'knowledge' ? 'text-emerald-400' :
-                          recognition.category === 'execution' ? 'text-purple-400' : 'text-[#00F6FF]'
+                          recognition.category === 'execution' ? 'text-purple-400' : 'text-fuchsia-500'
                         }`} />
                       </div>
                       <div className="text-[10px] text-white text-center truncate w-full leading-tight">{recognition.name}</div>
                       <div className={`text-[10px] font-medium ${
                         recognition.category === 'leadership' ? 'text-orange-400' :
                         recognition.category === 'knowledge' ? 'text-emerald-400' :
-                        recognition.category === 'execution' ? 'text-purple-400' : 'text-[#00F6FF]'
+                        recognition.category === 'execution' ? 'text-purple-400' : 'text-fuchsia-400'
                       }`}>{recognition.trustValue}</div>
                     </div>
                   </div>
@@ -402,7 +411,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
               placeholder="Why are you recognizing them?"
               value={personalMessage}
               onChange={(e) => setPersonalMessage(e.target.value)}
-              className="bg-black/30 border-white/20 text-white placeholder:text-white/40 focus:border-[#FF6B35] resize-none"
+              className="bg-black/30 border-white/20 text-white placeholder:text-white/40 focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/50 transition-all resize-none"
               rows={2}
             />
           </div>
@@ -411,11 +420,11 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
           <Button
             onClick={handleSendRecommendation}
             disabled={!peerName || selectedRecognitions.length === 0 || sending}
-            className="w-full bg-gradient-to-r from-[#FF6B35] to-yellow-400 hover:from-[#FF6B35]/90 hover:to-yellow-400/90 text-black font-medium py-3"
+            className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-600 hover:to-pink-600 text-white font-semibold py-3 shadow-[0_0_20px_rgba(217,70,239,0.5)] hover:shadow-[0_0_30px_rgba(217,70,239,0.7)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sending ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Sending...
               </>
             ) : (

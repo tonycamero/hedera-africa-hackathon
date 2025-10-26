@@ -82,9 +82,11 @@ const CIRCLE_MEMBER_IDS = [
 
 export function ContactProfileSheet({ 
   peerId, 
+  contactHandle,
   onClose 
 }: { 
-  peerId: string | null; 
+  peerId: string | null;
+  contactHandle?: string;
   onClose: () => void 
 }) {
   const [loading, setLoading] = useState(false)
@@ -136,9 +138,10 @@ export function ContactProfileSheet({
     console.log(`[ContactProfileSheet] Found ${peerEvents.length} events for peer ${peerId}`)
     
     // Extract comprehensive profile data from the contact events
-    let handle = peerId;
-    let displayName: string | undefined = undefined;
-    let fullName: string | undefined = undefined;
+    // Use contactHandle prop if provided (from server API), otherwise extract from events
+    let handle = contactHandle || peerId;
+    let displayName: string | undefined = contactHandle;
+    let fullName: string | undefined = contactHandle;
     let bondedAt: number | undefined = undefined;
     let bonded = false;
     let organization: string | undefined = undefined;
@@ -453,18 +456,18 @@ export function ContactProfileSheet({
             max-w-md w-full max-h-[85vh] overflow-y-auto 
             bg-gradient-to-br from-slate-900/85 to-slate-800/80 
             backdrop-blur-xl 
-            border-2 border-[#00F6FF]/40 
-            shadow-[0_0_40px_rgba(0,246,255,0.3),0_0_80px_rgba(0,246,255,0.1)] 
+            border-2 border-blue-500/40 
+            shadow-[0_0_40px_rgba(59,130,246,0.3),0_0_80px_rgba(59,130,246,0.1)] 
             rounded-[10px] p-6
             relative
             before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
-            before:bg-gradient-to-r before:from-[#00F6FF]/50 before:via-transparent before:to-[#00F6FF]/50
+            before:bg-gradient-to-r before:from-blue-500/50 before:via-transparent before:to-blue-500/50
             before:-z-10 before:animate-pulse
           ">
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-[#00F6FF]/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+              className="absolute top-4 right-4 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
             >
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -472,8 +475,8 @@ export function ContactProfileSheet({
               <span className="sr-only">Close</span>
             </button>
             {/* Modal Header */}
-            <div className="mb-6 pb-4 border-b border-[#00F6FF]/20">
-              <h2 className="text-white text-2xl font-bold bg-gradient-to-r from-white to-[#00F6FF] bg-clip-text text-transparent flex items-center gap-2">
+            <div className="mb-6 pb-4 border-b border-blue-500/20">
+              <h2 className="text-white text-2xl font-bold bg-gradient-to-r from-white via-blue-400 to-cyan-500 bg-clip-text text-transparent flex items-center gap-2">
                 Contact Profile
               </h2>
             </div>
@@ -498,8 +501,8 @@ export function ContactProfileSheet({
             {/* Header */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className="w-14 h-14 ring-2 ring-[#00F6FF]/30 shadow-[0_0_20px_rgba(0,246,255,0.2)]">
-                  <AvatarFallback className="bg-gradient-to-br from-[#00F6FF]/20 to-slate-800 text-[#00F6FF] text-lg font-bold border border-[#00F6FF]/30">
+                <Avatar className="w-14 h-14 ring-2 ring-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-slate-800 text-blue-500 text-lg font-bold border border-blue-500/30">
                     {data.avatar || getDisplayName(data, peerId).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -526,7 +529,7 @@ export function ContactProfileSheet({
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
-                  <Badge variant="outline" className="text-xs border-[#00F6FF]/30 text-[#00F6FF]">
+                  <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
                     {(data.visibility || "unknown").toUpperCase()}
                   </Badge>
                   {isInCircle && (
@@ -573,7 +576,7 @@ export function ContactProfileSheet({
 
             {/* Bio */}
             {data.bio && (
-              <div className="bg-slate-800/30 p-4 rounded-[8px] border border-[#00F6FF]/10 backdrop-blur-sm">
+              <div className="bg-slate-800/30 p-4 rounded-[8px] border border-blue-500/10 backdrop-blur-sm">
                 <p className="text-sm text-white/90 leading-relaxed">{data.bio}</p>
               </div>
             )}
@@ -739,7 +742,7 @@ export function ContactProfileSheet({
                   <Button 
                     size="sm" 
                     onClick={handleCircleSignal}
-                    className="bg-[#00F6FF]/20 hover:bg-[#00F6FF]/30 text-[#00F6FF] border border-[#00F6FF]/30 text-xs h-8"
+                    className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 text-xs h-8"
                   >
                     <Zap className="w-3 h-3 mr-1" />
                     Circle Signal
@@ -796,14 +799,14 @@ export function ContactProfileSheet({
                 <div className="mt-2 space-y-1">
                   <button
                     onClick={() => openHashScan(generateHashScanUrl('0.0.6896005'))}
-                    className="text-xs text-white/60 hover:text-[#00F6FF] hover:underline flex items-center gap-1 w-full text-left"
+                    className="text-xs text-white/60 hover:text-blue-400 hover:underline flex items-center gap-1 w-full text-left"
                   >
                     <ExternalLink className="w-3 h-3" />
                     Contact & Trust Topic
                   </button>
                   <button
                     onClick={() => openHashScan(generateHashScanUrl('0.0.6895261'))}
-                    className="text-xs text-white/60 hover:text-[#00F6FF] hover:underline flex items-center gap-1 w-full text-left"
+                    className="text-xs text-white/60 hover:text-[#FF6B35] hover:underline flex items-center gap-1 w-full text-left"
                   >
                     <ExternalLink className="w-3 h-3" />
                     Recognition Topic

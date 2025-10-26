@@ -89,9 +89,9 @@ function decodeBase64Json(base64String?: string): any | null {
  * @returns Signal type string
  */
 function inferSignalType(payload: any, raw: any): string | undefined {
-  // Explicit type field (preferred)
-  if (payload.type) return payload.type
-  if (raw.type) return raw.type
+  // Explicit type field (preferred) - always uppercase for consistency
+  if (payload.type) return String(payload.type).toUpperCase()
+  if (raw.type) return String(raw.type).toUpperCase()
   
   // Kind field (common pattern)
   if (payload.kind) {

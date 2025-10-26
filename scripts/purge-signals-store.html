@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Purge SignalsStore</title>
+</head>
+<body>
+  <h1>Purge & Reload SignalsStore</h1>
+  <button onclick="purgeAndReload()">Clear Old Data & Load Fresh Signals</button>
+  <pre id="output"></pre>
+
+  <script>
+    async function purgeAndReload() {
+      const output = document.getElementById('output');
+      output.textContent = 'Starting purge...\n';
+      
+      try {
+        // Step 1: Clear localStorage
+        localStorage.removeItem('trustmesh_signals');
+        output.textContent += '✅ Cleared old signals from localStorage\n\n';
+        
+        // Step 2: Fetch fresh recognition data from API
+        output.textContent += 'Fetching fresh recognition signals from API...\n';
+        const response = await fetch('http://localhost:3000/api/hcs/events?type=recognition');
+        const data = await response.json();
+        
+        output.textContent += `✅ Fetched ${data.items?.length || 0} events from API\n\n`;
+        
+        // Step 3: Filter and prepare signals
+        const freshSignals = [];
+        let addedCount = 0;
+        
+        (data.items || []).forEach(item => {
+          // Only include RECOGNITION_MINT from tm- contacts
+          if (item.json?.type === 'RECOGNITION_MINT' && item.json.from && typeof item.json.from === 'string' && item.json.from.startsWith('tm-')) {
+            const payload = item.json.payload || {};
+            const target = payload.recipientId || payload.to || 'unknown';
+            const tokenName = payload.tokenMetadata?.name || payload.recognition || payload.name || 'Recognition';
+            const tokenIcon = payload.tokenMetadata?.icon || '🏆';
+            
+            const signal = {
+              id: item.consensus_timestamp || item.sequence_number?.toString(),
+              type: 'RECOGNITION_MINT',
+              actor: item.json.from,
+              target: target,
+              ts: Date.now() - (Math.random() * 7 * 24 * 60 * 60 * 1000), // Spread over last 7 days
+              topicId: '0.0.6895261',
+              metadata: payload,
+              source: 'hcs'
+            };
+            freshSignals.push(signal);
+            addedCount++;
+            
+            // Log a sample
+            if (addedCount <= 5) {
+              const recipientName = payload.recipientName || target;
+              output.textContent += `  ${tokenIcon} ${signal.actor} → ${recipientName}: ${tokenName}\n`;
+            }
+          }
+        });
+        
+        if (addedCount > 5) {
+          output.textContent += `  ... and ${addedCount - 5} more\n`;
+        }
+        
+        // Step 4: Save to localStorage
+        const storeData = {
+          signals: freshSignals,
+          recognitionDefinitions: {},
+          boostCounts: []
+        };
+        
+        localStorage.setItem('trustmesh_signals', JSON.stringify(storeData));
+        
+        output.textContent += `\n✅ Saved ${freshSignals.length} fresh recognition signals to localStorage\n\n`;
+        output.textContent += '🎉 Done! Refresh the /signals page to see the new data.\n';
+        
+      } catch (error) {
+        output.textContent += `\n❌ Error: ${error.message}\n`;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>

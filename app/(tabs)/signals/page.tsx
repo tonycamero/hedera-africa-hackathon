@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import { type SignalEvent } from "@/lib/stores/signalsStore"
+import { type SignalEvent, signalsStore } from "@/lib/stores/signalsStore"
 import { toLegacyEventArray } from "@/lib/services/HCSDataAdapter"
 import { useHcsEvents } from "@/hooks/useHcsEvents"
 import { getSessionId } from "@/lib/session"
@@ -16,7 +16,11 @@ import {
   Shield, 
   Trophy,
   Search,
-  RotateCw
+  RotateCw,
+  X,
+  Calendar,
+  User,
+  Gift
 } from "lucide-react"
 import { toast } from "sonner"
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh"
@@ -82,15 +86,24 @@ export default function SignalsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [userTokens] = useState(getUserTokenCollection())
+  const [selectedSignal, setSelectedSignal] = useState<EnhancedSignal | null>(null)
   
   const loadIdRef = useRef(0)
 
   const getFirstName = (actorId: string): string => {
+    // For Hedera account IDs (0.0.xxxxx), show last 4 digits
+    if (actorId.startsWith('0.0.')) {
+      const parts = actorId.split('.')
+      return `...${parts[2]?.slice(-4) || actorId.slice(-4)}`
+    }
+    
+    // Legacy tm- format (deprecated)
     if (actorId.startsWith('tm-') && actorId.length > 3) {
       const namepart = actorId.slice(3).replace(/-/g, ' ')
       const words = namepart.split(' ')
       return words[0].charAt(0).toUpperCase() + words[0].slice(1)
     }
+    
     return actorId.length > 10 ? actorId.slice(0, 6) : actorId
   }
 
@@ -101,49 +114,25 @@ export default function SignalsPage() {
   }
 
   const getEventDescription = (signal: SignalEvent): string => {
-    const firstName = getFirstName(signal.actor)
-    const hash = signal.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
-    
-    const professionalDescriptions = {
-      'CONTACT_REQUEST': [
-        `🤝 ${firstName} sent a professional connection request`,
-        `📬 ${firstName} wants to expand their trusted network`,
-        `🔗 ${firstName} is building professional relationships`,
-        `🌐 ${firstName} reached out to grow their network`
-      ],
-      'CONTACT_ACCEPT': [
-        `✅ ${firstName} accepted your connection request`,
-        `🤝 ${firstName} confirmed your professional bond`,
-        `🔗 ${firstName} is now part of your trusted network`,
-        `🌟 ${firstName} validated your professional relationship`
-      ],
-      'TRUST_ALLOCATE': [
-        `⭐ ${firstName} allocated trust tokens to recognize excellence`,
-        `🏆 ${firstName} sent professional recognition signals`,
-        `💎 ${firstName} endorsed someone's professional capabilities`,
-        `🎯 ${firstName} distributed trust to acknowledge achievements`
-      ],
-      'RECOGNITION_MINT': [
-        `🏆 ${firstName} earned a Leadership Signal recognition`,
-        `🎖️ ${firstName} received an Execution Signal token`,
-        `🧠 ${firstName} was awarded a Knowledge Signal`,
-        `⚡ ${firstName} unlocked professional recognition tokens`
-      ],
-      'PROFILE_UPDATE': [
-        `📋 ${firstName} updated their professional profile`,
-        `🔄 ${firstName} refreshed their network credentials`,
-        `📈 ${firstName} enhanced their professional presence`,
-        `✨ ${firstName} optimized their trust network profile`
-      ]
+    // For RECOGNITION_MINT, show the rich token metadata from payload
+    if (signal.type === 'RECOGNITION_MINT' && signal.metadata) {
+      const payload = signal.metadata.payload || {}
+      const tokenName = payload.name || payload.recognition || signal.metadata.recognitionType || 'Recognition Token'
+      const description = payload.description
+      const category = payload.category
+      const rarity = payload.rarity
+      
+      // Build rich description with token name + description
+      let displayText = `${payload.icon || '🏆'} ${tokenName}`
+      if (description) displayText += ` - ${description}`
+      if (rarity && rarity !== 'Common') displayText += ` (⭐ ${rarity})`
+      
+      return displayText
     }
     
-    const descriptions = professionalDescriptions[signal.type as keyof typeof professionalDescriptions] || [
-      `🔄 ${firstName} engaged in network activity`,
-      `⚡ ${firstName} participated in professional networking`,
-      `🌐 ${firstName} contributed to the trust network`
-    ]
-    
-    return descriptions[hash % descriptions.length]
+    // Fallback for other event types
+    const firstName = getFirstName(signal.actor)
+    return `🏆 ${firstName} earned recognition`
   }
 
   const loadSignals = async () => {
@@ -151,14 +140,55 @@ export default function SignalsPage() {
     try {
       setLoading(true)
       
-      const allEvents = toLegacyEventArray([
-        ...trustFeed.items,
-        ...recognitionFeed.items,
-        ...contactFeed.items,
-        ...profileFeed.items,
-      ] as any)
+      // Load recognition signals directly from signalsStore (populated by HCS backfill)
+      const allSignals = signalsStore.getAll()
+      console.log('[SignalsPage] Total signals in store:', allSignals.length)
+      console.log('[SignalsPage] Sample raw signals:', allSignals.slice(0, 3))
       
-      const enhancedSignals: EnhancedSignal[] = allEvents.map((signal: SignalEvent) => ({
+      // Debug: inspect all signal types
+      const signalTypes = allSignals.reduce((acc, s) => {
+        acc[s.type] = (acc[s.type] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+      console.log('[SignalsPage] Signal types in store:', signalTypes)
+      
+      // Debug: inspect recognition signal metadata structure
+      const sampleRecognition = allSignals.find(s => s.type === 'RECOGNITION_MINT')
+      if (sampleRecognition) {
+        console.log('[SignalsPage] Sample RECOGNITION_MINT:', JSON.stringify(sampleRecognition, null, 2))
+      } else {
+        console.log('[SignalsPage] No RECOGNITION_MINT signals found in storage')
+      }
+      
+      // Filter to only RECOGNITION_MINT events (accept both Hedera IDs and new tm- signals with rich data)
+      const recognitionEvents = allSignals.filter(signal => {
+        const isRecognition = signal.type === 'RECOGNITION_MINT'
+        const hasMetadata = signal.metadata && Object.keys(signal.metadata).length > 0
+        
+        // Check if this is a NEW signal with rich metadata structure (has payload.description)
+        const hasRichMetadata = signal.metadata?.payload?.description || signal.metadata?.payload?.labels
+        
+        // Accept:
+        // 1. Hedera account IDs (0.0.xxxxx) OR
+        // 2. tm- signals that have NEW rich metadata
+        const isHederaAccount = signal.actor?.startsWith('0.0.')
+        const isTmWithRichData = signal.actor?.startsWith('tm-') && hasRichMetadata
+        
+        // Exclude: old demo-* and test signals
+        const isNotOldDemo = !signal.actor?.startsWith('demo-') && !signal.actor?.startsWith('test')
+        
+        const passes = isRecognition && hasMetadata && (isHederaAccount || isTmWithRichData) && isNotOldDemo
+        
+        return passes
+      })
+      
+      console.log('[SignalsPage] Recognition signals found:', recognitionEvents.length)
+      console.log('[SignalsPage] Sample signal:', recognitionEvents[0])
+      
+      // Sort by timestamp (most recent first)
+      const sortedEvents = recognitionEvents.sort((a, b) => b.ts - a.ts)
+      
+      const enhancedSignals: EnhancedSignal[] = sortedEvents.map((signal) => ({
         ...signal,
         firstName: getFirstName(signal.actor),
         onlineStatus: getOnlineStatus(signal.id || ''),
@@ -168,22 +198,72 @@ export default function SignalsPage() {
       if (myLoadId === loadIdRef.current) {
         setSignals(enhancedSignals)
         setLoading(false)
-        console.log(`[SignalsPage] Loaded ${enhancedSignals.length} signals from HCS`)
+        console.log(`[SignalsPage] Loaded ${enhancedSignals.length} recognition signals`)
       }
     } catch (err) {
       if (myLoadId === loadIdRef.current) {
-        console.error(err)
+        console.error('[SignalsPage] Error loading signals:', err)
         setLoading(false)
         toast.error('Failed to load signals')
       }
     }
   }
 
-  const { bind, isPulling, distance } = usePullToRefresh(loadSignals, 70)
+  const handleManualRefresh = async () => {
+    try {
+      toast.info('Refreshing signals...')
+      
+      // Clear cache and force reload from API
+      const response = await fetch('/api/hcs/events?type=recognition')
+      const data = await response.json()
+      
+      if (data.ok && data.items) {
+        // Add all items to signalsStore (accept both tm- and 0.0. Hedera IDs)
+        let newCount = 0
+        data.items.forEach((item: any) => {
+          if (item.json?.type === 'RECOGNITION_MINT') {
+            const actorId = item.json.from
+            // Accept Hedera accounts (0.0.xxxxx) or tm- format
+            if (actorId?.startsWith('0.0.') || actorId?.startsWith('tm-')) {
+              const event = {
+                id: item.consensus_timestamp || item.sequence_number?.toString(),
+                type: 'RECOGNITION_MINT' as const,
+                actor: actorId,
+                target: item.json.payload?.recipientId || item.json.payload?.to,
+                ts: Date.now(),
+                topicId: '0.0.6895261',
+                metadata: item.json,
+                source: 'hcs' as const
+              }
+              signalsStore.add(event)
+              newCount++
+            }
+          }
+        })
+        toast.success(`✅ Refreshed! Loaded ${newCount} recognition signals`)
+        await loadSignals()
+      } else {
+        toast.error('No data returned from API')
+      }
+    } catch (error) {
+      console.error('[SignalsPage] Refresh error:', error)
+      toast.error('Failed to refresh')
+    }
+  }
+  
+  const { bind, isPulling, distance } = usePullToRefresh(handleManualRefresh, 70)
 
   useEffect(() => {
     loadSignals()
-  }, [trustFeed.watermark, recognitionFeed.watermark, contactFeed.watermark, profileFeed.watermark])
+    
+    // Subscribe to signalsStore for real-time updates
+    const unsubscribe = signalsStore.subscribe(() => {
+      console.log('[SignalsPage] SignalsStore updated, reloading...')
+      loadSignals()
+    })
+    
+    return unsubscribe
+  }, [])
 
   const getStatusColor = (status: 'online' | 'offline' | 'idle') => {
     switch (status) {
@@ -236,9 +316,9 @@ export default function SignalsPage() {
       {/* Mobile Header */}
       <div className="text-center space-y-2">
         <h1 className="text-xl font-medium text-white tracking-tight">
-          Network Signals
+          Recognition Signals
         </h1>
-        <p className="text-white/60 text-sm">Stay connected with your network</p>
+        <p className="text-white/60 text-sm">MINT v2 - Professional recognition tokens on Hedera</p>
       </div>
 
       {/* Pull indicator */}
@@ -308,7 +388,10 @@ export default function SignalsPage() {
             </div>
           ) : (
             filteredSignals.map((signal) => (
-              <div key={signal.id} className="bg-gradient-to-r from-transparent to-transparent border border-white/15 backdrop-blur-sm hover:border-[#FF6B35]/40 hover:shadow-[0_0_15px_rgba(255,107,53,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#FF6B35]/10 hover:before:to-[#FF6B35]/10">
+              <div 
+                key={signal.id} 
+                onClick={() => setSelectedSignal(signal)}
+                className="bg-gradient-to-r from-transparent to-transparent border border-white/15 backdrop-blur-sm hover:border-[#FF6B35]/40 hover:shadow-[0_0_15px_rgba(255,107,53,0.1)] transition-all duration-300 rounded-lg p-2.5 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/5 before:via-transparent before:to-white/5 before:-z-10 hover:before:from-[#FF6B35]/10 hover:before:to-[#FF6B35]/10 cursor-pointer active:scale-98">
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <Avatar className="w-7 h-7">
@@ -401,6 +484,193 @@ export default function SignalsPage() {
           </div>
         )}
       </div>
+
+      {/* Signal Detail Modal */}
+      {selectedSignal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setSelectedSignal(null)}
+        >
+          <div 
+            className="bg-gradient-to-br from-panel/95 to-panel/90 border-2 border-white/20 rounded-2xl max-w-md w-full shadow-[0_0_50px_rgba(255,107,53,0.3)] animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-white">Recognition Token</h3>
+              <button
+                onClick={() => setSelectedSignal(null)}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-white/70" />
+              </button>
+            </div>
+
+            {/* Token Display */}
+            <div className="p-6 space-y-6">
+              {/* Large Token Icon */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-4 border-[#FF6B35]/30 flex items-center justify-center shadow-[0_0_40px_rgba(255,107,53,0.4)]">
+                    <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center">
+                      <span className="text-6xl">🏆</span>
+                    </div>
+                  </div>
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#FF6B35]/20 to-yellow-500/20 blur-xl -z-10 animate-pulse"></div>
+                </div>
+              </div>
+
+              {/* Token Name */}
+              <div className="text-center space-y-1">
+                <h4 className="text-2xl font-bold text-white">
+                  {(() => {
+                    // Try new structure first (payload.name), then old structure
+                    const payload = selectedSignal.metadata?.payload || {}
+                    return payload.name || payload.recognition || selectedSignal.metadata?.name || 'Recognition Token'
+                  })()}
+                </h4>
+                <div className="flex items-center justify-center gap-2">
+                  <Badge className="bg-[#FF6B35]/20 text-[#FF6B35] border-[#FF6B35]/30">
+                    {(() => {
+                      const payload = selectedSignal.metadata?.payload || {}
+                      const category = payload.category || selectedSignal.metadata?.category
+                      return category?.toUpperCase() || 'RECOGNITION'
+                    })()}
+                  </Badge>
+                  {(() => {
+                    const payload = selectedSignal.metadata?.payload || {}
+                    const rarity = payload.rarity || selectedSignal.metadata?.rarity
+                    return rarity && (
+                      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                        {rarity.toUpperCase()}
+                      </Badge>
+                    )
+                  })()}
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-white/70 text-center leading-relaxed text-lg">
+                {(() => {
+                  const payload = selectedSignal.metadata?.payload || {}
+                  return payload.description || selectedSignal.metadata?.description || 'A professional recognition token minted on Hedera for outstanding contribution.'
+                })()}
+              </p>
+              
+              {/* Message if present */}
+              {(() => {
+                const payload = selectedSignal.metadata?.payload || {}
+                const message = payload.message || selectedSignal.metadata?.message
+                return message && (
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <p className="text-white/60 text-xs mb-1">Message</p>
+                    <p className="text-white text-sm italic">"{message}"</p>
+                  </div>
+                )
+              })()}
+
+              {/* Metadata Grid */}
+              <div className="space-y-3 bg-white/5 rounded-xl p-4 border border-white/10">
+                {/* From */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                    <User className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white/50 text-xs">From</p>
+                    <p className="text-white font-medium">
+                      {(() => {
+                        const payload = selectedSignal.metadata?.payload || {}
+                        return payload.senderName || selectedSignal.metadata?.senderName || selectedSignal.metadata?.from || getFirstName(selectedSignal.actor)
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* To */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20">
+                    <Gift className="w-4 h-4 text-green-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white/50 text-xs">To</p>
+                    <p className="text-white font-medium">
+                      {(() => {
+                        const payload = selectedSignal.metadata?.payload || {}
+                        return payload.recipientName || payload.to || selectedSignal.metadata?.recipientName || getFirstName(selectedSignal.target || '')
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/20 to-yellow-500/20">
+                    <Calendar className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white/50 text-xs">Minted</p>
+                    <p className="text-white font-medium">
+                      {new Date(selectedSignal.ts).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Trust Value */}
+                {(() => {
+                  const payload = selectedSignal.metadata?.payload || {}
+                  const trustValue = payload.trustValue || selectedSignal.metadata?.trustValue
+                  return trustValue && (
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
+                        <Trophy className="w-4 h-4 text-yellow-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white/50 text-xs">Trust Value</p>
+                        <p className="text-[#FF6B35] font-bold text-lg">
+                          {trustValue} 🔥
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })()}
+                
+                {/* Labels/Tags */}
+                {(() => {
+                  const payload = selectedSignal.metadata?.payload || {}
+                  const labels = payload.labels || selectedSignal.metadata?.labels || []
+                  return labels.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {labels.map((label: string) => (
+                        <span key={label} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* HCS Info */}
+              <div className="text-center pt-2 border-t border-white/10">
+                <p className="text-white/40 text-xs">
+                  Verified on Hedera Consensus Service
+                </p>
+                <p className="text-white/30 text-xs font-mono mt-1">
+                  {selectedSignal.topicId}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   )

@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
     if (!topicId) throw new Error('No profile topic configured')
 
     // Use server account for signing
-    const serverAccount = process.env.HEDERA_OPERATOR_ID || "0.0.5864559"
+    const serverAccount = process.env.HEDERA_OPERATOR_ID
+    if (!serverAccount) throw new Error('HEDERA_OPERATOR_ID not configured')
     
     // Create HCS-11 compliant envelope
     const nonce = Math.floor(Date.now() / 1000)

@@ -1,97 +1,118 @@
 "use client"
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { type BondedContact } from '@/lib/stores/signalsStore'
-import { getBondedContactsFromHCS, getTrustLevelsPerContact } from '@/lib/services/HCSDataUtils'
-import { toLegacyEventArray } from '@/lib/services/HCSDataAdapter'
-import { useHcsEvents } from '@/hooks/useHcsEvents'
+import { type BondedContact, signalsStore } from '@/lib/stores/signalsStore'
 import { getSessionId } from '@/lib/session'
 import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
 import { PeerRecommendationModal } from '@/components/PeerRecommendationModal'
-import { MobileActionSheet } from '@/components/MobileActionSheet'
+import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { 
   Search,
   MessageCircle,
-  CheckCircle,
   User,
   Award,
   Trophy,
   QrCode,
   UserCheck,
-  UserPlus,
-  Send
+  UserPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ContactsPage() {
-  const trustFeed = useHcsEvents('trust', 2500)
-  const contactFeed = useHcsEvents('contact', 2500)
-  
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
   const [trustLevels, setTrustLevels] = useState<Map<string, { allocatedTo: number, receivedFrom: number }>>(new Map())
   const [searchTerm, setSearchTerm] = useState("")
   const [sessionId, setSessionId] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [sheetContact, setSheetContact] = useState<BondedContact | null>(null)
-  
-  const loadIdRef = useRef(0)
+  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null)
+  const [selectedContact, setSelectedContact] = useState<BondedContact | null>(null)
 
   useEffect(() => {
-    let active = true
-    
     const loadContacts = async () => {
-      const myLoadId = ++loadIdRef.current
       try {
         setIsLoading(true)
         const currentSessionId = getSessionId()
         const effectiveSessionId = currentSessionId || 'tm-alex-chen'
         setSessionId(effectiveSessionId)
         
-        const allEvents = toLegacyEventArray([
-          ...trustFeed.items,
-          ...contactFeed.items,
-        ] as any)
+        // Load from server-side API (same as circle page)
+        const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
+        const data = await response.json()
         
-        const contacts = getBondedContactsFromHCS(allEvents, effectiveSessionId)
-        const trustData = getTrustLevelsPerContact(allEvents, effectiveSessionId)
-        
-        if (active && myLoadId === loadIdRef.current) {
-          setBondedContacts(contacts)
-          setTrustLevels(trustData)
-          console.log(`[ContactsPage] Loaded ${contacts.length} contacts from HCS`)
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load contacts')
         }
+        
+        setBondedContacts(data.bondedContacts)
+        
+        // Convert trust levels object back to Map
+        const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
+        Object.entries(data.trustLevels).forEach(([key, value]) => {
+          trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
+        })
+        
+        // Merge optimistic TRUST_ALLOCATE events from local store (same as circle page)
+        const localTrustEvents = signalsStore.getAll().filter(e => 
+          e.type === 'TRUST_ALLOCATE' && 
+          e.actor === effectiveSessionId &&
+          e.source === 'hcs-cached' &&
+          e.ts > Date.now() - 60000 // Only consider events from last minute
+        )
+        
+        localTrustEvents.forEach(event => {
+          const targetId = event.target
+          if (targetId && !trustLevelsMap.has(targetId)) {
+            // This trust allocation hasn't arrived from HCS yet, add it optimistically
+            trustLevelsMap.set(targetId, { allocatedTo: 1, receivedFrom: 0 })
+            console.log(`[ContactsPage] Added optimistic trust allocation to ${targetId}`)
+          }
+        })
+        
+        setTrustLevels(trustLevelsMap)
+        
+        console.log(`[ContactsPage] Loaded ${data.bondedContacts.length} contacts from HCS`)
       } catch (error) {
-        if (active && myLoadId === loadIdRef.current) {
-          console.error('[ContactsPage] Failed to load contacts:', error)
-          toast.error('Failed to load contacts')
-        }
+        console.error('[ContactsPage] Failed to load contacts:', error)
+        toast.error('Failed to load contacts')
       } finally {
-        if (active && myLoadId === loadIdRef.current) {
-          setIsLoading(false)
-        }
+        setIsLoading(false)
       }
     }
 
     loadContacts()
     
-    return () => {
-      active = false
-    }
-  }, [trustFeed.watermark, contactFeed.watermark])
+    // Refresh every 30 seconds
+    const interval = setInterval(loadContacts, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
-  const filteredContacts = bondedContacts.filter(contact =>
+  // Sort contacts: Inner Circle members (with trust allocated) first, then others
+  const sortedContacts = [...bondedContacts].sort((a, b) => {
+    const aTrust = trustLevels.get(a.peerId || '')?.allocatedTo || 0
+    const bTrust = trustLevels.get(b.peerId || '')?.allocatedTo || 0
+    
+    // Sort by trust allocated (descending), then by name
+    if (aTrust !== bTrust) {
+      return bTrust - aTrust
+    }
+    
+    const aName = a.handle || a.peerId || ''
+    const bName = b.handle || b.peerId || ''
+    return aName.localeCompare(bName)
+  })
+  
+  const filteredContacts = sortedContacts.filter(contact =>
     (contact.handle || contact.peerId || '')
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   )
 
   const handleContactClick = (contact: BondedContact) => {
-    setSheetContact(contact)
-    setSheetOpen(true)
+    setSelectedPeerId(contact.peerId || null)
+    setSelectedContact(contact)
   }
 
   return (
@@ -200,15 +221,17 @@ export default function ContactsPage() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-white">{displayName}</div>
-                        <div className="text-xs text-white/60">
-                          {trustData.allocatedTo > 0 && (
-                            <span className="text-orange-500">Given: {trustData.allocatedTo}</span>
-                          )}
-                          {trustData.allocatedTo > 0 && trustData.receivedFrom > 0 && (
-                            <span className="text-white/40 mx-1">•</span>
+                        <div className="text-xs">
+                          {trustData.allocatedTo > 0 ? (
+                            <span className="text-orange-500 font-medium">Given: {trustData.allocatedTo} 🔥</span>
+                          ) : (
+                            <span className="text-white/60">Contact</span>
                           )}
                           {trustData.receivedFrom > 0 && (
-                            <span className="text-[#FF6B35]">Received: {trustData.receivedFrom}</span>
+                            <>
+                              <span className="text-white/40 mx-1">•</span>
+                              <span className="text-[#FF6B35] font-medium">Received: {trustData.receivedFrom}</span>
+                            </>
                           )}
                           {trustData.allocatedTo === 0 && trustData.receivedFrom === 0 && (
                             <span className="text-white/40">Contact</span>
@@ -235,13 +258,15 @@ export default function ContactsPage() {
         )}
       </div>
 
-      {/* Mobile Action Sheet for contact details */}
-      {sheetContact && (
-        <MobileActionSheet
-          isOpen={sheetOpen}
-          onClose={() => setSheetOpen(false)}
-          contact={sheetContact}
-          trustData={trustLevels.get(sheetContact.peerId || '') || { allocatedTo: 0, receivedFrom: 0 }}
+      {/* Contact Profile Sheet */}
+      {selectedContact && (
+        <ContactProfileSheet
+          peerId={selectedPeerId}
+          contactHandle={selectedContact.handle}
+          onClose={() => {
+            setSelectedPeerId(null)
+            setSelectedContact(null)
+          }}
         />
       )}
     </div>

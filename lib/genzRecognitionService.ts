@@ -71,31 +71,49 @@ export class GenZRecognitionService {
         return { success: false, error: 'Token not found' }
       }
 
-      // Call HCS Recognition service to mint NFT
-      const response = await fetch('/api/recognition/send', {
+      // Build HCS envelope for direct submission
+      const envelope = {
+        type: 'RECOGNITION_MINT',
+        from: request.senderId,
+        nonce: Date.now(),
+        ts: Math.floor(Date.now() / 1000),
+        payload: {
+          definitionId: request.tokenId,
+          recipientId: request.recipientId,
+          recipientName: request.recipientName,
+          message: request.message,
+          senderName: request.senderName,
+          timestamp: new Date().toISOString(),
+          tokenMetadata: {
+            name: token.name,
+            description: token.description,
+            category: token.category,
+            icon: token.icon,
+            trustValue: token.trustValue,
+            rarity: token.rarity
+          }
+        }
+      }
+
+      // Submit directly to HCS submit API
+      const response = await fetch('/api/hcs/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...request,
-          tokenName: token.name,
-          tokenDescription: token.description,
-          tokenIcon: token.icon,
-          tokenCategory: token.category,
-          trustValue: token.trustValue,
-          rarity: token.rarity
-        })
+        body: JSON.stringify(envelope)
       })
 
       const data = await response.json()
       
-      if (!response.ok) {
+      if (!response.ok || !data.ok) {
+        console.error('[GenZRecognitionService] HCS submit failed:', data)
+        console.error('[GenZRecognitionService] Envelope sent:', envelope)
         return { success: false, error: data.error || 'Failed to send recognition' }
       }
 
       return {
         success: true,
-        tokenId: data.tokenId,
-        transactionId: data.transactionId
+        tokenId: request.tokenId,
+        transactionId: data.transactionHash
       }
     } catch (error) {
       console.error('[GenZRecognitionService] Error sending recognition:', error)

@@ -235,13 +235,15 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   console.log('🔍 [HCSDataUtils] Final bonded contacts:', [...bonded])
   
   const result = [...bonded].map(id => {
+    // Priority: USER_NAME_MAPPINGS (curated) > HCS event data > generated from ID
+    const knownName = USER_NAME_MAPPINGS[id]
     const info = contactData.get(id) || {}
-    const name = info.name || info.handle || generateUserHandle(id)
-    const handle = info.handle || info.name || generateUserHandle(id)
+    const name = knownName || info.name || info.handle || generateUserHandle(id)
+    const handle = knownName || info.handle || info.name || generateUserHandle(id)
     
     return { 
       peerId: id,
-      handle: name, // Use the real name/handle from HCS, not generated
+      handle: name,
       bondedAt: Date.now()
     }
   })
@@ -283,8 +285,8 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
   let pendingOut = 0
   let receivedIn = 0
   
-  // Track outbound trust state per peer
-  const outboundTrustByPeer = new Map<string, { weight: number; status: 'pending' | 'bonded' | 'declined' | 'revoked' }>()
+  // Track outbound trust state per peer (unilateral staking model)
+  const outboundTrustByPeer = new Map<string, { weight: number; status: 'allocated' | 'revoked' }>()
   
   // Process outbound trust events in chronological order
   const outboundTrust = trustEvents.filter(e => {
@@ -295,10 +297,12 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
     const peerId = event.target || (event as any).actors?.to
     if (!peerId) continue
     
-    const weight = event.metadata?.weight || 1
+    // Always use weight of 1 - equal trust for all circle members (deprecated graduated distribution)
+    const weight = 1
     
     if (event.type === 'TRUST_ALLOCATE') {
-      outboundTrustByPeer.set(peerId, { weight, status: 'pending' })
+      // Unilateral allocation - no acceptance needed
+      outboundTrustByPeer.set(peerId, { weight, status: 'allocated' })
     } else if (event.type === 'TRUST_REVOKE') {
       const existing = outboundTrustByPeer.get(peerId)
       if (existing) {
@@ -307,7 +311,7 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
     }
   }
   
-  // Process inbound acceptance/decline signals to update outbound trust status
+  // Process inbound trust allocations (trust received from others)
   const inboundTrust = trustEvents.filter(e => {
     const target = e.target || (e as any).actors?.to
     return target === sessionId
@@ -316,36 +320,25 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
     const peerId = event.actor || (event as any).actors?.from
     if (!peerId) continue
     
-    if (event.type === 'TRUST_ACCEPT') {
-      const existing = outboundTrustByPeer.get(peerId)
-      if (existing && existing.status === 'pending') {
-        existing.status = 'bonded'
-      }
-      // Also count as received trust
-      receivedIn += event.metadata?.weight || 1
-    } else if (event.type === 'TRUST_DECLINE') {
-      const existing = outboundTrustByPeer.get(peerId)
-      if (existing && existing.status === 'pending') {
-        existing.status = 'declined'
-      }
-    } else if (event.type === 'TRUST_ALLOCATE') {
-      // Direct inbound allocation (legacy - should be followed by accept/decline)
-      receivedIn += event.metadata?.weight || 1
+    if (event.type === 'TRUST_ALLOCATE') {
+      // Count trust received from others (always weight 1)
+      receivedIn += 1
     } else if (event.type === 'TRUST_REVOKE') {
-      // Inbound trust revoked
-      receivedIn -= event.metadata?.weight || 1
+      // Inbound trust revoked (always weight 1)
+      receivedIn -= 1
     }
   }
   
-  // Calculate final counts
+  // Calculate final counts (allocated = in your inner circle)
   for (const { weight, status } of outboundTrustByPeer.values()) {
-    if (status === 'bonded') {
+    if (status === 'allocated') {
       allocatedOut += weight
-    } else if (status === 'pending') {
-      pendingOut += weight
     }
-    // declined and revoked don't count toward slots used
+    // revoked don't count toward slots used
   }
+  
+  // pendingOut is no longer relevant in unilateral model
+  pendingOut = 0
   
   // Trust capacity is always 9 slots, regardless of bonded contacts
   const cap = 9
@@ -384,7 +377,8 @@ export function getPendingTrustFromHCS(events: SignalEvent[], sessionId: string)
   for (const trustEvent of trustEvents) {
     const targetId = trustEvent.target
     if (targetId && !bondedIds.has(targetId)) {
-      pending += trustEvent.metadata?.weight || 1
+      // Always weight 1 per trust allocation
+      pending += 1
     }
   }
   
@@ -458,7 +452,8 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
   for (const event of trustEvents) {
     const actor = event.actor || (event as any).actors?.from
     const target = event.target || (event as any).actors?.to
-    const weight = event.metadata?.weight || 1
+    // Always use weight of 1 - equal trust for all circle members (deprecated graduated distribution)
+    const weight = 1
     
     if (!actor || !target) continue
     
@@ -519,9 +514,9 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
     }
   }
   
-  // Calculate final trust levels
+  // Calculate final trust levels (unilateral model - trust is allocated immediately, no acceptance needed)
   for (const [contactId, data] of outboundTrustByPeer.entries()) {
-    if (data.status === 'bonded') {
+    if (data.status === 'pending' || data.status === 'bonded') {
       const current = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
       current.allocatedTo = data.weight
       trustLevels.set(contactId, current)
@@ -529,7 +524,7 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
   }
   
   for (const [contactId, data] of inboundTrustByPeer.entries()) {
-    if (data.status === 'bonded') {
+    if (data.status === 'pending' || data.status === 'bonded') {
       const current = trustLevels.get(contactId) || { allocatedTo: 0, receivedFrom: 0 }
       current.receivedFrom = data.weight
       trustLevels.set(contactId, current)

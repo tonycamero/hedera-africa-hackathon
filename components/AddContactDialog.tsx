@@ -250,18 +250,18 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
             max-w-sm w-full max-h-[85vh] overflow-y-auto 
             bg-gradient-to-br from-slate-900/85 to-slate-800/80 
             backdrop-blur-xl 
-            border-2 border-[#FF6B35]/40 
-            shadow-[0_0_40px_rgba(255,107,53,0.3),0_0_80px_rgba(255,107,53,0.1)] 
+            border-2 border-emerald-500/40 
+            shadow-[0_0_40px_rgba(16,185,129,0.3),0_0_80px_rgba(16,185,129,0.1)] 
             rounded-[10px] p-4
             relative
             before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
-            before:bg-gradient-to-r before:from-[#FF6B35]/50 before:via-transparent before:to-[#FF6B35]/50
+            before:bg-gradient-to-r before:from-emerald-500/50 before:via-transparent before:to-emerald-500/50
             before:-z-10 before:animate-pulse
           ">
             {/* Close Button */}
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-3 right-3 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+              className="absolute top-3 right-3 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
             >
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -269,10 +269,10 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
               <span className="sr-only">Close</span>
             </button>
             {/* Modal Header */}
-            <div className="mb-4 pb-3 border-b border-[#FF6B35]/20">
-              <h2 className="text-white text-xl font-bold bg-gradient-to-r from-white to-[#FF6B35] bg-clip-text text-transparent flex items-center justify-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35]/30 to-emerald-500/30 flex items-center justify-center border border-[#FF6B35]/30 shadow-lg">
-                  <QrCode className="w-4 h-4 text-[#FF6B35]" />
+            <div className="mb-4 pb-3 border-b border-emerald-500/20">
+              <h2 className="text-white text-xl font-bold bg-gradient-to-r from-white via-emerald-400 to-green-500 bg-clip-text text-transparent flex items-center justify-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/30 to-green-500/30 flex items-center justify-center border border-emerald-500/30 shadow-lg">
+                  <QrCode className="w-4 h-4 text-emerald-500" />
                 </div>
                 QR Exchange
               </h2>
@@ -282,13 +282,13 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
           <TabsList className="grid grid-cols-2 mb-3 bg-white/5 border border-white/10">
             <TabsTrigger 
               value="mine" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#FF6B35]/20 data-[state=active]:to-emerald-500/20 data-[state=active]:text-white data-[state=active]:border-[#FF6B35]/30"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-green-500/20 data-[state=active]:text-white data-[state=active]:border-emerald-500/30"
             >
               <QrCode className="w-4 h-4 mr-2" /> Share My QR
             </TabsTrigger>
             <TabsTrigger 
               value="scan"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-[#FF6B35]/20 data-[state=active]:text-white data-[state=active]:border-emerald-500/30"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:text-white data-[state=active]:border-green-500/30"
             >
               <Camera className="w-4 h-4 mr-2" /> Scan QR
             </TabsTrigger>
@@ -296,32 +296,32 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
 
           {/* My QR */}
           <TabsContent value="mine" className="space-y-3">
-            <div className="backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 border border-[#FF6B35]/20 rounded-lg p-4 flex flex-col items-center relative overflow-hidden">
+            <div className="backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 border border-emerald-500/20 rounded-lg p-4 flex flex-col items-center relative overflow-hidden">
               {/* Subtle glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FF6B35]/5 to-emerald-500/5 animate-pulse rounded-lg" />
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 animate-pulse rounded-lg" />
               
-              <div className="w-36 h-36 bg-white/95 rounded-lg flex items-center justify-center mb-3 shadow-2xl border-2 border-[#FF6B35]/30 relative z-10">
+              <div className="w-36 h-36 bg-white/95 rounded-lg flex items-center justify-center mb-3 shadow-2xl border-2 border-emerald-500/30 relative z-10">
                 {qrDataUrl ? (
                   <>
                     <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain p-2 rounded-lg" />
                     {/* Subtle scanning corners */}
                     <div className="absolute inset-1 border-2 border-transparent">
-                      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#FF6B35]/60 animate-pulse" />
-                      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-emerald-400/60 animate-pulse" />
-                      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-emerald-400/60 animate-pulse" />
-                      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#FF6B35]/60 animate-pulse" />
+                      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-emerald-500/60 animate-pulse" />
+                      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-green-500/60 animate-pulse" />
+                      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-green-500/60 animate-pulse" />
+                      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-emerald-500/60 animate-pulse" />
                     </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center text-slate-600">
-                    <div className="w-5 h-5 border-2 border-[#FF6B35] rounded-full border-t-transparent animate-spin mb-2" />
+                    <div className="w-5 h-5 border-2 border-emerald-500 rounded-full border-t-transparent animate-spin mb-2" />
                     <div className="text-sm font-medium">Generating QR...</div>
                   </div>
                 )}
               </div>
               
               {/* Subtle glow around QR */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/10 to-emerald-500/10 rounded-lg blur-lg -z-10 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg blur-lg -z-10 animate-pulse" />
               
               <div className="w-full space-y-2 relative z-10">
                 <Label className="text-sm font-medium text-white/80">Share Code</Label>
@@ -329,12 +329,12 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
                   <Input 
                     readOnly 
                     value={inviteCode} 
-                    className="text-xs font-mono bg-white/5 border-white/10 text-white/70 focus:border-[#FF6B35]/50" 
+                    className="text-xs font-mono bg-white/5 border-white/10 text-white/70 focus:border-emerald-500/50"
                   />
                   <Button 
                     type="button" 
                     size="sm"
-                    className="bg-gradient-to-r from-[#FF6B35]/80 to-cyan-500/80 hover:from-[#FF6B35] hover:to-cyan-500 text-white font-medium shadow-lg border border-[#FF6B35]/40"
+                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium shadow-lg border border-emerald-500/40"
                     onClick={() => { 
                       navigator.clipboard.writeText(inviteCode)
                       toast.success("Copied!", { description: "Share with your contact" })
@@ -363,8 +363,8 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
             {detectorSupported ? (
               <div className="space-y-4 w-full">
                 {/* Camera Section */}
-                <div className="backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 border border-emerald-500/20 rounded-lg p-4 relative overflow-hidden w-full">
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-[#FF6B35]/5 animate-pulse" />
+              <div className="backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 border border-emerald-500/20 rounded-lg p-4 relative overflow-hidden w-full">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 animate-pulse" />
                   
                   <video 
                     ref={videoRef} 
@@ -412,13 +412,13 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
             {/* Manual Input Section */}
             <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4 space-y-4 w-full">
               <div className="flex items-center gap-2 mb-2">
-                <QrCode className="w-4 h-4 text-[#FF6B35]" />
+                <QrCode className="w-4 h-4 text-emerald-500" />
                 <Label className="text-sm font-medium text-white">Paste Contact Code</Label>
               </div>
               <Input 
                 placeholder="Paste the contact's invite code here..." 
                 onChange={(e) => setScanResult(e.target.value)}
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#FF6B35]/50" 
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-emerald-500/50"
               />
               <div className="flex gap-2 pt-1">
                 <Button 

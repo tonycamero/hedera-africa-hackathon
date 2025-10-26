@@ -91,7 +91,7 @@ export function PublicContactCard({ accountId, handle }: PublicContactCardProps)
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
       <div className="flex items-center gap-4">
         {/* Avatar */}
-        <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-cyan-400 rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center">
           {profile.avatar ? (
             <img 
               src={profile.avatar} 
@@ -114,11 +114,11 @@ export function PublicContactCard({ accountId, handle }: PublicContactCardProps)
             )}
           </div>
           
-          <div className="text-purple-200 text-sm truncate">
+          <div className="text-blue-200 text-sm truncate">
             @{profile.handle}
           </div>
           
-          <div className="text-xs text-purple-300 truncate mt-1">
+          <div className="text-xs text-blue-300 truncate mt-1">
             {accountId}
           </div>
         </div>
@@ -135,7 +135,7 @@ export function PublicContactCard({ accountId, handle }: PublicContactCardProps)
 
       {/* Footer note */}
       <div className="mt-4 pt-4 border-t border-white/20">
-        <div className="text-xs text-purple-300 text-center">
+        <div className="text-xs text-blue-300 text-center">
           Connect with {profile.displayName} on TrustMesh to build your trust network
         </div>
       </div>

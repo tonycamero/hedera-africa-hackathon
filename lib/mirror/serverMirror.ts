@@ -17,14 +17,25 @@ export async function listSince(topicId: string, since?: string, pageLimit = 200
   let url = `${BASE}/topics/${topicId}/messages?order=asc&limit=${pageLimit}`;
   if (since) url += `&timestamp=gt:${since}`;
 
+  console.log(`[serverMirror] Fetching from: ${url}`);
+  console.log(`[serverMirror] BASE URL: ${BASE}`);
+  console.log(`[serverMirror] Topic ID: ${topicId}`);
+
   const out: any[] = [];
   let next = url;
   let lastTs = since || '0.0';
 
   for (let hops = 0; hops < 10 && next; hops++) {
     const res = await fetch(next, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Mirror ${res.status}`);
+    console.log(`[serverMirror] Hop ${hops}: status ${res.status}, url: ${next}`);
+    if (!res.ok) {
+      console.error(`[serverMirror] Fetch failed: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(`[serverMirror] Error body:`, errorText);
+      throw new Error(`Mirror ${res.status}`);
+    }
     const json = await res.json();
+    console.log(`[serverMirror] Received ${json.messages?.length || 0} messages`);
     for (const m of json.messages || []) {
       out.push(m);
       lastTs = m.consensus_timestamp;

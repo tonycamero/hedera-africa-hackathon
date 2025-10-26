@@ -9,10 +9,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Skip problematic routes during build (dashboard pages not critical for GenZ lens)
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
   async headers() {
     return [
       {

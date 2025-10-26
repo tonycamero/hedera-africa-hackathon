@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear Old Recognition Signals</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #00ff00;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover {
+      background: #ff8555;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      background: #000;
+      border: 1px solid #00ff00;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧹 Clear Old Recognition Signals</h1>
+  <p>This will remove old recognition signals from localStorage so you can load fresh ones.</p>
+  
+  <button onclick="clearOldSignals()">Clear Old Signals</button>
+  
+  <div class="log" id="log"></div>
+
+  <script>
+    function log(msg) {
+      const logDiv = document.getElementById('log');
+      logDiv.textContent += msg + '\n';
+      console.log(msg);
+    }
+
+    function clearOldSignals() {
+      log('🚀 Starting signal cleanup...');
+      
+      try {
+        // Load existing signals
+        const stored = localStorage.getItem('trustmesh_signals');
+        if (!stored) {
+          log('❌ No signals found in localStorage');
+          return;
+        }
+
+        const data = JSON.parse(stored);
+        const allSignals = data.events || [];
+        
+        log(`📊 Found ${allSignals.length} total signals`);
+        
+        // Count recognition signals before
+        const oldRecognitionCount = allSignals.filter(s => s.type === 'RECOGNITION_MINT').length;
+        log(`🎯 Found ${oldRecognitionCount} RECOGNITION_MINT signals`);
+        
+        // Remove ALL recognition signals (we'll load fresh ones)
+        const filteredSignals = allSignals.filter(s => s.type !== 'RECOGNITION_MINT');
+        
+        log(`✅ Keeping ${filteredSignals.length} non-recognition signals`);
+        log(`🗑️ Removed ${oldRecognitionCount} old recognition signals`);
+        
+        // Save back to localStorage
+        data.events = filteredSignals;
+        localStorage.setItem('trustmesh_signals', JSON.stringify(data));
+        
+        log('💾 Saved cleaned data to localStorage');
+        log('');
+        log('✨ Done! Now you can:');
+        log('1. Run: npx tsx scripts/seed-recognition-signals.ts');
+        log('2. Refresh the /signals page');
+        log('3. Pull down to refresh and load new signals');
+        
+      } catch (error) {
+        log(`❌ Error: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>

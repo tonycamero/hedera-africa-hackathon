@@ -8,7 +8,7 @@ export function toLegacyEventArray(items: HookItem[]) {
       const event = {
         ...i.json,
         // Normalize type to uppercase for compatibility with HCSDataUtils
-        type: (i.json.type || '').toUpperCase(),
+        type: (typeof i.json.type === 'string' ? i.json.type : String(i.json.type || '')).toUpperCase(),
         _ts: i.consensus_timestamp,
         _topic: i.topic_id,
         _seq: i.sequence_number,
