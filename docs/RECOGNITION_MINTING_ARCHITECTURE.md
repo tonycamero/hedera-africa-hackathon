@@ -59,14 +59,25 @@ interface MintingTreasury {
 }
 ```
 
-#### 3. Free Mint Allowance
+#### 3. Mint Quota & Pricing
 ```typescript
 interface UserMintQuota {
   userId: string;
-  freeMints: number;             // 10-50 free per user
-  freeMintLimit: number;         // Reset monthly
-  paidMintsAvailable: number;    // Purchased with TRST
-  resetDate: Date;
+  freeMints: number;             // Starts at 27, no reset
+  isPremium: boolean;            // $10 unlock status
+  trstBalance: number;           // Available TRST for micropayments
+  totalMintsSent: number;        // Lifetime counter
+  lastMintTimestamp: Date;
+}
+
+interface MintPricing {
+  baseFee: number;               // $0.15 in TRST
+  premiumDiscount: 0.5;          // 50% off = $0.075
+  rarityMultiplier: {            // Dynamic pricing
+    common: 1.0,                 // $0.15
+    rare: 1.5,                   // $0.225
+    legendary: 2.5               // $0.375
+  };
 }
 ```
 
@@ -76,22 +87,30 @@ interface UserMintQuota {
 
 ### Phase 1: Onboarding (Free Tier)
 1. User connects Hedera wallet (HashPack/Blade)
-2. System grants 25 free recognition mints
-3. User can send recognition to any other connected user
-4. Backend treasury mints and delivers to recipient
-5. HCS records full transaction with real account IDs
+2. System grants **27 free recognition mints**
+3. UI shows mint counter: "You have 27 mints left!"
+4. User can send recognition to any other connected user
+5. Backend treasury mints and delivers to recipient
+6. HCS records full transaction with real account IDs
 
-### Phase 2: Power User (TRST Payment)
-1. User exhausts free mints
-2. UI prompts: "Get 50 more mints for 10 TRST (~$10)"
-3. User swaps HBAR → TRST on SaucerSwap
-4. Deposits TRST to TrustMesh
-5. Quota refilled, minting continues
+### Phase 2: Micropayment Model
+1. User exhausts free mints (counter shows 0)
+2. UI prompts: "Top up to keep minting! $0.15 per recognition in TRST"
+3. User either:
+   - Pays $0.15 TRST per mint (pay-as-you-go)
+   - OR deposits $10 to unlock premium features + discounted mints
+4. Each mint auto-deducts from TRST balance
+5. No prepaid packages - pure micropayments
 
-### Phase 3: Trust-Based Multipliers
-1. High-trust users get bonus free mints
-2. Circle members can mint to each other for free
-3. Verified contributors earn unlimited mints
+### Phase 3: Premium Unlock
+1. User deposits $10 HBAR/TRST to TrustMesh treasury
+2. Account upgraded to Premium status (permanent)
+3. Benefits unlocked:
+   - 50% mint fee discount ($0.075 per mint)
+   - Access to rare/legendary recognition types
+   - Circle creation and management
+   - Custom recognition minting
+   - Analytics dashboard with network insights
 
 ---
 
@@ -161,19 +180,27 @@ class RecognitionMintService {
 ## Pricing Model
 
 ### Free Tier
-- 25 free mints per month
-- Resets on the 1st
-- Bonus mints for referrals
+- **27 free mints** on signup (no reset)
+- UI shows: "You have 27 mints left!"
+- Top-up CTA appears when mints < 5
+- One-time gift, encourages quality minting
 
-### TRST Payment Tiers
-- **10 TRST** → 50 mints (~$0.20/mint)
-- **50 TRST** → 300 mints (~$0.17/mint, 15% discount)
-- **200 TRST** → 1500 mints (~$0.13/mint, 35% discount)
+### Pay-Per-Mint Model
+- **Micropayments in TRST** per mint after free quota
+- ~$0.10-0.25 per mint (dynamic pricing based on token type/rarity)
+- No bulk packages - simple pay-as-you-go
+- Instant deduction from TRST balance
 
-### Premium Users
-- **Circle Members** → Free mints within circle
-- **Verified Contributors** → Unlimited free mints
-- **High Trust (>500)** → 2x free mint quota
+### Premium Unlock ($10 Top-up)
+- **Deposit $10 HBAR/TRST** → Unlock full features
+- Benefits (TBD):
+  - Discounted mint fees (50% off)
+  - Priority recognition delivery
+  - Access to rare/legendary tokens
+  - Extended analytics dashboard
+  - Circle creation privileges
+  - Custom recognition types
+- One-time unlock, permanent benefits
 
 ---
 
