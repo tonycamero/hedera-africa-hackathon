@@ -20,7 +20,7 @@
     "phase:disable:cannabis": "pnpm phase disable cannabis"
   },
   "dependencies": {
-    "@hashgraph/sdk": "^2.73.1",
+    "@hashgraph/sdk": "^2.72.0",
     "@hashgraphonline/standards-sdk": "^0.1.106",
     "@hookform/resolvers": "^3.10.0",
     "@magic-ext/hedera": "^1.0.4",
