@@ -33,6 +33,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+// Force dynamic rendering for all pages to prevent prerendering errors
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children,
 }: Readonly<{
