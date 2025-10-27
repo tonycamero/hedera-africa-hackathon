@@ -1,38 +1,39 @@
-'use client';
-
-import { useState } from 'react';
-import { Sparkles } from 'lucide-react';
-import { OnboardingCarousel } from '@/components/OnboardingCarousel';
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { MagicLogin } from '@/components/MagicLogin';
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const [showLogin, setShowLogin] = useState(false);
-
   return (
-    <main className="min-h-screen bg-ink flex items-center justify-center p-6">
-      <div className="max-w-3xl w-full">
+    <main className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="max-w-md w-full space-y-8">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <Sparkles className="w-8 h-8 text-pri-500 animate-breathe-glow" />
-            <h1 className="text-4xl font-bold text-pri-500">TrustMesh</h1>
+            <Sparkles className="w-10 h-10 text-pri-500" />
+            <h1 className="text-4xl font-bold text-foreground">TrustMesh</h1>
           </div>
-          <p className="text-genz-text-dim">
-            Portable reputation powered by Hedera
+          <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+            Add contacts, grow your Trust Crew, send and receive recognition signals
           </p>
         </div>
 
-        {/* Content */}
-        {!showLogin ? (
-          <OnboardingCarousel onComplete={() => setShowLogin(true)} />
-        ) : (
-          <MagicLogin />
-        )}
+        {/* Login */}
+        <MagicLogin />
+
+        {/* Demo link */}
+        <div className="text-center">
+          <Link href="/signals">
+            <Button variant="ghost" size="sm">
+              Continue as Demo
+            </Button>
+          </Link>
+        </div>
 
         {/* Footer */}
-        <div className="text-center text-sm text-genz-text-dim mt-8">
-          <p>Powered by Hedera Consensus Service</p>
-          <p className="mt-1">Built for Hedera Africa Hackathon 2024</p>
+        <div className="text-center text-xs text-muted-foreground pt-4 border-t border-border">
+          <p>Start with 27 free recognition mints</p>
+          <p className="mt-1">Powered by Hedera Consensus Service</p>
         </div>
       </div>
     </main>
