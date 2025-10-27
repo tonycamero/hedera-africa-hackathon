@@ -63,8 +63,8 @@ export const GenZButton: React.FC<GenZButtonProps> = ({
 
     // Style variants
     {
-      // Primary (Boost) - Cyan
-      'bg-pri-600 hover:bg-pri-500 text-white font-semibold focus:ring-pri-glow/40': 
+      // Primary (Boost) - Cyan - using bright colors for visibility
+      'bg-pri-500 hover:bg-pri-glow text-slate-900 font-bold focus:ring-pri-glow/40': 
         variant === 'primary' || variant === 'boost',
       
       // Secondary (Signal) - Violet  
