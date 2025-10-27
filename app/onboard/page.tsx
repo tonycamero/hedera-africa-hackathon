@@ -159,7 +159,10 @@ export default function GenZOnboardingPage() {
 
     setIsLoading(true)
     try {
-      const magicToken = localStorage.getItem('MAGIC_TOKEN')
+      console.log('[Onboarding] Getting fresh Magic DID token...')
+      
+      // Get a fresh DID token from Magic (tokens expire quickly)
+      const magicToken = await magic?.user.getIdToken()
       if (!magicToken) {
         throw new Error('Not authenticated with Magic. Please log in again.')
       }
