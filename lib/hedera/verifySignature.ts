@@ -112,7 +112,7 @@ export async function verifySignature(
 
     // Convert DER bytes → Hedera PublicKey
     const derBytes = Uint8Array.from(publicKeyDer)
-    const pubKey = PublicKey.fromBytesDER(derBytes)
+    const pubKey = PublicKey.fromBytes(derBytes)
 
     // Verify signature
     const sigBytes = Buffer.from(signature, 'hex')
