@@ -3,6 +3,8 @@ import { parseHrl } from "@/lib/utils/hrl"
 import { Client, PrivateKey, TopicMessageSubmitTransaction } from "@hashgraph/sdk"
 import { ensureHbar } from "@/lib/services/hbarGuardrail"
 import { logTxServer } from "@/lib/telemetry/txLog"
+import { hasSufficientTRST, recordTRSTDebit } from "@/lib/services/trstBalanceService"
+import { TRST_PRICING } from "@/lib/config/pricing"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
 
@@ -114,6 +116,23 @@ export async function POST(req: NextRequest) {
 
     client.setOperator(OPERATOR_ID, operatorKey)
 
+    // TRST Fee Check: Ensure sufficient TRST balance
+    const profileCost = TRST_PRICING.PROFILE_UPDATE
+    const trstCheck = await hasSufficientTRST(accountId, profileCost)
+    
+    if (!trstCheck.sufficient) {
+      client.close()
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'insufficient_trst',
+        details: `Profile update costs ${profileCost} TRST. You have ${trstCheck.current.toFixed(2)} TRST.`,
+        cost: profileCost,
+        balance: trstCheck.current
+      }, { status: 402 })
+    }
+    
+    console.log(`[HCS Profile POST] TRST balance check passed: ${trstCheck.current} >= ${profileCost}`)
+
     // HBAR Guardrail: Ensure sufficient balance before transaction
     try {
       await ensureHbar(OPERATOR_ID, 0.01)
@@ -162,6 +181,9 @@ export async function POST(req: NextRequest) {
       topicId: PROFILE_TOPIC_ID,
       status: "SUCCESS"
     })
+    
+    // Record TRST debit
+    recordTRSTDebit(accountId, profileCost, 'PROFILE_UPDATE', txId)
 
     // Construct HRL for the created profile
     const hrl = `hcs://${HEDERA_NETWORK}/${PROFILE_TOPIC_ID}/${receipt.topicSequenceNumber}`
