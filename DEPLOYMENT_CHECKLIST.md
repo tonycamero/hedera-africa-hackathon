@@ -45,9 +45,8 @@ NEXT_PUBLIC_TRST_TOKEN_ID=0.0.5361653
 ### Test Flow (with your team)
 
 1. **Visit landing page**
-   - Should see 5-slide onboarding carousel
-   - Click through slides
-   - Hit "Get Started"
+   - Clean login page with Magic.link
+   - "Add contacts, grow your Trust Crew, send and receive recognition signals"
 
 2. **Magic Login**
    - Enter email (e.g., `tony@scend.app`)
