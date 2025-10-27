@@ -97,13 +97,14 @@ export async function POST(req: NextRequest) {
 
     const response: any = {
       accountId: newAccountId,
+      publicKey: userPublicKey.toStringDer(), // Return in DER format for consistency
       success: true,
     };
 
     // Include private key if we generated it (WARNING: insecure, for demo only)
     if (generatedPrivateKey) {
       response.privateKey = generatedPrivateKey;
-      response.warning = 'Private key included - store securely and remove from response in production';
+      response.warning = 'Private key included - store securely and remove from response in production. This account CANNOT use Magic signing.';
     }
 
     return NextResponse.json(response);

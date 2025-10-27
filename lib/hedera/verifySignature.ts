@@ -111,8 +111,16 @@ export async function verifySignature(
     const messageBytes = new TextEncoder().encode(canonical)
 
     // Convert DER bytes → Hedera PublicKey
+    // Try ECDSA first (Magic uses ECDSA), fallback to ED25519
     const derBytes = Uint8Array.from(publicKeyDer)
-    const pubKey = PublicKey.fromBytes(derBytes)
+    let pubKey: any
+    try {
+      // Try as ECDSA key first (Magic's default)
+      pubKey = PublicKey.fromBytesECDSA(derBytes)
+    } catch (e) {
+      // Fallback to ED25519
+      pubKey = PublicKey.fromBytesED25519(derBytes)
+    }
 
     // Verify signature
     const sigBytes = Buffer.from(signature, 'hex')

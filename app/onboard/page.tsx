@@ -167,57 +167,48 @@ export default function GenZOnboardingPage() {
         throw new Error('Not authenticated with Magic. Please log in again.')
       }
 
-      console.log('[Onboarding] Signing profile client-side with Magic Hedera extension...')
+      console.log('[Onboarding] Signing profile with Magic Hedera extension...')
       
-      // 1) Get user's Hedera public key from Magic extension (client-side)
-      const { publicKeyDer, accountId } = await magic.hedera.getPublicKey()
+      // 1) Get user's Hedera account info from stored user (account was created during login)
+      const { publicKeyDer } = await magic.hedera.getPublicKey()
+      const accountId = magicUser.hederaAccountId
+      console.log('[Onboarding] Magic Hedera account:', accountId)
       
       // 2) Build canonical profile payload
+      const timestamp = new Date().toISOString()
       const fullPayload = {
         type: 'PROFILE_UPDATE',
-        accountId: magicUser.hederaAccountId || accountId || '0.0.0',
+        accountId: accountId,
         displayName: desiredName,
         bio: bio || `TrustMesh user - ${magicUser.email}`,
         avatar: '',
-        timestamp: new Date().toISOString(),
+        timestamp,
       }
       
-      // 3) Canonicalize & sign with Magic's client-side signer (browser-safe, no Buffer)
+      // 3) Sign with Magic's Hedera signer (client-side, keys never exposed)
       const canonical = stableStringify(fullPayload)
-      const signatureBytes = await magic.hedera.sign(new TextEncoder().encode(canonical))
+      const messageBytes = new TextEncoder().encode(canonical)
+      const signatureBytes = await magic.hedera.sign(messageBytes)
       
-      // Convert to browser-safe formats
-      const pubDer = fromDerToArray(publicKeyDer as ArrayBuffer)
-      const sigHex = toHex(new Uint8Array(signatureBytes))
+      // 4) Convert to serializable formats
+      const pubKeyArray = Array.from(new Uint8Array(publicKeyDer))
+      const signatureHex = toHex(new Uint8Array(signatureBytes))
       
       const signedPayload = {
         ...fullPayload,
-        publicKeyDer: Array.from(pubDer), // pass as number[]
-        signature: sigHex,
+        publicKey: pubKeyArray,
+        signature: signatureHex,
       }
       
-      console.log('[Onboarding] Profile signed via Magic (client-side)')
-      console.log('[Onboarding] Signature:', signedPayload.signature.slice(0, 16) + '...')
+      console.log('[Onboarding] Profile signed:', signatureHex.slice(0, 16) + '...')
 
-      // 4) Send to backend for verification & persistence
-      const verifyResp = await fetch('/api/hedera/verify-profile', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${magicToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(signedPayload),
-      })
-      
-      if (!verifyResp.ok) {
-        const err = await verifyResp.text()
-        throw new Error(`Profile verification failed: ${err}`)
-      }
-
-      // 5) Create HCS-11 profile after verification passes
+      // 5) Submit to HCS with signature
       const response = await fetch('/api/hcs/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${magicToken}`
+        },
         body: JSON.stringify(signedPayload)
       })
 

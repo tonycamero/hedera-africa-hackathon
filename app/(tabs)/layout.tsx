@@ -7,6 +7,7 @@ import { signalsStore } from "@/lib/stores/signalsStore"
 import { HeaderModeChips } from "@/components/HeaderModeChips"
 import { useLayoutMode } from "@/lib/layout/useLayoutMode"
 import { ModeShell } from "@/components/layout/ModeShell"
+import { HeaderMenu } from "@/components/HeaderMenu"
 import type { UserTokens } from "@/lib/layout/token-types"
 import { TokenGatedProgress } from "@/components/gating/TokenGatedProgress"
 import { UnlockModal } from "@/components/gating/UnlockModal"
@@ -28,46 +29,19 @@ export default function TabsLayout({
   const [userTokens, setUserTokens] = useState<UserTokens | undefined>()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // TODO: Wire to real auth/token detection
-  // DEMO MODE: Uncomment below to test token-gated modes
+  // Check auth from Magic wallet
   useEffect(() => {
     const checkAuth = async () => {
-      // DEMO: Set to true to see token-gated features
-      setIsAuthenticated(true)
+      // Check if user is logged in via Magic
+      const users = localStorage.getItem('tm:users')
+      if (users) {
+        const parsed = JSON.parse(users)
+        setIsAuthenticated(parsed.length > 0)
+      }
       
-      // DEMO: Uncomment ONE of these to test different modes:
-      
-      // Test Collector mode (10+ NFTs)
-      setUserTokens({
-        nfts: Array.from({ length: 10 }, (_, i) => `nft-${i}`),
-        badges: [],
-        memberships: [],
-        trustLevel: 5
-      })
-      
-      // Test Civic Leader mode (trust 9/9)
-      // setUserTokens({
-      //   nfts: [],
-      //   badges: [],
-      //   memberships: [],
-      //   trustLevel: 9
-      // })
-      
-      // Test VIP mode (legendary NFT)
-      // setUserTokens({
-      //   nfts: ['networking-goat@1'],
-      //   badges: [],
-      //   memberships: [],
-      //   trustLevel: 5
-      // })
-      
-      // Test Premium mode (PRO membership)
-      // setUserTokens({
-      //   nfts: [],
-      //   badges: [],
-      //   memberships: ['PRO_ANNUAL'],
-      //   trustLevel: 5
-      // })
+      // TODO: Wire to real token detection from Hedera account
+      // For now, no special token-gated modes - just default App mode
+      setUserTokens(undefined)
     }
     checkAuth()
   }, [])
@@ -137,6 +111,9 @@ export default function TabsLayout({
       isAuthenticated={isAuthenticated}
       signalsHasUnseen={hasUnseen}
     >
+      {/* Header menu across all modes */}
+      <HeaderMenu />
+      
       <div className="min-h-screen">
         {/* Main content - Add bottom padding for fixed navigation */}
         <main className="min-h-[calc(100vh-8rem)] px-1 pb-20">

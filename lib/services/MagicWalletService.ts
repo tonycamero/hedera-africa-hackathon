@@ -1,6 +1,6 @@
 // lib/services/MagicWalletService.ts
 import { Magic } from 'magic-sdk';
-// import { HederaExtension } from '@magic-ext/hedera'; // Disabled - not enabled in Magic dashboard
+import { HederaExtension } from '@magic-ext/hedera';
 
 // Magic.link instance with Hedera extension
 let magicInstance: Magic | null = null;
@@ -18,17 +18,15 @@ export function getMagicInstance(): Magic {
 
     console.log('[Magic] Initializing with key:', apiKey.substring(0, 10) + '...');
 
-    // Initialize basic Magic without Hedera extension
-    // Backend will handle Hedera key generation
-    magicInstance = new Magic(apiKey);
-    console.log('[Magic] Initialized (without Hedera extension)');
-    
-    // TODO: Enable Hedera extension once it's configured in Magic dashboard:
-    // magicInstance = new Magic(apiKey, {
-    //   extensions: [
-    //     new HederaExtension({ network: 'testnet' }),
-    //   ],
-    // });
+    // Initialize Magic with Hedera extension
+    magicInstance = new Magic(apiKey, {
+      extensions: {
+        hedera: new HederaExtension({
+          network: 'testnet'
+        })
+      }
+    });
+    console.log('[Magic] Initialized with Hedera extension for testnet');
   }
 
   return magicInstance;
@@ -54,15 +52,39 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
   const didToken = await magic.auth.loginWithEmailOTP({ email });
   console.log('[Magic] Login successful, DID token received');
 
-  // Step 2: Get DID token for API authentication
-  const token = await magic.user.getIdToken();
-  console.log('[Magic] Got ID token for API auth');
-
-  // Step 3: Get user metadata
-  const metadata = await magic.user.getInfo();
-  console.log('[Magic] User metadata:', metadata);
-  const magicDID = metadata.issuer || '';
-  const userEmail = metadata.email || email;
+  // Step 2: Get user metadata and tokens
+  let token: string;
+  let magicDID: string;
+  let userEmail: string;
+  
+  try {
+    // Try to get metadata (might fail with Hedera extension)
+    const metadata = await magic.user.getMetadata();
+    console.log('[Magic] User metadata:', metadata);
+    magicDID = metadata.issuer || '';
+    userEmail = metadata.email || email;
+    
+    // Get ID token for API authentication
+    token = await magic.user.getIdToken();
+    console.log('[Magic] Got ID token for API auth');
+  } catch (metadataError: any) {
+    console.warn('[Magic] getMetadata() failed:', metadataError.message);
+    console.log('[Magic] Using email as fallback identifier');
+    
+    // Fallback: use email as identifier
+    userEmail = email;
+    magicDID = `did:ethr:${email}`; // Simple DID format
+    
+    try {
+      token = await magic.user.getIdToken();
+      console.log('[Magic] Got ID token (after metadata fallback)');
+    } catch (tokenError: any) {
+      console.error('[Magic] Failed to get ID token:', tokenError);
+      // Create a temporary token for demo purposes
+      token = `magic_demo_${Date.now()}`;
+      console.warn('[Magic] Using demo token - API calls may fail');
+    }
+  }
 
   // Store token in localStorage for API requests
   if (typeof window !== 'undefined') {
@@ -79,46 +101,86 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
     return existingUser;
   }
 
-  // Step 4: Get Hedera public key (or use operator to generate one)
+  // Step 4: Get Magic Hedera public key (doesn't create account automatically)
+  let hederaAccountId: string;
   let publicKeyDer: string;
   
   try {
-    // Try to get Hedera key from Magic extension if available
+    console.log('[Magic] Getting Hedera public key from Magic wallet...');
+    // IMPORTANT: magic.hedera.getPublicKey() only returns the key, doesn't create account
     const keyData = await magic.hedera.getPublicKey();
     publicKeyDer = keyData.publicKeyDer;
-    console.log('[Magic] Got Hedera public key from extension:', publicKeyDer);
-  } catch (error) {
-    // If Hedera extension not available, backend will generate key
-    console.log('[Magic] No Hedera extension, backend will generate account');
-    publicKeyDer = ''; // Backend will handle key generation
+    
+    console.log('[Magic] Got public key from Magic:', publicKeyDer);
+    
+    // Check if keyData has accountId (it shouldn't per the docs)
+    if (keyData.accountId) {
+      console.log('[Magic] Unexpected: Magic returned accountId:', keyData.accountId);
+      hederaAccountId = keyData.accountId;
+    } else {
+      console.log('[Magic] No accountId returned (expected). Creating account via backend...');
+      
+      // Create the Hedera account using the Magic public key
+      const createResponse = await fetch('/api/hedera/account/create', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          magicDID,
+          publicKey: publicKeyDer  // Use Magic's public key
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const error = await createResponse.text();
+        throw new Error(`Account creation failed: ${error}`);
+      }
+
+      const { accountId } = await createResponse.json();
+      hederaAccountId = accountId;
+      console.log('[Magic] Created Hedera account with Magic key:', hederaAccountId);
+    }
+  } catch (error: any) {
+    console.error('[Magic] Failed to setup Hedera account:');
+    console.error('[Magic] Error:', error);
+    throw new Error(`Failed to setup Hedera account: ${error.message}`);
   }
 
-  // Step 5: Create Hedera account via backend
-  const response = await fetch('/api/hedera/account/create', {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      email: userEmail,
-      magicDID,
-      publicKey: publicKeyDer,
-    }),
-  });
+  // Step 5: Fund the account with HBAR and TRST via backend
+  try {
+    console.log('[Magic] Funding Hedera account via backend...');
+    const fundResponse = await fetch('/api/hedera/account/fund', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        accountId: hederaAccountId,
+        email: userEmail,
+        magicDID
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create Hedera account: ${error}`);
+    if (!fundResponse.ok) {
+      const error = await fundResponse.text();
+      console.warn('[Magic] Failed to fund account:', error);
+      // Don't fail the whole flow if funding fails
+    } else {
+      console.log('[Magic] Account funded successfully');
+    }
+  } catch (error: any) {
+    console.warn('[Magic] Account funding error:', error.message);
   }
-
-  const { accountId } = await response.json();
 
   // Step 6: Create user record
   const newUser: MagicHederaUser = {
     email: userEmail,
     magicDID,
-    hederaAccountId: accountId,
+    hederaAccountId,
     publicKey: publicKeyDer,
     freeMints: 27,
     trstBalance: 1.35,
@@ -128,7 +190,7 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
   // Step 7: Store user
   storeUser(newUser);
 
-  console.log('[Magic] New user created with Hedera account:', accountId);
+  console.log('[Magic] New user created with Magic Hedera account:', hederaAccountId);
   return newUser;
 }
 
