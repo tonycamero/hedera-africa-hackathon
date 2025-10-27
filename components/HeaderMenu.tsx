@@ -43,11 +43,32 @@ export function HeaderMenu() {
   const network = process.env.NEXT_PUBLIC_HEDERA_NETWORK === 'mainnet' ? 'mainnet' : 'testnet'
 
   return (
-    <div className="sticky top-0 z-50 bg-black/20 backdrop-blur supports-[backdrop-filter]:bg-black/10 border-b border-white/10">
-      <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
-        {/* Left: current route */}
-        <div className="text-xs text-white/60">
-          {pathname}
+    <div className="sticky top-0 z-50 bg-black/20 backdrop-blur-md supports-[backdrop-filter]:bg-black/10 border-b border-white/10">
+      <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+        {/* Left: TrustMesh logo and branding */}
+        <div className="flex items-center gap-2">
+          {/* TrustMesh Logo */}
+          <div className="w-9 h-9 flex items-center justify-center opacity-90">
+            <svg 
+              width="24" 
+              height="24"
+              viewBox="0 0 24 24" 
+              fill="none"
+              className="animate-spin-slow-ccw"
+            >
+              <circle cx="6" cy="18" r="2" stroke="#FFFFFF" strokeWidth="2" fill="none"/>
+              <circle cx="18" cy="18" r="2" stroke="#FFFFFF" strokeWidth="2" fill="none"/>
+              <circle cx="12" cy="6" r="2" stroke="#FFFFFF" strokeWidth="2" fill="none"/>
+              <path d="M6 18L12 6L18 18" stroke="#FFFFFF" strokeWidth="2" opacity="0.6"/>
+              <path d="M6 18L18 18" stroke="#FFFFFF" strokeWidth="2" opacity="0.6"/>
+            </svg>
+          </div>
+          <div>
+            <h1 className="font-bold text-xl text-white tracking-tight">TrustMesh</h1>
+            <p className="text-xs text-white/50 font-light">
+              Flex Your Network
+            </p>
+          </div>
         </div>
 
         {/* Right: avatar + dropdown */}

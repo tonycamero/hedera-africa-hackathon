@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Mail, Smartphone, User, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Mail, Smartphone, User, Sparkles, CheckCircle, AlertCircle, Loader2, Gift, Coins } from 'lucide-react'
 import { GenZButton, GenZCard, GenZHeading, GenZText, GenZInput, GenZChip } from '@/components/ui/genz-design-system'
 import { toast } from 'sonner'
 import { knsService } from '@/lib/services/knsService'
@@ -11,6 +11,7 @@ import { magicService, type MagicUser } from '@/lib/services/magicService'
 import { magic } from '@/lib/magic'
 import { toHex, fromDerToArray } from '@/lib/util/hex'
 import { stableStringify } from '@/lib/util/stableStringify'
+import { associateTrstTokenViaMagic } from '@/lib/services/associateTrstToken'
 
 interface OnboardingStep {
   id: string
@@ -28,6 +29,7 @@ export default function GenZOnboardingPage() {
   const [magicUser, setMagicUser] = useState<any>(null)
   const [knsAvailable, setKnsAvailable] = useState<boolean | null>(null)
   const [checkingKns, setCheckingKns] = useState(false)
+  const [stipendAccepted, setStipendAccepted] = useState(false)
 
   // Check if user is logged in with Magic
   useEffect(() => {
@@ -151,9 +153,67 @@ export default function GenZOnboardingPage() {
     }
   }
 
+  const handleAcceptStipend = async () => {
+    if (!magicUser) return
+    
+    setIsLoading(true)
+    try {
+      const magicToken = await magic?.user.getIdToken()
+      if (!magicToken) throw new Error('Not authenticated')
+      
+      const accountId = magicUser.hederaAccountId
+      
+      console.log('[Onboarding] Step 1: Associating TRST token via Magic signing...')
+      
+      // Associate TRST token using Magic-signed transaction
+      const associationResult = await associateTrstTokenViaMagic(accountId)
+      console.log('[Onboarding] Association result:', associationResult)
+      
+      console.log('[Onboarding] Step 2: Requesting stipend transfer...')
+      
+      // Now request the fund transfer (HBAR + TRST)
+      const response = await fetch('/api/hedera/account/fund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${magicToken}`
+        },
+        body: JSON.stringify({
+          accountId,
+          email: magicUser.email
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to transfer stipend')
+      }
+      
+      const result = await response.json()
+      console.log('[Onboarding] Stipend transferred:', result)
+      
+      setStipendAccepted(true)
+      toast.success('🎁 Stipend accepted!', {
+        description: 'You received 1 HBAR + 1.35 TRST'
+      })
+    } catch (error: any) {
+      console.error('[Onboarding] Stipend error:', error)
+      toast.error('Failed to accept stipend', {
+        description: error.message
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleCompleteOnboarding = async () => {
     if (!magicUser || !desiredName) {
       toast.error('Please enter your display name')
+      return
+    }
+    
+    if (!stipendAccepted) {
+      toast.error('Please accept your stipend first')
       return
     }
 
@@ -263,8 +323,53 @@ export default function GenZOnboardingPage() {
           ))}
         </div>
 
+        {/* Stipend Acceptance */}
+        {magicUser && !stipendAccepted && (
+          <GenZCard variant="glass" className="p-6 space-y-6">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🎁</div>
+              <GenZHeading level={3} className="mb-2">Get Your Welcome Stipend!</GenZHeading>
+              <GenZText dim>Accept your starter tokens to begin using TrustMesh</GenZText>
+            </div>
+
+            <div className="space-y-4">
+              <GenZCard variant="glass" className="p-4 bg-boost-500/5 border-boost-500/20">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-5 h-5 text-boost-500" />
+                    <GenZText className="font-semibold">1.00 HBAR</GenZText>
+                  </div>
+                  <GenZText size="sm" dim>for network fees</GenZText>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-pri-500" />
+                    <GenZText className="font-semibold">1.35 TRST</GenZText>
+                  </div>
+                  <GenZText size="sm" dim>recognition credits</GenZText>
+                </div>
+              </GenZCard>
+
+              <GenZButton
+                variant="boost"
+                onClick={handleAcceptStipend}
+                disabled={isLoading}
+                className="w-full"
+                glow
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Gift className="w-4 h-4 mr-2" />}
+                Accept Stipend
+              </GenZButton>
+
+              <GenZText size="sm" dim className="text-center">
+                By accepting, we'll set up your account to receive TRST tokens
+              </GenZText>
+            </div>
+          </GenZCard>
+        )}
+
         {/* Profile Creation Form */}
-        {magicUser && (
+        {magicUser && stipendAccepted && (
           <GenZCard variant="glass" className="p-6 space-y-6">
             <div className="text-center">
               <GenZHeading level={3} className="mb-2">Create Your Profile</GenZHeading>

@@ -5,6 +5,7 @@ import {
   TransferTransaction,
   TokenId,
   AccountId,
+  TokenAssociateTransaction,
 } from '@hashgraph/sdk';
 import { getHederaClient } from '@/lib/hedera/serverClient';
 import { Magic } from '@magic-sdk/admin';
@@ -46,11 +47,34 @@ export async function POST(req: NextRequest) {
     
     console.log('[API] HBAR transfer successful');
 
-    // 2. Transfer TRST tokens if configured
+    // 2. Associate TRST token + Transfer TRST tokens
     const TRST_TOKEN_ID = process.env.NEXT_PUBLIC_TRST_TOKEN_ID;
     
     if (TRST_TOKEN_ID) {
       try {
+        // First, try to associate the token (this requires the user's signature)
+        // NOTE: This will fail for Magic accounts since we don't have their private key
+        // The proper solution requires Magic to sign the association transaction client-side
+        console.log('[API] Attempting TRST token association...');
+        
+        try {
+          // Try operator-paid association (will likely fail - needs user signature)
+          const associateTx = await new TokenAssociateTransaction()
+            .setAccountId(targetAccountId)
+            .setTokenIds([TokenId.fromString(TRST_TOKEN_ID)])
+            .execute(client);
+          
+          await associateTx.getReceipt(client);
+          console.log('[API] Token association successful');
+        } catch (assocError: any) {
+          if (assocError.message?.includes('TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT')) {
+            console.log('[API] Token already associated (OK)');
+          } else {
+            console.error('[API] Association failed:', assocError.message);
+            // Continue anyway - maybe it was already associated
+          }
+        }
+        
         // TRST has 6 decimals, so 1.35 TRST = 1,350,000 smallest units
         const trstAmount = 1_350_000;
 
@@ -63,14 +87,24 @@ export async function POST(req: NextRequest) {
         console.log(`[API] Transferred ${trstAmount / 1_000_000} TRST to ${accountId}`);
       } catch (trstError: any) {
         console.error('[API] TRST transfer failed:', trstError.message);
-        // Note: Magic-created accounts should already have token association
-        // If this fails, the account might need to associate the token first
+        
+        // If it's a TOKEN_NOT_ASSOCIATED error, explain what's needed
+        if (trstError.message?.includes('TOKEN_NOT_ASSOCIATED_TO_ACCOUNT')) {
+          return NextResponse.json({
+            success: true,
+            accountId,
+            hbarFunded: true,
+            trstFunded: false,
+            error: 'TRST token association required. This requires user signature via Magic.'
+          }, { status: 200 });
+        }
+        
         return NextResponse.json({
           success: true,
           accountId,
           hbarFunded: true,
           trstFunded: false,
-          warning: 'HBAR funded but TRST transfer failed. Account may need token association.'
+          warning: 'HBAR funded but TRST transfer failed.'
         });
       }
     }

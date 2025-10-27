@@ -60,21 +60,37 @@ export async function POST(req: NextRequest) {
     
     if (!TRST_TOKEN_ID) {
       console.warn('[API] No TRST token ID configured, skipping TRST transfer');
-    } else if (generatedPrivateKey) {
-      // Only auto-fund if we generated the key (we can sign)
+    } else {
       try {
         // Associate token with the new account
         console.log('[API] Associating TRST token with new account...');
-        const userPrivateKey = HederaPrivateKey.fromStringED25519(generatedPrivateKey);
         
-        const associateTx = await new TokenAssociateTransaction()
-          .setAccountId(newAccountId)
-          .setTokenIds([TokenId.fromString(TRST_TOKEN_ID)])
-          .freezeWith(client)
-          .sign(userPrivateKey);
-
-        const associateSubmit = await associateTx.execute(client);
-        await associateSubmit.getReceipt(client);
+        if (generatedPrivateKey) {
+          // If we generated the key, user signs the association
+          const userPrivateKey = HederaPrivateKey.fromStringED25519(generatedPrivateKey);
+          const associateTx = await new TokenAssociateTransaction()
+            .setAccountId(newAccountId)
+            .setTokenIds([TokenId.fromString(TRST_TOKEN_ID)])
+            .freezeWith(client)
+            .sign(userPrivateKey);
+          
+          const associateSubmit = await associateTx.execute(client);
+          await associateSubmit.getReceipt(client);
+        } else {
+          // For Magic accounts, operator pays and signs (user can't sign yet)
+          // This requires the account to have set up fee delegation, OR
+          // we need to have the user sign via Magic later
+          // For now, we'll require manual association via /api/hedera/account/fund
+          console.log('[API] Magic account - TRST association will be done during first funding');
+          // Don't associate yet - we'll do it in the fund endpoint when user can sign via Magic
+          return NextResponse.json({
+            accountId: newAccountId,
+            publicKey: userPublicKey.toStringDer(),
+            success: true,
+            note: 'TRST association pending - will be done during first funding'
+          });
+        }
+        
         console.log('[API] Token association successful');
 
         // TRST has 6 decimals, so 1.35 TRST = 1,350,000 smallest units
@@ -91,8 +107,6 @@ export async function POST(req: NextRequest) {
         console.error('[API] TRST transfer failed:', trstError.message);
         // Don't fail the whole request if TRST transfer fails
       }
-    } else {
-      console.log('[API] Skipping TRST transfer - no private key to sign association');
     }
 
     const response: any = {
