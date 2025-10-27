@@ -226,6 +226,7 @@ export default function ContactsPage() {
                 const contactId = contact.peerId || contact.id
                 const trustData = trustLevels.get(contactId || '') || { allocatedTo: 0, receivedFrom: 0 }
                 const displayName = contact.handle || `User ${contactId?.slice(-6) || 'Unknown'}`
+                const isBonded = contact.isBonded !== false // Default to true for backward compatibility
                 
                 return (
                   <div
@@ -233,12 +234,29 @@ export default function ContactsPage() {
                     className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-all border border-white/10 hover:border-[#FF6B35]/30"
                     onClick={() => handleContactClick(contact)}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B35]/20 to-yellow-500/20 border border-[#FF6B35]/30 flex items-center justify-center">
                         <User className="w-5 h-5 text-[#FF6B35]" />
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-white">{displayName}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium text-white">{displayName}</div>
+                          {isBonded ? (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                              title="Mutual acceptance complete - can send signals"
+                            >
+                              ✓ Bonded
+                            </span>
+                          ) : (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                              title="Pending acceptance"
+                            >
+                              ⏳ Pending
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs">
                           {trustData.allocatedTo > 0 ? (
                             <span className="text-orange-500 font-medium">Given: {trustData.allocatedTo} 🔥</span>
@@ -257,17 +275,30 @@ export default function ContactsPage() {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-white/70 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toast.info(`Message ${displayName}`)
-                      }}
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                    </Button>
+                    {isBonded ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-white/70 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toast.info(`Message ${displayName}`)
+                        }}
+                        title="Send message"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-white/40 cursor-not-allowed"
+                        disabled
+                        title="Bond with this contact first"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 )
               })
