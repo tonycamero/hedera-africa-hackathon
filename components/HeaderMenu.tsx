@@ -77,8 +77,8 @@ export function HeaderMenu() {
             onClick={() => setOpen(v => !v)}
             className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-3 py-1 hover:bg-white/10 transition-colors"
           >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00F6FF]/30 to-white/10 border border-[#00F6FF]/30 flex items-center justify-center">
-              <UserIcon className="w-4 h-4 text-[#00F6FF]" />
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#FF6B35]/30 to-white/10 border border-[#FF6B35]/30 flex items-center justify-center">
+              <UserIcon className="w-4 h-4 text-[#FF6B35]" />
             </div>
             <span className="text-xs text-white/80">{email ?? 'Account'}</span>
             <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${open ? 'rotate-180' : ''}`} />

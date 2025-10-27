@@ -123,9 +123,9 @@ export default function TabsLayout({
         {/* Professional Theme CSS Injection */}
         <style jsx global>{`
         .theme-professional {
-          --accent-primary: #00F6FF;
+          --accent-primary: #FF6B35;
           --bg-glass: rgba(30, 41, 59, 0.3);
-          --border-glow: 0 0 4px rgba(0, 246, 255, 0.3);
+          --border-glow: 0 0 4px rgba(255, 107, 53, 0.3);
         }
         
         .pulse-accent {
@@ -135,11 +135,11 @@ export default function TabsLayout({
         @keyframes pulse-neon {
           0%, 100% {
             opacity: 1;
-            filter: drop-shadow(0 0 2px rgba(0, 246, 255, 0.3));
+            filter: drop-shadow(0 0 2px rgba(255, 107, 53, 0.3));
           }
           50% {
             opacity: 0.7;
-            filter: drop-shadow(0 0 4px rgba(0, 246, 255, 0.5));
+            filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.5));
           }
         }
         

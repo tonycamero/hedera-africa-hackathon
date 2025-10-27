@@ -46,19 +46,19 @@ export function BottomNav({
                 <div className="relative">
                   <Icon
                     className={`w-5 h-5 mb-1 transition-all duration-300 ${
-                      isActive ? 'text-[#00F6FF] scale-110' : 'text-white/60'
+                      isActive ? 'text-[#FF6B35] scale-110' : 'text-white/60'
                     }`}
                   />
                   {tab.badge && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#00F6FF] rounded-full pulse-accent" />
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#FF6B35] rounded-full pulse-accent" />
                   )}
                   {isActive && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#00F6FF] rounded-full" />
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FF6B35] rounded-full" />
                   )}
                 </div>
                 <span
                   className={`transition-all duration-300 text-xs ${
-                    isActive ? 'text-[#00F6FF] font-medium' : 'text-white/60'
+                    isActive ? 'text-[#FF6B35] font-medium' : 'text-white/60'
                   }`}
                 >
                   {tab.label}
