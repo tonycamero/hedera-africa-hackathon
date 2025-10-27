@@ -67,6 +67,7 @@ export interface BondedContact {
   handle?: string
   bondedAt: number
   trustLevel?: number
+  isBonded?: boolean  // true = mutual ACCEPT, false = pending REQUEST
 }
 
 export interface TrustStats {

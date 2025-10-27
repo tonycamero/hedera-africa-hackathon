@@ -44,10 +44,11 @@ export async function POST(req: NextRequest) {
       console.log('[API] Using Magic-provided public key');
     }
 
-    // 1. Create new Hedera account with 1 HBAR initial balance
+    // 1. Create new Hedera account with 1 HBAR initial balance and auto-association slots
     const accountCreateTx = await new AccountCreateTransaction()
       .setKey(userPublicKey)
       .setInitialBalance(new Hbar(1)) // 1 HBAR for gas
+      .setMaxAutomaticTokenAssociations(10) // Enable auto-association for first 10 tokens
       .execute(client);
 
     const accountCreateReceipt = await accountCreateTx.getReceipt(client);
@@ -55,54 +56,25 @@ export async function POST(req: NextRequest) {
 
     console.log('[API] Created account:', newAccountId);
 
-    // 2. Associate and transfer 1.35 TRST to new account
+    // 2. Transfer initial TRST to new account (will auto-associate on first transfer)
     const TRST_TOKEN_ID = process.env.NEXT_PUBLIC_TRST_TOKEN_ID;
     
     if (!TRST_TOKEN_ID) {
       console.warn('[API] No TRST token ID configured, skipping TRST transfer');
     } else {
       try {
-        // Associate token with the new account
-        console.log('[API] Associating TRST token with new account...');
+        console.log('[API] Transferring TRST (will auto-associate on receipt)...');
         
-        if (generatedPrivateKey) {
-          // If we generated the key, user signs the association
-          const userPrivateKey = HederaPrivateKey.fromStringED25519(generatedPrivateKey);
-          const associateTx = await new TokenAssociateTransaction()
-            .setAccountId(newAccountId)
-            .setTokenIds([TokenId.fromString(TRST_TOKEN_ID)])
-            .freezeWith(client)
-            .sign(userPrivateKey);
-          
-          const associateSubmit = await associateTx.execute(client);
-          await associateSubmit.getReceipt(client);
-        } else {
-          // For Magic accounts, operator pays and signs (user can't sign yet)
-          // This requires the account to have set up fee delegation, OR
-          // we need to have the user sign via Magic later
-          // For now, we'll require manual association via /api/hedera/account/fund
-          console.log('[API] Magic account - TRST association will be done during first funding');
-          // Don't associate yet - we'll do it in the fund endpoint when user can sign via Magic
-          return NextResponse.json({
-            accountId: newAccountId,
-            publicKey: userPublicKey.toStringDer(),
-            success: true,
-            note: 'TRST association pending - will be done during first funding'
-          });
-        }
-        
-        console.log('[API] Token association successful');
-
         // TRST has 6 decimals, so 1.35 TRST = 1,350,000 smallest units
         const trstAmount = 1_350_000;
 
-        console.log('[API] Transferring TRST...');
+        // Transfer TRST - account will auto-associate thanks to setMaxAutomaticTokenAssociations
         await new TransferTransaction()
           .addTokenTransfer(TRST_TOKEN_ID, operatorId, -trstAmount)
           .addTokenTransfer(TRST_TOKEN_ID, newAccountId, trstAmount)
           .execute(client);
 
-        console.log(`[API] Transferred ${trstAmount / 1_000_000} TRST to ${newAccountId}`);
+        console.log(`[API] Transferred ${trstAmount / 1_000_000} TRST to ${newAccountId} (auto-associated)`);
       } catch (trstError: any) {
         console.error('[API] TRST transfer failed:', trstError.message);
         // Don't fail the whole request if TRST transfer fails

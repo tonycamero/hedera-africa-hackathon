@@ -201,40 +201,44 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
     }
   }
   
-  // Second pass: identify bonded pairs
+  // Second pass: identify all contacts (REQUEST or ACCEPT) and track bonded status
+  const contacts = new Set<string>()
+  const bondedPairs = new Map<string, any>()  // Track mutual acceptance
+  
   for (const ev of events) {
     const t = U(ev?.type)
-    if (t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED') {
-      const a = A(ev), b = T(ev)
-      if (a && b && a !== b) {
-        const key = k(a, b)
-        pairs.set(key, ev)
-        console.log('🔍 [HCSDataUtils] Found bonded pair:', a, '<->', b, 'from event type:', ev?.type)
-      }
+    const a = A(ev), b = T(ev)
+    
+    // Anyone in a CONTACT_REQUEST is a contact
+    if (t === 'CONTACT_REQUEST' && a && b && a !== b) {
+      if (a === me && b !== me && b !== 'peer:unknown') contacts.add(b)
+      if (b === me && a !== me && a !== 'peer:unknown') contacts.add(a)
+    }
+    
+    // CONTACT_ACCEPT means bonded (mutual acceptance)
+    if ((t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED') && a && b && a !== b) {
+      const key = k(a, b)
+      bondedPairs.set(key, ev)
+      // Also ensure they're in contacts set
+      if (a === me && b !== me) contacts.add(b)
+      if (b === me && a !== me) contacts.add(a)
+      console.log('🔍 [HCSDataUtils] Found bonded pair:', a, '<->', b, 'from event type:', ev?.type)
     }
   }
   
-  const bonded = new Set<string>()
-  console.log('🔍 [HCSDataUtils] Filtering bonded pairs for session ID:', me)
-  console.log('🔍 [HCSDataUtils] Total pairs found:', pairs.size)
+  console.log('🔍 [HCSDataUtils] Filtering contacts for session ID:', me)
+  console.log('🔍 [HCSDataUtils] Total contacts found:', contacts.size)
+  console.log('🔍 [HCSDataUtils] Total bonded pairs found:', bondedPairs.size)
   
-  for (const key of pairs.keys()) {
-    const [a, b] = key.split('|')
-    console.log('🔍 [HCSDataUtils] Checking pair:', a, '<->', b)
-    if (a === me && b !== me) {
-      bonded.add(b)
-      console.log('🔍 [HCSDataUtils] Added bonded contact:', b)
-    }
-    if (b === me && a !== me) {
-      bonded.add(a)
-      console.log('🔍 [HCSDataUtils] Added bonded contact:', a)
-    }
-  }
+  console.log('🔍 [HCSDataUtils] Final contacts:', [...contacts])
   
-  console.log('🔍 [HCSDataUtils] Final bonded set size:', bonded.size)
-  console.log('🔍 [HCSDataUtils] Final bonded contacts:', [...bonded])
-  
-  const result = [...bonded].map(id => {
+  const result = [...contacts].map(id => {
+    // Check if this contact is bonded (mutual ACCEPT)
+    const isBonded = Array.from(bondedPairs.keys()).some(key => {
+      const [a, b] = key.split('|')
+      return (a === me && b === id) || (b === me && a === id)
+    })
+    
     // Priority: USER_NAME_MAPPINGS (curated) > HCS event data > generated from ID
     const knownName = USER_NAME_MAPPINGS[id]
     const info = contactData.get(id) || {}
@@ -244,7 +248,8 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
     return { 
       peerId: id,
       handle: name,
-      bondedAt: Date.now()
+      bondedAt: Date.now(),
+      isBonded  // Add bonded flag for UI to differentiate
     }
   })
   

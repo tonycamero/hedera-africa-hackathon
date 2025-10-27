@@ -40,7 +40,8 @@ async function submitContactToHCS(envelope: any, signalEvent: SignalEvent, signa
 export function AddContactDialog({ children, handle }: { children?: React.ReactNode; handle?: string }) {
   const [open, setOpen] = useState(false)
   const [inviteCode, setInviteCode] = useState("")      // base64 JSON
-  const [scanResult, setScanResult] = useState<string>("")
+  const [scanResult, setScanResult] = useState<string>("")  // Raw input from paste
+  const [validatedInvite, setValidatedInvite] = useState<any>(null)  // Validated & parsed invite
   const [qrDataUrl, setQrDataUrl] = useState<string>("")
   const [sessionProfile, setSessionProfile] = useState<any>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -90,25 +91,23 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
   useEffect(() => {
     if (!open || !inviteEnvelope) return
     
-    const signalEvent: SignalEvent = {
+    const signalEvent = {
       id: `contact_request_${inviteEnvelope.nonce}`,
-      class: "contact",
-      topicType: "CONTACT",
-      direction: "outbound",
-      actors: { from: inviteEnvelope.from, to: "peer:unknown" },
-      payload: inviteEnvelope.payload,
+      type: 'CONTACT_REQUEST' as const,
+      actor: inviteEnvelope.from,
+      target: 'peer:unknown',
       ts: Date.now(),
-      status: "local",
-      seen: false,
-      type: "CONTACT_REQUEST"
+      topicId: CONTACT_TOPIC || '0.0.unknown',
+      metadata: inviteEnvelope.payload,
+      source: 'hcs-cached' as const
     }
     
-    signalsStore.addSignal(signalEvent)
+    signalsStore.add(signalEvent)
     setInviteCode(invitePayload)
     
     // Background HCS submit if enabled
     if (HCS_ENABLED && CONTACT_TOPIC) {
-      submitContactToHCS(inviteEnvelope, signalEvent, signalEvent.id)
+      submitContactToHCS(inviteEnvelope, signalEvent as any, signalEvent.id)
     }
   }, [open, inviteEnvelope, invitePayload])
 
@@ -157,32 +156,33 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
       if (!raw.trim().startsWith("{")) decoded = atob(raw.trim())
       const obj = JSON.parse(decoded)
       if (obj?.type !== "CONTACT_REQUEST" || !obj?.from) throw new Error("Invalid invite")
-      setScanResult(JSON.stringify(obj))
+      
+      // Store the validated invite object
+      setValidatedInvite(obj)
       
       // Log inbound request to signals store
-      const signalEvent: SignalEvent = {
+      const signalEvent = {
         id: `contact_request_inbound_${obj.nonce}`,
-        class: "contact",
-        topicType: "CONTACT",
-        direction: "inbound",
-        actors: { from: obj.from, to: sessionProfile?.sessionId || "unknown" },
-        payload: obj.payload,
+        type: 'CONTACT_REQUEST' as const,
+        actor: obj.from,
+        target: sessionProfile?.sessionId || 'unknown',
         ts: Date.now(),
-        status: "local",
-        seen: false,
-        type: "CONTACT_REQUEST"
+        topicId: CONTACT_TOPIC || '0.0.unknown',
+        metadata: obj.payload,
+        source: 'hcs-cached' as const
       }
       
-      signalsStore.addSignal(signalEvent)
-      toast.success("Contact request received")
+      signalsStore.add(signalEvent)
+      toast.success("✅ Code validated!", { description: "Ready to bond contact" })
     } catch (e: any) {
+      setValidatedInvite(null)
       toast.error("Invalid invite", { description: e?.message ?? "Parse error" })
     }
   }
 
   async function acceptContact() {
-    if (!scanResult || !sessionProfile) return
-    const req = JSON.parse(scanResult)
+    if (!validatedInvite || !sessionProfile) return
+    const req = validatedInvite
     
     // Build proper CONTACT_ACCEPT envelope with hash verification
     const reqHash = hashContactRequest(req)
@@ -201,26 +201,29 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
       sig: "demo_signature"
     }
     
-    // Add to signals store
-    const signalEvent: SignalEvent = {
-      id: `contact_accept_${envelope.nonce}`,
-      class: "contact",
-      topicType: "CONTACT",
-      direction: "outbound",
-      actors: { from: sessionProfile.sessionId, to: req.from },
-      payload: envelope.payload,
+    // Add CONTACT_ACCEPT signal using the uniform system pattern
+    const optimisticEvent = {
+      id: `contact_accept_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      type: 'CONTACT_ACCEPT' as const,
+      actor: sessionProfile.sessionId,
+      target: req.from,
       ts: Date.now(),
-      status: "local",
-      seen: false,
-      type: "CONTACT_ACCEPT"
+      topicId: CONTACT_TOPIC || '0.0.unknown',
+      metadata: {
+        handle: req.payload?.handle || req.from,
+        of: envelope.payload.of
+      },
+      source: 'hcs-cached' as const
     }
+    signalsStore.add(optimisticEvent)
     
-    signalsStore.addSignal(signalEvent)
-    toast.success("Contact bonded", { description: "You can now allocate trust." })
+    toast.success("✅ Contact bonded!", { 
+      description: "Connection established. Submitting to blockchain..." 
+    })
 
     // Background HCS submit if enabled
     if (HCS_ENABLED && CONTACT_TOPIC) {
-      submitContactToHCS(envelope, signalEvent, signalEvent.id)
+      submitContactToHCS(envelope, optimisticEvent as any, optimisticEvent.id)
     }
 
     setOpen(false)
@@ -425,14 +428,16 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
                   type="button" 
                   variant="outline" 
                   onClick={() => onDecoded(scanResult)}
-                  className="flex-1 border-white/20 text-white/80 hover:bg-white/10"
+                  disabled={!scanResult || !scanResult.length}
+                  className="flex-1 border-white/20 text-white/80 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  {validatedInvite ? <Check className="w-4 h-4 mr-2 text-emerald-500" /> : null}
                   Validate Code
                 </Button>
                 <Button 
                   type="button" 
                   className="flex-1 bg-gradient-to-r from-emerald-600 via-green-500 to-emerald-700 hover:from-emerald-500 hover:via-green-400 hover:to-emerald-600 text-white font-bold shadow-2xl shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed animate-pulse border-2 border-emerald-400/60" 
-                  disabled={!scanResult || !scanResult.length} 
+                  disabled={!validatedInvite} 
                   onClick={acceptContact}
                 >
                   <Check className="w-4 h-4 mr-2 drop-shadow-lg" /> 

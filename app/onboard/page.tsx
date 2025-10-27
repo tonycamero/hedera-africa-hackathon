@@ -163,13 +163,7 @@ export default function GenZOnboardingPage() {
       
       const accountId = magicUser.hederaAccountId
       
-      console.log('[Onboarding] Step 1: Associating TRST token via Magic signing...')
-      
-      // Associate TRST token using Magic-signed transaction
-      const associationResult = await associateTrstTokenViaMagic(accountId)
-      console.log('[Onboarding] Association result:', associationResult)
-      
-      console.log('[Onboarding] Step 2: Requesting stipend transfer...')
+      console.log('[Onboarding] Requesting stipend (HBAR + TRST will auto-associate)...')
       
       // Now request the fund transfer (HBAR + TRST)
       const response = await fetch('/api/hedera/account/fund', {

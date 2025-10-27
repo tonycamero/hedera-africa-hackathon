@@ -32,7 +32,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[API] Funding Hedera account:', accountId);
+    console.log('[API] Funding request for account:', accountId);
+    
+    // Check if stipend already claimed (simple in-memory tracking for demo)
+    // In production, store this in your database
+    const stipendKey = `stipend_claimed_${accountId}`;
+    if (global[stipendKey]) {
+      console.log('[API] Stipend already claimed for this account');
+      return NextResponse.json({
+        success: false,
+        error: 'Stipend already claimed for this account'
+      }, { status: 400 });
+    }
 
     const client = await getHederaClient();
     const operatorId = client.operatorAccountId!;
@@ -109,11 +120,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Mark stipend as claimed
+    global[stipendKey] = true;
+    console.log('[API] Stipend claimed and marked for account:', accountId);
+    
     return NextResponse.json({
       success: true,
       accountId,
       hbarFunded: true,
-      trstFunded: !!TRST_TOKEN_ID
+      trstFunded: !!TRST_TOKEN_ID,
+      message: '🎁 Welcome stipend delivered! 1 HBAR + 1.35 TRST'
     });
   } catch (error: any) {
     console.error('[API] Account funding failed:', error);
