@@ -51,7 +51,7 @@ export const GenZButton: React.FC<GenZButtonProps> = ({
     // Base styles
     "font-medium rounded-xl transition-all duration-norm ease-out",
     "focus:outline-none focus:ring-2 focus:ring-offset-0",
-    "disabled:opacity-50 disabled:cursor-not-allowed",
+    "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100",
     "hover:scale-[1.02] active:scale-[0.98]",
     
     // Size variants
@@ -64,7 +64,7 @@ export const GenZButton: React.FC<GenZButtonProps> = ({
     // Style variants
     {
       // Primary (Boost) - Cyan
-      'bg-pri-600 hover:bg-pri-500 text-slate-900 focus:ring-pri-glow/40': 
+      'bg-pri-600 hover:bg-pri-500 text-white font-semibold focus:ring-pri-glow/40': 
         variant === 'primary' || variant === 'boost',
       
       // Secondary (Signal) - Violet  
