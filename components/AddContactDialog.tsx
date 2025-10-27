@@ -7,13 +7,24 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { QrCode, Camera, Check, Copy, AlertTriangle } from "lucide-react"
+import { QrCode, Camera, Check, Copy, AlertTriangle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { hederaClient } from "@/packages/hedera/HederaClient"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionProfile } from "@/lib/session"
 import { hashContactRequest } from "@/lib/crypto/hash"
 import { logTxClient } from "@/lib/telemetry/txLog"
+import {
+  createContactRequest,
+  verifyContactRequest,
+  createContactAccept,
+  createContactMirror,
+  markJtiUsed,
+  hashPayload,
+  encodeToWebUrl,
+  decodeFromUrl,
+  type ContactRequestPayload
+} from "@/lib/qr/secureContactRequest"
 
 // ---- ENV & flags ----
 const HCS_ENABLED = (process.env.NEXT_PUBLIC_HCS_ENABLED ?? "false") === "true"
@@ -57,11 +68,14 @@ async function submitContactToHCS(envelope: any, signalEvent: SignalEvent, signa
 
 export function AddContactDialog({ children, handle }: { children?: React.ReactNode; handle?: string }) {
   const [open, setOpen] = useState(false)
-  const [inviteCode, setInviteCode] = useState("")      // base64 JSON
+  const [inviteCode, setInviteCode] = useState("")      // URL with secure payload
   const [scanResult, setScanResult] = useState<string>("")  // Raw input from paste
-  const [validatedInvite, setValidatedInvite] = useState<any>(null)  // Validated & parsed invite
+  const [validatedInvite, setValidatedInvite] = useState<ContactRequestPayload | null>(null)  // Validated secure payload
   const [qrDataUrl, setQrDataUrl] = useState<string>("")
   const [sessionProfile, setSessionProfile] = useState<any>(null)
+  const [securePayload, setSecurePayload] = useState<ContactRequestPayload | null>(null)
+  const [expiresIn, setExpiresIn] = useState<number>(120) // seconds until expiry
+  const [isGenerating, setIsGenerating] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [cameraReady, setCameraReady] = useState(false)
   const [detectorSupported, setDetectorSupported] = useState(false)
@@ -71,63 +85,79 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
     getSessionProfile().then(setSessionProfile)
   }, [])
 
-  // Build HCS-11 compliant envelope using session profile
-  const inviteEnvelope = useMemo(() => {
-    if (!sessionProfile) return null
+  // Generate secure signed QR payload when dialog opens
+  useEffect(() => {
+    if (!open || !sessionProfile || isGenerating) return
     
-    return {
-      type: "CONTACT_REQUEST",
-      from: sessionProfile.sessionId,
-      nonce: Date.now(),
-      ts: Math.floor(Date.now() / 1000),
-      payload: {
-        to: "peer:unknown", // filled in by receiver
-        fromProfileId: sessionProfile.sessionId,
-        fromProfileHrl: sessionProfile.profileHrl,
-        handle: sessionProfile.handle
-      },
-      sig: "demo_signature"
+    async function generateSecureQR() {
+      setIsGenerating(true)
+      try {
+        const payload = await createContactRequest(
+          sessionProfile.hederaAccountId || sessionProfile.sessionId,
+          sessionProfile.handle || sessionProfile.displayName || 'Anonymous',
+          sessionProfile.profileHrl || `hrl:tm/${sessionProfile.sessionId}`,
+          120 // 2 minute expiry
+        )
+        
+        setSecurePayload(payload)
+        
+        // Create web URL for QR code
+        const url = encodeToWebUrl(payload)
+        setInviteCode(url)
+        
+        // Generate QR code from URL
+        await QRCode.toDataURL(url, { margin: 1, width: 192 })
+          .then(setQrDataUrl)
+        
+        // Start countdown timer
+        setExpiresIn(120)
+      } catch (error) {
+        console.error('[QR] Failed to generate secure request:', error)
+        toast.error('Failed to generate QR code')
+      } finally {
+        setIsGenerating(false)
+      }
     }
-  }, [sessionProfile])
-
-  // Base64 encode envelope for QR
-  const invitePayload = useMemo(() => {
-    if (!inviteEnvelope) return ""
-    return btoa(JSON.stringify(inviteEnvelope))
-  }, [inviteEnvelope])
-
-  // Generate QR code
+    
+    generateSecureQR()
+  }, [open, sessionProfile])
+  
+  // Countdown timer for expiry
   useEffect(() => {
-    if (invitePayload) {
-      QRCode.toDataURL(invitePayload, { margin: 1, width: 192 })
-        .then(setQrDataUrl)
-        .catch(console.error)
-    }
-  }, [invitePayload])
+    if (!open || !securePayload || expiresIn <= 0) return
+    
+    const interval = setInterval(() => {
+      setExpiresIn(prev => {
+        if (prev <= 1) {
+          // QR expired, regenerate
+          setSecurePayload(null)
+          setQrDataUrl('')
+          return 120
+        }
+        return prev - 1
+      })
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [open, securePayload, expiresIn])
 
-  // Emit local "request (outbound)" when dialog opens (sender perspective)
+  // Store secure payload in signals when generated
   useEffect(() => {
-    if (!open || !inviteEnvelope) return
+    if (!securePayload || !sessionProfile) return
     
     const signalEvent = {
-      id: `contact_request_${inviteEnvelope.nonce}`,
+      id: `contact_request_${securePayload.jti}`,
       type: 'CONTACT_REQUEST' as const,
-      actor: inviteEnvelope.from,
+      actor: securePayload.from.acct,
       target: 'peer:unknown',
       ts: Date.now(),
       topicId: CONTACT_TOPIC || '0.0.unknown',
-      metadata: inviteEnvelope.payload,
+      metadata: securePayload,
       source: 'hcs-cached' as const
     }
     
     signalsStore.add(signalEvent)
-    setInviteCode(invitePayload)
-    
-    // Background HCS submit if enabled
-    if (HCS_ENABLED && CONTACT_TOPIC) {
-      submitContactToHCS(inviteEnvelope, signalEvent as any, signalEvent.id)
-    }
-  }, [open, inviteEnvelope, invitePayload])
+  }, [securePayload, sessionProfile])
 
   // Camera / BarcodeDetector
   useEffect(() => {
@@ -167,31 +197,44 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
     }
   }
 
-  function onDecoded(raw: string) {
-    // Accept base64 JSON or raw JSON
-    let decoded = raw
+  async function onDecoded(raw: string) {
     try {
-      if (!raw.trim().startsWith("{")) decoded = atob(raw.trim())
-      const obj = JSON.parse(decoded)
-      if (obj?.type !== "CONTACT_REQUEST" || !obj?.from) throw new Error("Invalid invite")
+      // Try to decode from URL format first
+      let payload = decodeFromUrl(raw)
       
-      // Store the validated invite object
-      setValidatedInvite(obj)
+      // Fallback to old base64 JSON format
+      if (!payload) {
+        let decoded = raw
+        if (!raw.trim().startsWith("{")) decoded = atob(raw.trim())
+        payload = JSON.parse(decoded)
+      }
+      
+      // Verify the secure payload
+      const verification = await verifyContactRequest(payload)
+      
+      if (!verification.valid) {
+        throw new Error(verification.error || 'Invalid request')
+      }
+      
+      // Store the validated payload
+      setValidatedInvite(payload)
       
       // Log inbound request to signals store
       const signalEvent = {
-        id: `contact_request_inbound_${obj.nonce}`,
+        id: `contact_request_inbound_${payload.jti}`,
         type: 'CONTACT_REQUEST' as const,
-        actor: obj.from,
-        target: sessionProfile?.sessionId || 'unknown',
+        actor: payload.from.acct,
+        target: sessionProfile?.hederaAccountId || sessionProfile?.sessionId || 'unknown',
         ts: Date.now(),
         topicId: CONTACT_TOPIC || '0.0.unknown',
-        metadata: obj.payload,
+        metadata: payload,
         source: 'hcs-cached' as const
       }
       
       signalsStore.add(signalEvent)
-      toast.success("✅ Code validated!", { description: "Ready to bond contact" })
+      toast.success("✅ Code validated!", { 
+        description: `Ready to bond with ${payload.from.handle}` 
+      })
     } catch (e: any) {
       setValidatedInvite(null)
       toast.error("Invalid invite", { description: e?.message ?? "Parse error" })
@@ -200,51 +243,76 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
 
   async function acceptContact() {
     if (!validatedInvite || !sessionProfile) return
-    const req = validatedInvite
     
-    // Build proper CONTACT_ACCEPT envelope with hash verification
-    const reqHash = hashContactRequest(req)
-    const envelope = {
-      type: "CONTACT_ACCEPT",
-      from: sessionProfile.sessionId,
-      nonce: Date.now(),
-      ts: Math.floor(Date.now() / 1000),
-      payload: {
-        of: reqHash,
-        to: req.from,
-        toProfileId: sessionProfile.sessionId,
-        toProfileHrl: sessionProfile.profileHrl,
-        handle: sessionProfile.handle
-      },
-      sig: "demo_signature"
-    }
-    
-    // Add CONTACT_ACCEPT signal using the uniform system pattern
-    const optimisticEvent = {
-      id: `contact_accept_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      type: 'CONTACT_ACCEPT' as const,
-      actor: sessionProfile.sessionId,
-      target: req.from,
-      ts: Date.now(),
-      topicId: CONTACT_TOPIC || '0.0.unknown',
-      metadata: {
-        handle: req.payload?.handle || req.from,
-        of: envelope.payload.of
-      },
-      source: 'hcs-cached' as const
-    }
-    signalsStore.add(optimisticEvent)
-    
-    toast.success("✅ Contact bonded!", { 
-      description: "Connection established. Submitting to blockchain..." 
-    })
+    try {
+      // Mark JTI as used (replay prevention)
+      markJtiUsed(validatedInvite.jti)
+      
+      // Hash the original request for verification
+      const requestHash = await hashPayload(validatedInvite)
+      
+      const acceptorAccountId = sessionProfile.hederaAccountId || sessionProfile.sessionId
+      const acceptorHandle = sessionProfile.handle || sessionProfile.displayName || 'Anonymous'
+      
+      // Create signed CONTACT_ACCEPT with auto-mutual flag
+      const acceptPayload = await createContactAccept(
+        validatedInvite,
+        requestHash,
+        acceptorAccountId,
+        acceptorHandle,
+        true // Enable auto-mutual bonding
+      )
+      
+      // Add CONTACT_ACCEPT signal
+      const acceptEvent = {
+        id: `contact_accept_${acceptPayload.iat}_${Math.random().toString(36).slice(2)}`,
+        type: 'CONTACT_ACCEPT' as const,
+        actor: acceptorAccountId,
+        target: validatedInvite.from.acct,
+        ts: Date.now(),
+        topicId: CONTACT_TOPIC || '0.0.unknown',
+        metadata: acceptPayload,
+        source: 'hcs-cached' as const
+      }
+      signalsStore.add(acceptEvent)
+      
+      // Create CONTACT_MIRROR for auto-mutual bonding
+      const acceptHash = await hashPayload(acceptPayload)
+      const mirrorPayload = await createContactMirror(
+        requestHash,
+        acceptHash,
+        validatedInvite.from.acct,
+        acceptorAccountId
+      )
+      
+      // Add CONTACT_MIRROR signal
+      const mirrorEvent = {
+        id: `contact_mirror_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        type: 'CONTACT_MIRROR' as const,
+        actor: validatedInvite.from.acct,
+        target: acceptorAccountId,
+        ts: Date.now(),
+        topicId: CONTACT_TOPIC || '0.0.unknown',
+        metadata: mirrorPayload,
+        source: 'hcs-cached' as const
+      }
+      signalsStore.add(mirrorEvent)
+      
+      toast.success("✅ Contact bonded!", { 
+        description: `Mutual connection with ${validatedInvite.from.handle} established` 
+      })
 
-    // Background HCS submit if enabled
-    if (HCS_ENABLED && CONTACT_TOPIC) {
-      submitContactToHCS(envelope, optimisticEvent as any, optimisticEvent.id)
-    }
+      // Background HCS submit if enabled
+      if (HCS_ENABLED && CONTACT_TOPIC) {
+        await submitContactToHCS(acceptPayload, acceptEvent as any, acceptEvent.id)
+        await submitContactToHCS(mirrorPayload, mirrorEvent as any, mirrorEvent.id)
+      }
 
-    setOpen(false)
+      setOpen(false)
+    } catch (error) {
+      console.error('[QR] Failed to accept contact:', error)
+      toast.error('Failed to bond contact')
+    }
   }
 
   return (
@@ -343,6 +411,20 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
               
               {/* Subtle glow around QR */}
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg blur-lg -z-10 animate-pulse" />
+              
+              {/* Expiry Timer */}
+              {securePayload && (
+                <div className={`flex items-center justify-center gap-2 mb-3 px-3 py-1.5 rounded-full text-xs font-medium ${
+                  expiresIn > 60 
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : expiresIn > 30
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
+                }`}>
+                  <Clock className="w-3 h-3" />
+                  Expires in {Math.floor(expiresIn / 60)}:{String(expiresIn % 60).padStart(2, '0')}
+                </div>
+              )}
               
               <div className="w-full space-y-2 relative z-10">
                 <Label className="text-sm font-medium text-white/80">Share Code</Label>
