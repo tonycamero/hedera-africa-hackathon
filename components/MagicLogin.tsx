@@ -40,10 +40,10 @@ export function MagicLogin() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto bg-panel border-white/10">
       <CardHeader>
-        <CardTitle>Welcome to TrustMesh</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-genz-text">Welcome to TrustMesh</CardTitle>
+        <CardDescription className="text-genz-text-dim">
           Sign in with your email to get started with 27 free recognition mints
         </CardDescription>
       </CardHeader>
@@ -60,7 +60,7 @@ export function MagicLogin() {
           </div>
 
           {error && (
-            <div className="text-sm text-red-500">
+            <div className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
               {error}
             </div>
           )}
@@ -73,7 +73,7 @@ export function MagicLogin() {
             {loading ? 'Signing in...' : 'Sign in with Magic'}
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-genz-text-dim text-center">
             We'll send you an email with a magic link to sign in.
             <br />
             No password required.
