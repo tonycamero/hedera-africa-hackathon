@@ -32,7 +32,7 @@ export function InsufficientTrstModal({
       />
       
       {/* Modal */}
-      <div className="relative z-50 w-full max-w-md p-6 bg-gradient-to-br from-slate-900/95 to-slate-800/95 border-2 border-amber-500/40 rounded-lg shadow-2xl animate-in zoom-in-95">
+      <div className="relative z-50 w-full max-w-md p-6 modal-magenta-base sheen-sweep modal-magenta-border rounded-lg shadow-2xl animate-in zoom-in-95">
         {/* Icon */}
         <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-amber-500/20 border-2 border-amber-500/40 rounded-full">
           <AlertTriangle className="w-8 h-8 text-amber-500" />

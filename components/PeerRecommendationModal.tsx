@@ -286,7 +286,7 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
         {children}
       </DialogTrigger>
       
-        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 w-80 max-w-[calc(100vw-2rem)] z-[100] bg-gradient-to-br from-slate-900/85 to-slate-800/80 backdrop-blur-xl border-2 border-fuchsia-500/40 shadow-[0_0_40px_rgba(217,70,239,0.3),0_0_80px_rgba(217,70,239,0.1)] rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] relative before:absolute before:inset-0 before:rounded-[10px] before:p-[2px] before:bg-gradient-to-r before:from-fuchsia-500/50 before:via-transparent before:to-fuchsia-500/50 before:-z-10 before:animate-pulse">
+        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 w-80 max-w-[calc(100vw-2rem)] z-[100] modal-magenta-base sheen-sweep modal-magenta-border rounded-[10px] p-0 animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] relative before:absolute before:inset-0 before:rounded-[10px] before:p-[2px] before:bg-gradient-to-r before:from-[#FF6B35]/40 before:via-transparent before:to-[#FF6B35]/40 before:-z-10 before:animate-pulse">
           <VisuallyHidden>
             <DialogDescription>Send recognition signals to your contacts</DialogDescription>
           </VisuallyHidden>

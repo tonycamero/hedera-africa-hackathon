@@ -45,7 +45,8 @@ export function TokenDetailModal({
         <div className="pointer-events-auto animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
           <div className={`
             max-w-md w-full max-h-[85vh] overflow-y-auto 
-            bg-gradient-to-br from-slate-900/85 to-slate-800/80 
+            modal-magenta-base sheen-sweep
+            modal-magenta-border
             backdrop-blur-xl 
             border-2 ${
               token.category === 'leadership' ? 'border-orange-400/40 shadow-[0_0_40px_rgba(251,146,60,0.3),0_0_80px_rgba(251,146,60,0.1)]' :

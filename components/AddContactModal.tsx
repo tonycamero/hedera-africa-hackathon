@@ -107,7 +107,7 @@ export function AddContactModal({ children }: AddContactModalProps) {
         {children}
       </DialogTrigger>
       
-      <DialogContent className="max-w-md mx-auto bg-slate-900/95 border border-white/20 backdrop-blur-xl">
+      <DialogContent className="max-w-md mx-auto modal-magenta-base sheen-sweep modal-magenta-border">
         <DialogHeader className="text-center">
           <DialogTitle className="text-xl font-bold text-white flex items-center justify-center gap-2">
             <UserPlus className="w-5 h-5 text-[#00F6FF]" />

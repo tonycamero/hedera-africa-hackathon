@@ -337,14 +337,12 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
         <div className="pointer-events-auto animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
           <div className="
             max-w-sm w-full max-h-[85vh] overflow-y-auto 
-            bg-gradient-to-br from-slate-900/85 to-slate-800/80 
-            backdrop-blur-xl 
-            border-2 border-emerald-500/40 
-            shadow-[0_0_40px_rgba(16,185,129,0.3),0_0_80px_rgba(16,185,129,0.1)] 
+            modal-magenta-base sheen-sweep
+            modal-magenta-border
             rounded-[10px] p-4
             relative
             before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
-            before:bg-gradient-to-r before:from-emerald-500/50 before:via-transparent before:to-emerald-500/50
+            before:bg-gradient-to-r before:from-[#FF6B35]/40 before:via-transparent before:to-[#FF6B35]/40
             before:-z-10 before:animate-pulse
           ">
             {/* Close Button */}
