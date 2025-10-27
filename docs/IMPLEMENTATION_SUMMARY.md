@@ -2,7 +2,7 @@
 
 ## ✅ Completed Implementation
 
-We've built a complete **user-signed transaction system** with operator gas subsidy and TRST token charging.
+We've built a complete **user-signed transaction system** with Magic.link client-side signing, server-side verification, and optional TRST token charging (stubbed for hackathon).
 
 ### What We Built
 
@@ -10,39 +10,38 @@ We've built a complete **user-signed transaction system** with operator gas subs
 `lib/config/pricing.ts`
 
 ```typescript
-// TRST is 1:1 USD pegged (Brale custody)
-RECOGNITION_MINT: $0.10 TRST
-PROFILE_UPDATE: $0.05 TRST
+// **HACKATHON/DEMO MODE**: All prices $0.01 for demo
+// Post-hackathon production pricing:
+RECOGNITION_MINT: $0.05-$0.10 TRST
+PROFILE_UPDATE: $0.01 TRST
 CONTACT_REQUEST: $0.01 TRST
 ```
 
 **Economics:**
-- Hedera gas: ~$0.0001 per message
-- Platform charges: $0.05-$0.10 in TRST
-- **Margin: 500-1000x** to cover infrastructure, support, growth
+- User pays Hedera gas from auto-funded HBAR stipend (~$0.0001 per tx)
+- Platform charges: $0.01-$0.10 in TRST (stubbed for hackathon)
+- **HBAR gas ≠ TRST platform fee** - keep accounting separate
 
-#### 2. **Client-Side Signing Utilities**
+#### 2. **Client-Side Signing with Magic Hedera Extension**
 
-**Profile Signing** - `lib/hedera/signProfile.ts`
+**Profile Signing** - `app/onboard/page.tsx`
 ```typescript
-const signedPayload = await signProfile({
-  accountId: user.hederaAccountId,
-  displayName: "Alice",
-  bio: "Web3 builder",
-  avatar: "https://..."
-}, userPrivateKey)
+// User signs in browser using Magic's secure enclave
+const { publicKeyDer, accountId } = await magic.hedera.getPublicKey()
+const canonical = stableStringify(fullPayload)
+const signatureBytes = await magic.hedera.sign(new TextEncoder().encode(canonical))
+
+const signedPayload = {
+  ...fullPayload,
+  publicKeyDer: Array.from(pubDer),
+  signature: toHex(new Uint8Array(signatureBytes))
+}
 ```
 
-**Recognition Signing** - `lib/hedera/signRecognition.ts`
-```typescript
-const signedPayload = await signRecognition({
-  fromAccountId: user.hederaAccountId,
-  toAccountId: recipient.hederaAccountId,
-  message: "Great work!",
-  trustAmount: 5,
-  metadata: { category: "professional" }
-}, userPrivateKey)
-```
+**Browser-Safe Utilities:**
+- `lib/util/hex.ts` - toHex/fromHex (no Buffer dependency)
+- `lib/util/stableStringify.ts` - Deterministic JSON canonicalization
+- `lib/hedera/verifySignature.ts` - Freshness + replay protection
 
 #### 3. **TRST Balance Service**
 `lib/services/trstBalanceService.ts`
@@ -54,36 +53,50 @@ const signedPayload = await signRecognition({
 
 #### 4. **Updated API Endpoints**
 
+**Profile Verification** - `POST /api/hedera/verify-profile`
+```typescript
+// Server-side verification:
+1. Validate Magic DID token (Admin SDK) ✓
+2. Verify signature with PublicKey.verify() ✓
+3. Check freshness (±5 min time window) ✓
+4. Replay protection (in-memory nonce cache) ✓
+5. Persist verified profile to DB ✓
+```
+
 **Profile Creation** - `POST /api/hcs/profile`
 ```typescript
-// Now requires:
-- User's signature
-- User's public key
-- Timestamp (from signed payload)
-
-// Validates signature before submission
-// Operator pays gas, user owns the data
+// After verification, submit to HCS:
+- User's signature included in message
+- User pays gas from auto-funded HBAR stipend
+- True P2P transaction (payer = user)
 ```
 
 **Recognition Minting** - `POST /api/hcs/mint-recognition`
 ```typescript
-// Flow:
+// Flow (TRST charging stubbed for hackathon):
 1. Verify user's signature ✓
-2. Check TRST balance ($0.10) ✓
-3. Operator submits to HCS (pays gas) ✓
-4. Record TRST debit ✓
+2. Check TRST balance (stubbed at $0.01) ✓
+3. User submits to HCS (pays gas from stipend) ✓
+4. Record TRST debit (in-memory, not transferred) ✓
 5. Return new balance to user ✓
 ```
 
 #### 5. **Frontend Integration**
 
 **Onboarding** - `app/onboard/page.tsx`
-- Signs profile with user's key before creation
-- TODO: Replace demo key with Magic.link key retrieval
+- ✅ Signs profile with Magic Hedera extension (client-side)
+- ✅ Browser-safe hex conversion (no Buffer)
+- ✅ Stable canonicalization for deterministic signatures
+- ✅ Sends to verification endpoint before HCS submission
+
+**Auto Top-Up** - `POST /api/hedera/topup`
+- Checks user HBAR balance < 0.005 threshold
+- Auto-transfers 0.1 HBAR from operator
+- Covers thousands of HCS transactions
 
 **Recognition Example** - `components/examples/SignedRecognitionExample.tsx`
 - Complete working example of signing + minting
-- Shows TRST cost to user
+- Shows TRST cost to user (stubbed $0.01)
 - Handles signature errors and insufficient balance
 
 ### Architecture
@@ -91,26 +104,29 @@ const signedPayload = await signRecognition({
 ```
 ┌──────────────────────────────────────────────────────┐
 │ CLIENT (Browser)                                     │
-│  • User signs with their Hedera key                  │
-│  • No HBAR needed                                    │
-│  • Shows TRST cost ($0.05-$0.10)                     │
+│  • magic.hedera.getPublicKey()                       │
+│  • magic.hedera.sign(payload)                        │
+│  • Private keys stay in Magic enclave                │
+│  • Browser-safe hex conversion (no Buffer)           │
 └────────────────┬─────────────────────────────────────┘
-                 │ POST signed payload
+                 │ POST { payload, signature, publicKeyDer }
                  ▼
 ┌──────────────────────────────────────────────────────┐
-│ API (Server)                                         │
-│  • Verify signature ✓                                │
-│  • Check TRST balance ✓                              │
-│  • Operator pays gas (~$0.0001) ✓                    │
-│  • Record TRST debit ✓                               │
+│ SERVER (API)                                         │
+│  • magic.token.validate(DID)                         │
+│  • PublicKey.verify(signature)                       │
+│  • Check freshness (±5 min)                          │
+│  • Replay protection (nonce cache)                   │
+│  • Check TRST balance (stubbed)                      │
 └────────────────┬─────────────────────────────────────┘
-                 │ Submit to Hedera
+                 │ TopicMessageSubmitTransaction
                  ▼
 ┌──────────────────────────────────────────────────────┐
 │ HEDERA HCS                                           │
+│  • User pays gas (~$0.0001 from stipend)             │
 │  • Message includes user's signature                 │
 │  • Cryptographic proof of authorship                 │
-│  • Tamper-evident audit trail                        │
+│  • True P2P (payer = user, not operator)             │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -123,32 +139,34 @@ const signedPayload = await signRecognition({
 - ✅ **True autonomy** - Platform can't forge actions
 
 ### For Platform
-- ✅ **Sustainable pricing** - Charge $0.10 TRST vs $0.0001 gas
-- ✅ **Better UX** - Users don't worry about gas
+- ✅ **Sustainable pricing** - Charge $0.01-$0.10 TRST (separate from gas)
+- ✅ **Better UX** - Auto-funded HBAR stipends, users don't manage gas
 - ✅ **Auditability** - Every action verifiable on-chain
-- ✅ **Revenue** - 500-1000x margin funds infrastructure
+- ✅ **Simple architecture** - True P2P, minimal backend complexity
 
 ## Production Readiness Checklist
 
 ### ✅ Completed
-- [x] TRST pricing configuration with 1:1 USD peg
-- [x] Client-side signing utilities (profiles & recognitions)
+- [x] TRST pricing configuration with 1:1 USD peg (stubbed $0.01 for hackathon)
+- [x] Client-side signing with Magic Hedera extension (browser-safe)
+- [x] Stable canonicalization for deterministic signatures
+- [x] Signature verification with freshness + replay protection
 - [x] TRST balance checking via Mirror Node
-- [x] Signature verification on server
-- [x] API endpoints updated with TRST charging
-- [x] Onboarding flow signs profiles
+- [x] API endpoints updated with verification + TRST charging (stubbed)
+- [x] Onboarding flow signs profiles client-side
+- [x] HBAR auto top-up endpoint (0.1 HBAR when < 0.005)
+- [x] HashScan link utilities for transaction explorer
 - [x] Example recognition minting component
 
 ### 🔄 TODO for Production
 
 #### Critical
-- [ ] **Replace demo keys with Magic.link key retrieval**
+- [x] ~~Replace demo keys with Magic.link key retrieval~~ ✅ **DONE**
   ```typescript
-  // Instead of:
-  const privateKey = process.env.NEXT_PUBLIC_HEDERA_OPERATOR_KEY
-  
-  // Use:
-  const privateKey = await magic.hedera.getPrivateKey()
+  // Client-side signing with Magic:
+  const { publicKeyDer } = await magic.hedera.getPublicKey()
+  const signature = await magic.hedera.sign(payload)
+  // Keys never leave Magic's secure enclave
   ```
 
 - [ ] **Database for TRST debit ledger**
@@ -182,21 +200,31 @@ const signedPayload = await signRecognition({
 
 ### New Files
 ```
-lib/config/pricing.ts                                 # TRST pricing
+lib/config/pricing.ts                                 # TRST pricing (stubbed)
 lib/services/trstBalanceService.ts                    # Balance checking
-lib/hedera/signProfile.ts                             # Profile signing
-lib/hedera/signRecognition.ts                         # Recognition signing
+lib/hedera/signProfile.ts                             # Profile signing (legacy)
+lib/hedera/signRecognition.ts                         # Recognition signing (legacy)
+lib/hedera/verifySignature.ts                         # Signature verification utility
+lib/util/hex.ts                                       # Browser-safe hex conversion
+lib/util/stableStringify.ts                           # Stable JSON canonicalization
+lib/util/hashscan.ts                                  # HashScan link helpers
+app/api/hedera/verify-profile/route.ts                # Signature verification endpoint
+app/api/hedera/topup/route.ts                         # HBAR stipend auto top-up
 components/examples/SignedRecognitionExample.tsx      # Frontend example
-docs/USER_SIGNED_TRANSACTIONS.md                      # Full documentation
+docs/USER_SIGNED_TRANSACTIONS.md                      # Original documentation
+docs/USER_SIGNED_TRANSACTIONS_V2.md                   # Corrected architecture
+docs/MAGIC_SIGNING_FIX.md                             # Architecture fix summary
 docs/IMPLEMENTATION_SUMMARY.md                        # This file
 ```
 
 ### Modified Files
 ```
-app/api/hcs/profile/route.ts                          # Added signature verification
-app/api/hcs/mint-recognition/route.ts                 # Added TRST charging
-app/onboard/page.tsx                                   # Sign profiles before creation
-.env.local                                             # Added NEXT_PUBLIC_PROFILE_TOPIC_ID
+app/api/hcs/profile/route.ts                          # Enhanced signature verification
+app/api/hcs/mint-recognition/route.ts                 # Added TRST charging (stubbed)
+app/onboard/page.tsx                                   # Magic client-side signing
+lib/config/pricing.ts                                 # Marked as hackathon stubs
+lib/services/trstBalanceService.ts                    # Added demo labels
+.env.local                                             # Added topic IDs and config
 ```
 
 ## Integration with URE
@@ -258,9 +286,9 @@ const result = await fetch('/api/ure/mint', {
 ## Next Steps
 
 1. **Integrate with URE APIs** for recognition minting
-2. **Replace demo keys** with Magic.link key retrieval
-3. **Add database** for TRST debit ledger
-4. **Implement actual token transfers** (Brale integration)
+2. ~~Replace demo keys with Magic.link~~ ✅ **DONE**
+3. **Add database** for TRST debit ledger (currently in-memory)
+4. **Implement actual TRST token transfers** (currently stub-only)
 5. **Add UI for TRST balance** display and top-up
 6. **Test end-to-end** with real Hedera accounts
 7. **Add rate limiting** to prevent spam
@@ -276,4 +304,4 @@ See full documentation:
 
 ---
 
-**Status**: ✅ Core implementation complete, ready for URE integration and production hardening.
+**Status**: ✅ Core implementation complete with production-ready signing architecture. Client-side Magic signing + server-side verification with replay protection implemented. TRST charging stubbed for hackathon. Ready for URE integration and database persistence.
