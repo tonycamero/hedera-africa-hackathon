@@ -9,6 +9,7 @@ export interface TRSTBalance {
   decimals: number
   tokenId: string
   lastUpdated: string
+  isDemo?: boolean // Flag for demo/stub balances
 }
 
 /**
@@ -81,6 +82,10 @@ export async function hasSufficientTRST(
 
 /**
  * Debit TRST from user's balance (record transaction)
+ * 
+ * **HACKATHON/DEMO MODE**: This only records the debit in-memory.
+ * In production, this would trigger actual TRST token transfers via TransferTransaction.
+ * 
  * Note: This records the intent. Actual token transfer happens via Hedera transaction.
  */
 export interface TRSTDebitRecord {
@@ -91,7 +96,7 @@ export interface TRSTDebitRecord {
   transactionId?: string
 }
 
-// In-memory debit ledger (in production, use database)
+// In-memory debit ledger (HACKATHON/DEMO - in production, use database + actual token transfers)
 const debitLedger: TRSTDebitRecord[] = []
 
 export function recordTRSTDebit(

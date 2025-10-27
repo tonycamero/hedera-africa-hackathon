@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Magic } from '@magic-sdk/admin'
-import { PublicKey } from '@hashgraph/sdk'
+import { verifySignature } from '@/lib/hedera/verifySignature'
 
 const magic = new Magic(process.env.MAGIC_SECRET_KEY!)
 
@@ -27,20 +27,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // 3) Rebuild canonical string and verify signature
+    // 3) Verify signature with freshness + replay protection
     const fullPayload = { type, accountId, displayName, bio, avatar, timestamp }
-    const canonical = JSON.stringify(fullPayload)
-    const messageBytes = new TextEncoder().encode(canonical)
+    const verification = await verifySignature(
+      fullPayload,
+      signature,
+      publicKeyDer,
+      timestamp,
+      {
+        maxAge: 5 * 60_000, // 5 minutes
+        checkReplay: true,
+        cachePrefix: 'profile'
+      }
+    )
 
-    // Convert DER bytes → Hedera PublicKey
-    const derBytes = Uint8Array.from(publicKeyDer)
-    const pubKey = PublicKey.fromBytesDER(derBytes)
-
-    const sigBytes = Buffer.from(signature, 'hex')
-    const isValid = pubKey.verify(messageBytes, sigBytes)
-
-    if (!isValid) {
-      return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 401 })
+    if (!verification.valid) {
+      const statusCode = verification.error === 'REPLAY' ? 409 : 
+                        verification.error === 'STALE_PAYLOAD' ? 400 : 401
+      return NextResponse.json({ 
+        error: verification.error,
+        message: verification.message 
+      }, { status: statusCode })
     }
 
     // 4) Persist profile to DB (upsert)

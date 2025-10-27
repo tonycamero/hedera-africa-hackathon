@@ -3,10 +3,17 @@
 /**
  * TRST Token Pricing Configuration
  * 
+ * **HACKATHON/DEMO MODE**: All prices set to $0.01 for demo purposes.
+ * Post-hackathon production pricing:
+ * - Recognition minting: $0.05-$0.10
+ * - Profile updates: $0.01
+ * - Token transfers: $0.02-$0.05
+ * 
  * TRST is pegged 1:1 with USD (backed/custodied by Brale)
  * Prices shown are in TRST tokens = USD cents
  * 
- * The operator pays HBAR gas fees (~$0.0001), but users pay TRST for sustainability.
+ * User pays tiny HBAR gas from auto-funded stipend (~$0.0001/tx)
+ * TRST fees are platform revenue, separate from gas
  */
 
 export const TRST_PRICING = {

@@ -9,6 +9,8 @@ import { knsService } from '@/lib/services/knsService'
 import { getSessionId } from '@/lib/session'
 import { magicService, type MagicUser } from '@/lib/services/magicService'
 import { magic } from '@/lib/magic'
+import { toHex, fromDerToArray } from '@/lib/util/hex'
+import { stableStringify } from '@/lib/util/stableStringify'
 
 interface OnboardingStep {
   id: string
@@ -177,14 +179,18 @@ export default function GenZOnboardingPage() {
         timestamp: new Date().toISOString(),
       }
       
-      // 3) Canonicalize & sign with Magic's client-side signer
-      const canonical = JSON.stringify(fullPayload)
+      // 3) Canonicalize & sign with Magic's client-side signer (browser-safe, no Buffer)
+      const canonical = stableStringify(fullPayload)
       const signatureBytes = await magic.hedera.sign(new TextEncoder().encode(canonical))
+      
+      // Convert to browser-safe formats
+      const pubDer = fromDerToArray(publicKeyDer as ArrayBuffer)
+      const sigHex = toHex(new Uint8Array(signatureBytes))
       
       const signedPayload = {
         ...fullPayload,
-        publicKeyDer: Array.from(new Uint8Array(publicKeyDer)),
-        signature: Buffer.from(signatureBytes).toString('hex'),
+        publicKeyDer: Array.from(pubDer), // pass as number[]
+        signature: sigHex,
       }
       
       console.log('[Onboarding] Profile signed via Magic (client-side)')
