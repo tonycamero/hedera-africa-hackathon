@@ -9,6 +9,7 @@ import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
 import { PeerRecommendationModal } from '@/components/PeerRecommendationModal'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
+import { useRemainingMints } from '@/lib/hooks/useRemainingMints'
 import { 
   Search,
   MessageCircle,
@@ -29,6 +30,9 @@ export default function ContactsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null)
   const [selectedContact, setSelectedContact] = useState<BondedContact | null>(null)
+  
+  // Mint counter hook
+  const { loading: mintsLoading, remainingMints, trstBalance, cost } = useRemainingMints(sessionId)
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -163,8 +167,22 @@ export default function ContactsPage() {
             </div>
           </div>
         </div>
-        <div className="text-xs text-white/60 mb-3">
-          {bondedContacts.length} contacts • Recognition signals available
+        <div className="flex items-center justify-between text-xs text-white/60 mb-3">
+          <span>{bondedContacts.length} contacts • Recognition signals available</span>
+          {!mintsLoading && (
+            <div
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${
+                remainingMints > 10
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                  : remainingMints > 5
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                  : 'border-red-500/30 bg-red-500/10 text-red-400'
+              }`}
+              title={`TRST balance: ${trstBalance.toFixed(2)} • Cost per mint: ${cost.toFixed(2)}`}
+            >
+              🎟️ {remainingMints} left
+            </div>
+          )}
         </div>
         <PeerRecommendationModal>
           <Button className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]">
