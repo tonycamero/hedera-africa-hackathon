@@ -28,8 +28,8 @@ export function MagicLogin() {
       const user = await loginWithMagicEmail(email);
       console.log('[MagicLogin] User logged in:', user);
       
-      // Redirect to contacts page
-      router.push('/contacts');
+      // Redirect to onboarding for profile creation
+      router.push('/onboard');
       router.refresh();
     } catch (err: any) {
       console.error('[MagicLogin] Login failed:', err);

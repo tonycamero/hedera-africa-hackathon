@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { knsService } from '@/lib/services/knsService'
 import { getSessionId } from '@/lib/session'
 import { magicService, type MagicUser } from '@/lib/services/magicService'
+import { magic } from '@/lib/magic'
 
 interface OnboardingStep {
   id: string
@@ -20,30 +21,34 @@ export default function GenZOnboardingPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
   const [desiredName, setDesiredName] = useState('')
+  const [bio, setBio] = useState('')
+  const [magicUser, setMagicUser] = useState<any>(null)
   const [knsAvailable, setKnsAvailable] = useState<boolean | null>(null)
   const [checkingKns, setCheckingKns] = useState(false)
-  const [magicUser, setMagicUser] = useState<any>(null)
+
+  // Check if user is logged in with Magic
+  useEffect(() => {
+    const users = localStorage.getItem('tm:users')
+    if (users) {
+      const parsed = JSON.parse(users)
+      if (parsed.length > 0) {
+        setMagicUser(parsed[0])
+        setCurrentStep(0) // Start at profile setup
+      } else {
+        // No Magic user, redirect to landing
+        router.push('/')
+      }
+    } else {
+      router.push('/')
+    }
+  }, [])
   
   const steps: OnboardingStep[] = [
     {
-      id: 'auth',
-      title: 'Connect Your Identity',
-      description: 'Sign in with email or SMS to create your secure wallet',
-      completed: !!magicUser
-    },
-    {
-      id: 'claim',
-      title: 'Claim Your Name',
-      description: 'Get your unique .hbar name on the TrustMesh network',
-      completed: knsAvailable === true && desiredName.length > 0
-    },
-    {
       id: 'profile',
-      title: 'Setup Profile',
-      description: 'Complete your TrustMesh identity and start building trust',
+      title: 'Create Your Profile',
+      description: 'Set up your TrustMesh identity to start exchanging recognitions',
       completed: false
     }
   ]
@@ -145,26 +150,84 @@ export default function GenZOnboardingPage() {
   }
 
   const handleCompleteOnboarding = async () => {
+    if (!magicUser || !desiredName) {
+      toast.error('Please enter your display name')
+      return
+    }
+
     setIsLoading(true)
     try {
-      // Create full TrustMesh profile with Magic.link identity + KNS name
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const magicToken = localStorage.getItem('MAGIC_TOKEN')
+      if (!magicToken) {
+        throw new Error('Not authenticated with Magic. Please log in again.')
+      }
+
+      console.log('[Onboarding] Signing profile client-side with Magic Hedera extension...')
       
-      // In production: 
-      // 1. Associate Magic wallet with KNS name
-      // 2. Create HCS profile
-      // 3. Set up initial trust capacity
-      // 4. Initialize empty contact list
+      // 1) Get user's Hedera public key from Magic extension (client-side)
+      const { publicKeyDer, accountId } = await magic.hedera.getPublicKey()
       
-      toast.success('🎯 Welcome to TrustMesh!', {
-        description: 'Your trust network is ready to grow'
+      // 2) Build canonical profile payload
+      const fullPayload = {
+        type: 'PROFILE_UPDATE',
+        accountId: magicUser.hederaAccountId || accountId || '0.0.0',
+        displayName: desiredName,
+        bio: bio || `TrustMesh user - ${magicUser.email}`,
+        avatar: '',
+        timestamp: new Date().toISOString(),
+      }
+      
+      // 3) Canonicalize & sign with Magic's client-side signer
+      const canonical = JSON.stringify(fullPayload)
+      const signatureBytes = await magic.hedera.sign(new TextEncoder().encode(canonical))
+      
+      const signedPayload = {
+        ...fullPayload,
+        publicKeyDer: Array.from(new Uint8Array(publicKeyDer)),
+        signature: Buffer.from(signatureBytes).toString('hex'),
+      }
+      
+      console.log('[Onboarding] Profile signed via Magic (client-side)')
+      console.log('[Onboarding] Signature:', signedPayload.signature.slice(0, 16) + '...')
+
+      // 4) Send to backend for verification & persistence
+      const verifyResp = await fetch('/api/hedera/verify-profile', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${magicToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signedPayload),
       })
       
-      // Redirect to main app
+      if (!verifyResp.ok) {
+        const err = await verifyResp.text()
+        throw new Error(`Profile verification failed: ${err}`)
+      }
+
+      // 5) Create HCS-11 profile after verification passes
+      const response = await fetch('/api/hcs/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signedPayload)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create profile')
+      }
+
+      const result = await response.json()
+      console.log('[Onboarding] Profile created:', result)
+      
+      toast.success('🎯 Profile created!', {
+        description: 'You can now exchange recognitions with others'
+      })
+      
+      // Redirect to contacts
       router.push('/contacts')
-    } catch (error) {
-      toast.error('Failed to complete setup')
-      console.error('Onboarding completion error:', error)
+    } catch (error: any) {
+      toast.error('Failed to create profile')
+      console.error('Profile creation error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -200,72 +263,60 @@ export default function GenZOnboardingPage() {
           ))}
         </div>
 
-        {/* Step 1: Magic.link Authentication */}
-        {currentStep === 0 && (
+        {/* Profile Creation Form */}
+        {magicUser && (
           <GenZCard variant="glass" className="p-6 space-y-6">
             <div className="text-center">
-              <GenZHeading level={3} className="mb-2">{steps[0].title}</GenZHeading>
-              <GenZText dim>{steps[0].description}</GenZText>
+              <GenZHeading level={3} className="mb-2">Create Your Profile</GenZHeading>
+              <GenZText dim>Set up your TrustMesh identity to start exchanging recognitions</GenZText>
+              <GenZText size="sm" dim className="mt-2">Logged in as: {magicUser.email}</GenZText>
             </div>
 
             <div className="space-y-4">
-              {/* Email Login */}
+              {/* Display Name */}
               <div className="space-y-3">
                 <GenZText className="font-medium flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email Login
+                  <User className="w-4 h-4" />
+                  Display Name
                 </GenZText>
                 <GenZInput
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Your name or handle"
+                  value={desiredName}
+                  onChange={(e) => setDesiredName(e.target.value)}
                   className="w-full"
                 />
-                <GenZButton
-                  variant="boost"
-                  onClick={() => handleMagicAuth('email')}
-                  disabled={!email || isLoading}
-                  className="w-full"
-                  glow={!!email}
-                >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mail className="w-4 h-4 mr-2" />}
-                  Continue with Email
-                </GenZButton>
               </div>
 
-              <div className="text-center">
-                <GenZText size="sm" dim>or</GenZText>
-              </div>
-
-              {/* SMS Login */}
+              {/* Bio (optional) */}
               <div className="space-y-3">
-                <GenZText className="font-medium flex items-center gap-2">
-                  <Smartphone className="w-4 h-4" />
-                  SMS Login
+                <GenZText className="font-medium">
+                  Bio (optional)
                 </GenZText>
                 <GenZInput
-                  type="tel"
-                  placeholder="+1 (555) 123-4567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  type="text"
+                  placeholder="Tell others about yourself"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
                   className="w-full"
                 />
-                <GenZButton
-                  variant="primary"
-                  onClick={() => handleMagicAuth('sms')}
-                  disabled={!phone || isLoading}
-                  className="w-full"
-                >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Smartphone className="w-4 h-4 mr-2" />}
-                  Continue with SMS
-                </GenZButton>
               </div>
+
+              <GenZButton
+                variant="boost"
+                onClick={handleCompleteOnboarding}
+                disabled={!desiredName || isLoading}
+                className="w-full"
+                glow={!!desiredName}
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Create Profile
+              </GenZButton>
             </div>
 
             <GenZCard variant="glass" className="p-3 bg-pri-500/5 border-pri-500/20">
               <GenZText size="sm" className="text-center">
-                🪄 Powered by Magic.link - Secure, passwordless authentication
+                Your profile will be published to Hedera HCS for contact exchange
               </GenZText>
             </GenZCard>
           </GenZCard>

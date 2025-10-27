@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { parseHrl } from "@/lib/utils/hrl"
+import { Client, PrivateKey, TopicMessageSubmitTransaction } from "@hashgraph/sdk"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
+
+// Hedera operator configuration
+const OPERATOR_ID = process.env.HEDERA_OPERATOR_ID || process.env.NEXT_PUBLIC_HEDERA_OPERATOR_ID
+const OPERATOR_KEY = process.env.HEDERA_OPERATOR_KEY
+const HEDERA_NETWORK = process.env.HEDERA_NETWORK || "testnet"
+const PROFILE_TOPIC_ID = process.env.NEXT_PUBLIC_PROFILE_TOPIC_ID || "0.0.6896005"
 
 export async function GET(req: NextRequest) {
   try {
@@ -64,5 +71,93 @@ export async function GET(req: NextRequest) {
       hrl,
       source: "error"
     }, { status: 404 })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { accountId, displayName, bio, avatar, signature, publicKey, timestamp } = body
+
+    if (!accountId) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: "missing accountId" 
+      }, { status: 400 })
+    }
+
+    // Check if payload is signed (client-side signing for user autonomy)
+    const isSignedPayload = signature && publicKey && timestamp
+    
+    if (!isSignedPayload) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: "Profile must be signed by user's Hedera key. Use lib/hedera/signProfile.ts" 
+      }, { status: 400 })
+    }
+
+    if (!OPERATOR_ID || !OPERATOR_KEY) {
+      throw new Error("Hedera operator credentials not configured")
+    }
+
+    // Initialize Hedera client
+    const client = HEDERA_NETWORK === "mainnet" 
+      ? Client.forMainnet() 
+      : Client.forTestnet()
+
+    // Parse operator key (handle hex format with 0x prefix)
+    const operatorKey = OPERATOR_KEY.startsWith("0x")
+      ? PrivateKey.fromStringECDSA(OPERATOR_KEY.slice(2))
+      : PrivateKey.fromString(OPERATOR_KEY)
+
+    client.setOperator(OPERATOR_ID, operatorKey)
+
+    // Build PROFILE_UPDATE message payload (includes signature for verification)
+    const profilePayload = {
+      type: "PROFILE_UPDATE",
+      accountId,
+      displayName: displayName || "",
+      bio: bio || "",
+      avatar: avatar || "",
+      timestamp, // Use client-provided timestamp (part of signed message)
+      signature, // User's signature proves ownership
+      publicKey  // User's public key for verification
+    }
+
+    console.log(`[HCS Profile POST] Submitting signed profile for ${accountId} to topic ${PROFILE_TOPIC_ID}`)
+    console.log(`[HCS Profile POST] Signature: ${signature.slice(0, 16)}...`)
+    console.log(`[HCS Profile POST] Public Key: ${publicKey}`)
+
+    // Submit to HCS topic
+    const transaction = new TopicMessageSubmitTransaction({
+      topicId: PROFILE_TOPIC_ID,
+      message: JSON.stringify(profilePayload)
+    })
+
+    const txResponse = await transaction.execute(client)
+    const receipt = await txResponse.getReceipt(client)
+
+    console.log(`[HCS Profile POST] Success - Status: ${receipt.status}, Seq: ${receipt.topicSequenceNumber}`)
+
+    // Construct HRL for the created profile
+    const hrl = `hcs://${HEDERA_NETWORK}/${PROFILE_TOPIC_ID}/${receipt.topicSequenceNumber}`
+
+    client.close()
+
+    return NextResponse.json({
+      ok: true,
+      hrl,
+      profile: profilePayload,
+      transactionId: txResponse.transactionId.toString(),
+      sequenceNumber: receipt.topicSequenceNumber?.toString()
+    })
+
+  } catch (error: any) {
+    console.error(`[HCS Profile POST] Error creating profile:`, error.message)
+    
+    return NextResponse.json({ 
+      ok: false,
+      error: error.message || "Failed to create profile"
+    }, { status: 500 })
   }
 }

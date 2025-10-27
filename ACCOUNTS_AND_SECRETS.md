@@ -26,14 +26,27 @@ Client Secret: OcqVl5qQ8bfPgIFFZQd3-0T443
 
 ## 🏦 Hedera Accounts
 
-### Operator Account (Primary)
+### Operator Account (Primary - TrustMesh)
 ```
 Account ID: 0.0.5864559
 Private Key: 302e020100300506032b6570042204202394be44d8d169c79781083dce7038b7ca6a6318dd30fc5c082cf2417ab55c8a
+Key Type: ED25519
 Network: testnet
 Balance: ~924 HBAR
-TRST Balance: 0 (needs funding)
+TRST Balance: 10,000 TRST (funded from Culture Wallet 2025-01-27)
 Purpose: Backend operator for HCS messages and account creation
+```
+
+### Operator Account (Backup - Culture Wallet)
+```
+Account ID: 0.0.5864857
+Private Key: 3030020100300706052b8104000a04220420f74a89b2b666997fcf3cada43ac37cd9c27991874e72b4883682590dc3caf25a
+Key Type: ECDSA
+Network: testnet
+Balance: ~HBAR
+TRST Balance: 20,799.70 TRST (after 10k transfer)
+Purpose: Culture Wallet operator, can be used as backup funding source
+Note: Used for Culture Wallet with client-side key management
 ```
 
 ### TRST Treasury Account (Brale Custodial)
@@ -129,10 +142,20 @@ Purpose: CraftTrust backend testing
 
 ### Team Test Accounts (Magic.link)
 ```
-tony@scend.app
+tony@scend.cash - 0.0.7141959 (✅ Active, 1 HBAR)
 alex@scend.app
 sarah@scend.app
 (Add more as needed)
+```
+
+### Magic-Created Accounts
+```
+0.0.7141959 - tony@scend.cash
+  - Magic DID: did:ethr:0xD94a456b0C7958b010A9E0575D768BB78e26f2A6
+  - Balance: 1 HBAR
+  - TRST Balance: 0 (transfer failed - needs operator funding)
+  - Private Key: Generated server-side (stored in API response)
+  - Created: 2025-01-27 via Magic email OTP
 ```
 
 ---
