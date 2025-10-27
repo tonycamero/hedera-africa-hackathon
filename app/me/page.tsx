@@ -122,7 +122,7 @@ export default function MePage() {
               <GenZText dim className="text-xs">for network fees</GenZText>
             </div>
             <div className="rounded-md bg-white/5 border border-white/10 p-3">
-              <div className="text-xs text-white/60">TRST</div>
+              <div className="text-xs text-white/60">TRST/USD</div>
               <div className="text-lg font-semibold">{trst !== null ? trst.toFixed(2) : '—'}</div>
               <GenZText dim className="text-xs">platform tokens</GenZText>
             </div>
