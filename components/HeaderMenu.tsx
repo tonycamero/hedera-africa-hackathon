@@ -56,11 +56,11 @@ export function HeaderMenu() {
               fill="none"
               className="animate-spin-slow-ccw"
             >
-              <circle cx="6" cy="18" r="2" stroke="#FFFFFF" strokeWidth="2" fill="none"/>
-              <circle cx="18" cy="18" r="2" stroke="#FFFFFF" strokeWidth="2" fill="none"/>
-              <circle cx="12" cy="6" r="2" stroke="#FFFFFF" strokeWidth="2" fill="none"/>
-              <path d="M6 18L12 6L18 18" stroke="#FFFFFF" strokeWidth="2" opacity="0.6"/>
-              <path d="M6 18L18 18" stroke="#FFFFFF" strokeWidth="2" opacity="0.6"/>
+              <circle cx="6" cy="18" r="2" stroke="#FF6B35" strokeWidth="2" fill="none"/>
+              <circle cx="18" cy="18" r="2" stroke="#FF6B35" strokeWidth="2" fill="none"/>
+              <circle cx="12" cy="6" r="2" stroke="#FF6B35" strokeWidth="2" fill="none"/>
+              <path d="M6 18L12 6L18 18" stroke="#FF6B35" strokeWidth="2" opacity="0.6"/>
+              <path d="M6 18L18 18" stroke="#FF6B35" strokeWidth="2" opacity="0.6"/>
             </svg>
           </div>
           <div>
