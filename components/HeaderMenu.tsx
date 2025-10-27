@@ -66,7 +66,7 @@ export function HeaderMenu() {
           <div>
             <h1 className="font-bold text-xl text-white tracking-tight">TrustMesh</h1>
             <p className="text-xs text-white/50 font-light">
-              Flex Your Network
+              Own Your Network
             </p>
           </div>
         </div>
