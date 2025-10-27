@@ -10,7 +10,8 @@ export function useRemainingMints(accountId: string | null) {
 
   const cost = TRST_PRICING.RECOGNITION_MINT
   const remainingMints = Math.max(0, Math.floor(trstBalance / cost))
-  const percentage = Math.min(100, (remainingMints / 30) * 100) // Assume 30 is "full"
+  const percentage = Math.min(100, (remainingMints / 135) * 100) // 135 from initial 1.35 TRST stipend
+  const needsTopUp = remainingMints <= 27 && remainingMints > 0
 
   async function refresh() {
     if (!accountId) {
@@ -52,6 +53,7 @@ export function useRemainingMints(accountId: string | null) {
     remainingMints,
     percentage,
     cost,
+    needsTopUp,
     refresh
   }
 }

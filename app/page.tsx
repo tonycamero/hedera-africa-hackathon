@@ -32,7 +32,7 @@ export default function Home() {
 
         {/* Footer */}
         <div className="text-center text-xs text-genz-text-dim pt-4 border-t border-white/10">
-          <p>Start with 27 free recognition mints</p>
+          <p>Start with 135 free recognition mints</p>
           <p className="mt-1">Powered by Hedera Consensus Service</p>
         </div>
       </div>

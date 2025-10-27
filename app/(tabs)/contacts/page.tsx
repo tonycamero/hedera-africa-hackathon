@@ -32,7 +32,7 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<BondedContact | null>(null)
   
   // Mint counter hook
-  const { loading: mintsLoading, remainingMints, trstBalance, cost } = useRemainingMints(sessionId)
+  const { loading: mintsLoading, remainingMints, trstBalance, cost, needsTopUp } = useRemainingMints(sessionId)
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -172,15 +172,15 @@ export default function ContactsPage() {
           {!mintsLoading && (
             <div
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${
-                remainingMints > 10
+                needsTopUp
+                  ? 'border-amber-500/50 bg-amber-500/20 text-amber-300 animate-pulse'
+                  : remainingMints > 50
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                  : remainingMints > 5
-                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                  : 'border-red-500/30 bg-red-500/10 text-red-400'
+                  : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'
               }`}
-              title={`TRST balance: ${trstBalance.toFixed(2)} • Cost per mint: ${cost.toFixed(2)}`}
+              title={`TRST balance: ${trstBalance.toFixed(2)} • Cost per mint: ${cost.toFixed(2)}${needsTopUp ? ' • Time to top up!' : ''}`}
             >
-              🎟️ {remainingMints} left
+              🎟️ {remainingMints} left{needsTopUp ? ' - Top up!' : ''}
             </div>
           )}
         </div>
