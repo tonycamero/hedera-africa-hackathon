@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { TokenAssociateTransaction, TokenId, AccountId } from '@hashgraph/sdk'
 import { getHederaClient } from '@/lib/hedera/serverClient'
 import { Magic } from '@magic-sdk/admin'
+import { logTxServer } from '@/lib/telemetry/txLog'
 
 const magic = new Magic(process.env.MAGIC_SECRET_KEY!)
 
@@ -48,18 +49,38 @@ export async function POST(req: NextRequest) {
       const txResponse = await associateTx.execute(client)
       const receipt = await txResponse.getReceipt(client)
       
-      console.log('[API] Token association successful:', receipt.status.toString())
+      const status = receipt.status.toString()
+      console.log('[API] Token association successful:', status)
+      
+      // Log successful association
+      logTxServer({
+        action: "TOKEN_ASSOCIATE",
+        status: status === "SUCCESS" ? "SUCCESS" : "PENDING",
+        accountId,
+        tokenId: TRST_TOKEN_ID,
+        txId: txResponse.transactionId.toString(),
+      })
       
       return NextResponse.json({
         success: true,
         accountId,
         tokenId: TRST_TOKEN_ID,
-        status: receipt.status.toString()
+        transactionId: txResponse.transactionId.toString(),
+        status
       })
       
     } catch (error: any) {
       if (error.message?.includes('TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT')) {
         console.log('[API] Token already associated (OK)')
+        
+        // Log already associated
+        logTxServer({
+          action: "TOKEN_ASSOCIATE",
+          status: "ALREADY_ASSOCIATED",
+          accountId,
+          tokenId: TRST_TOKEN_ID,
+        })
+        
         return NextResponse.json({
           success: true,
           accountId,
@@ -72,6 +93,17 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[API] Token association failed:', error)
+    
+    // Log failed association
+    const body = await req.json().catch(() => ({}))
+    logTxServer({
+      action: "TOKEN_ASSOCIATE",
+      status: "ERROR",
+      accountId: body?.accountId,
+      tokenId: process.env.NEXT_PUBLIC_TRST_TOKEN_ID,
+      meta: { error: error.message }
+    })
+    
     return NextResponse.json(
       { error: error.message || 'Token association failed' },
       { status: 500 }

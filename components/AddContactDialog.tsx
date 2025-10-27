@@ -13,6 +13,7 @@ import { hederaClient } from "@/packages/hedera/HederaClient"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionProfile } from "@/lib/session"
 import { hashContactRequest } from "@/lib/crypto/hash"
+import { logTxClient } from "@/lib/telemetry/txLog"
 
 // ---- ENV & flags ----
 const HCS_ENABLED = (process.env.NEXT_PUBLIC_HCS_ENABLED ?? "false") === "true"
@@ -28,11 +29,28 @@ async function submitContactToHCS(envelope: any, signalEvent: SignalEvent, signa
     if (signalId) {
       signalsStore.updateSignalStatus(signalId, "onchain")
     }
+    
+    // Log successful HCS submit
+    logTxClient({
+      action: envelope.type === "CONTACT_ACCEPT" ? "CONTACT_ACCEPT" : "CONTACT_REQUEST",
+      status: "SUCCESS",
+      topicId: CONTACT_TOPIC
+    })
+    
     toast.success("On-chain ✓", { description: `CONTACT …${CONTACT_TOPIC.slice(-6)}` })
   } catch (e: any) {
     if (signalId) {
       signalsStore.updateSignalStatus(signalId, "error")
     }
+    
+    // Log failed HCS submit
+    logTxClient({
+      action: envelope.type === "CONTACT_ACCEPT" ? "CONTACT_ACCEPT" : "CONTACT_REQUEST",
+      status: "ERROR",
+      topicId: CONTACT_TOPIC,
+      meta: { error: e?.message }
+    })
+    
     toast.error("On-chain submit failed", { description: e?.message ?? "Unknown error" })
   }
 }

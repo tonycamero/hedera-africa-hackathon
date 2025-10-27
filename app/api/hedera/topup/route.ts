@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Magic } from '@magic-sdk/admin'
 import {  Client, AccountBalanceQuery, TransferTransaction, Hbar, AccountId } from '@hashgraph/sdk'
+import { logTxServer } from '@/lib/telemetry/txLog'
 
 const magic = new Magic(process.env.MAGIC_SECRET_KEY!)
 
@@ -60,15 +61,25 @@ export async function POST(req: NextRequest) {
         .execute(client)
 
       const receipt = await transferTx.getReceipt(client)
+      const txId = transferTx.transactionId.toString()
 
-      console.log(`[topup] Top-up successful: ${transferTx.transactionId.toString()}`)
+      console.log(`[topup] Top-up successful: ${txId}`)
+      
+      // Log successful top-up
+      logTxServer({
+        action: "TOPUP_HBAR",
+        status: "SUCCESS",
+        accountId,
+        txId,
+        meta: { amount: TOP_UP_AMOUNT }
+      })
 
       return NextResponse.json({
         ok: true,
         toppedUp: true,
         amount: TOP_UP_AMOUNT,
         newBalance: hbarBalance + TOP_UP_AMOUNT,
-        transactionId: transferTx.transactionId.toString()
+        transactionId: txId
       })
     } else {
       console.log(`[topup] Balance sufficient, no top-up needed`)
@@ -82,6 +93,16 @@ export async function POST(req: NextRequest) {
     }
   } catch (e: any) {
     console.error('[topup] Error:', e)
+    
+    // Log failed top-up
+    const body = await req.json().catch(() => ({}))
+    logTxServer({
+      action: "TOPUP_HBAR",
+      status: "ERROR",
+      accountId: body?.accountId,
+      meta: { error: e.message }
+    })
+    
     return NextResponse.json({ 
       error: e.message || 'TOP_UP_FAILED' 
     }, { status: 500 })
