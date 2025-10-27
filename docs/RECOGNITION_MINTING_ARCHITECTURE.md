@@ -71,12 +71,12 @@ interface UserMintQuota {
 }
 
 interface MintPricing {
-  baseFee: number;               // $0.15 in TRST
-  premiumDiscount: 0.5;          // 50% off = $0.075
+  baseFee: number;               // $0.05 in TRST (~48% margin over $0.026 cost)
+  premiumDiscount: 0.4;          // 40% off = $0.03
   rarityMultiplier: {            // Dynamic pricing
-    common: 1.0,                 // $0.15
-    rare: 1.5,                   // $0.225
-    legendary: 2.5               // $0.375
+    common: 1.0,                 // $0.05
+    rare: 2.0,                   // $0.10
+    legendary: 4.0               // $0.20
   };
 }
 ```
@@ -95,9 +95,9 @@ interface MintPricing {
 
 ### Phase 2: Micropayment Model
 1. User exhausts free mints (counter shows 0)
-2. UI prompts: "Top up to keep minting! $0.15 per recognition in TRST"
+2. UI prompts: "Top up to keep minting! $0.05 per recognition in TRST"
 3. User either:
-   - Pays $0.15 TRST per mint (pay-as-you-go)
+   - Pays $0.05 TRST per mint (pay-as-you-go)
    - OR deposits $10 to unlock premium features + discounted mints
 4. Each mint auto-deducts from TRST balance
 5. No prepaid packages - pure micropayments
@@ -106,7 +106,7 @@ interface MintPricing {
 1. User deposits $10 HBAR/TRST to TrustMesh treasury
 2. Account upgraded to Premium status (permanent)
 3. Benefits unlocked:
-   - 50% mint fee discount ($0.075 per mint)
+   - 40% mint fee discount ($0.03 per mint)
    - Access to rare/legendary recognition types
    - Circle creation and management
    - Custom recognition minting
@@ -187,14 +187,17 @@ class RecognitionMintService {
 
 ### Pay-Per-Mint Model
 - **Micropayments in TRST** per mint after free quota
-- ~$0.10-0.25 per mint (dynamic pricing based on token type/rarity)
+- **$0.05 base fee** (dynamic pricing based on token type/rarity)
+- Cost floor: ~$0.026 (HCS $0.0008 + NFT mint $0.02 + overhead $0.005)
+- **~48% margin** on base fee, enables sustainable scaling
 - No bulk packages - simple pay-as-you-go
 - Instant deduction from TRST balance
 
 ### Premium Unlock ($10 Top-up)
 - **Deposit $10 HBAR/TRST** → Unlock full features
-- Benefits (TBD):
-  - Discounted mint fees (50% off)
+- **$10 = 200 mints** worth of base mint power
+- Benefits:
+  - Discounted mint fees (40% off = $0.03 per mint)
   - Priority recognition delivery
   - Access to rare/legendary tokens
   - Extended analytics dashboard
