@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { parseHrl } from "@/lib/utils/hrl"
 import { Client, PrivateKey, TopicMessageSubmitTransaction } from "@hashgraph/sdk"
+import { ensureHbar } from "@/lib/services/hbarGuardrail"
+import { logTxServer } from "@/lib/telemetry/txLog"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
 
@@ -112,6 +114,18 @@ export async function POST(req: NextRequest) {
 
     client.setOperator(OPERATOR_ID, operatorKey)
 
+    // HBAR Guardrail: Ensure sufficient balance before transaction
+    try {
+      await ensureHbar(OPERATOR_ID, 0.01)
+    } catch (balanceError: any) {
+      console.error('[HCS Profile POST] HBAR guardrail failed:', balanceError.message)
+      client.close()
+      return NextResponse.json({ 
+        ok: false, 
+        error: `Insufficient HBAR balance: ${balanceError.message}` 
+      }, { status: 402 })
+    }
+
     // Build PROFILE_UPDATE message payload (includes signature for verification)
     const profilePayload = {
       type: "PROFILE_UPDATE",
@@ -139,6 +153,16 @@ export async function POST(req: NextRequest) {
 
     console.log(`[HCS Profile POST] Success - Status: ${receipt.status}, Seq: ${receipt.topicSequenceNumber}`)
 
+    // Log transaction for telemetry
+    const txId = txResponse.transactionId.toString()
+    logTxServer({
+      action: "PROFILE_UPDATE",
+      accountId,
+      txId,
+      topicId: PROFILE_TOPIC_ID,
+      status: "SUCCESS"
+    })
+
     // Construct HRL for the created profile
     const hrl = `hcs://${HEDERA_NETWORK}/${PROFILE_TOPIC_ID}/${receipt.topicSequenceNumber}`
 
@@ -148,12 +172,22 @@ export async function POST(req: NextRequest) {
       ok: true,
       hrl,
       profile: profilePayload,
-      transactionId: txResponse.transactionId.toString(),
+      transactionId: txId,
       sequenceNumber: receipt.topicSequenceNumber?.toString()
     })
 
   } catch (error: any) {
     console.error(`[HCS Profile POST] Error creating profile:`, error.message)
+    
+    // Log failed transaction
+    if (accountId) {
+      logTxServer({
+        action: "PROFILE_UPDATE",
+        accountId,
+        status: "ERROR",
+        meta: { error: error.message }
+      })
+    }
     
     return NextResponse.json({ 
       ok: false,
