@@ -105,9 +105,13 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
         const url = encodeToWebUrl(payload)
         setInviteCode(url)
         
-        // Generate QR code from URL
-        await QRCode.toDataURL(url, { margin: 1, width: 192 })
-          .then(setQrDataUrl)
+        // Generate QR code with improved settings for screen-to-screen scanning
+        await QRCode.toDataURL(url, { 
+          errorCorrectionLevel: 'L',  // Lower EC = less dense, easier to scan
+          margin: 2,                   // Larger quiet zone
+          width: 560,                  // Bigger for better legibility
+          color: { dark: '#000000', light: '#FFFFFF' }
+        }).then(setQrDataUrl)
         
         // Start countdown timer
         setExpiresIn(120)
