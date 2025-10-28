@@ -65,9 +65,11 @@ export type TokenStatus = "active" | "transferred" | "burned"
 export interface BondedContact {
   peerId: string
   handle?: string
-  bondedAt: number
+  bondedAt: number | string
   trustLevel?: number
   isBonded?: boolean  // true = mutual ACCEPT, false = pending REQUEST
+  isPending?: boolean // true = optimistic update, waiting for Mirror Node confirmation
+  hrl?: string
 }
 
 export interface TrustStats {

@@ -77,18 +77,22 @@ function normalizeType(t?: string): string {
 
 // Returns {actor, target} no matter which shape the event uses
 function getParties(ev: any): { actor?: string; target?: string } {
+  const payload = ev?.payload || {}
+  
   const actor =
     ev?.actor ??
     ev?.actors?.from ??
     ev?.from ??
-    ev?.payload?.from ??
+    payload?.from?.acct ??  // NEW: handle nested acct structure
+    payload?.from ??
     ev?.metadata?.from
 
   const target =
     ev?.target ??
     ev?.actors?.to ??
     ev?.to ??
-    ev?.payload?.to ??
+    payload?.to?.acct ??    // NEW: handle nested acct structure
+    payload?.to ??
     ev?.metadata?.to
 
   return { actor, target }
@@ -100,8 +104,8 @@ function pairKey(a: string, b: string): string {
 }
 
 // Schema-tolerant utility functions - simple and bulletproof
-const A = (e: any) => e?.actor ?? e?.actors?.from ?? e?.from ?? e?.payload?.from ?? e?.metadata?.from
-const T = (e: any) => e?.target ?? e?.actors?.to ?? e?.to ?? e?.payload?.to ?? e?.metadata?.to
+const A = (e: any) => e?.actor ?? e?.actors?.from ?? e?.from ?? e?.payload?.from?.acct ?? e?.payload?.from ?? e?.metadata?.from
+const T = (e: any) => e?.target ?? e?.actors?.to ?? e?.to ?? e?.payload?.to?.acct ?? e?.payload?.to ?? e?.metadata?.to
 const U = (t?: string) => (t || '').toUpperCase()
 const k = (a: string, b: string) => [a, b].sort().join('|')
 
@@ -127,7 +131,7 @@ const USER_NAME_MAPPINGS: Record<string, string> = {
 
 // Generate a proper display handle from user ID
 function generateUserHandle(id: string): string {
-  if (!id) return 'Unknown User'
+  if (!id || typeof id !== 'string') return 'Unknown User'
   
   // Check if we have a known mapping first
   if (USER_NAME_MAPPINGS[id]) {
@@ -187,16 +191,22 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
       const a = A(ev), b = T(ev)
       const payload = ev?.payload || ev?.metadata || {}
       
-      // Extract contact info from payload
-      const name = payload?.name || payload?.displayName || payload?.fullName
-      const handle = payload?.handle || payload?.username || payload?.nickname
+      // Extract contact info from payload (handle nested from/to structure)
+      const fromData = payload?.from || {}
+      const toData = payload?.to || {}
+      
+      const fromName = fromData?.name || fromData?.displayName || fromData?.handle
+      const fromHandle = fromData?.handle || fromData?.username || fromData?.nickname
+      
+      const toName = toData?.name || toData?.displayName || toData?.handle  
+      const toHandle = toData?.handle || toData?.username || toData?.nickname
       
       // Store contact data for both actors
-      if (a && (name || handle)) {
-        contactData.set(a, { name, handle })
+      if (a && (fromName || fromHandle)) {
+        contactData.set(a, { name: fromName, handle: fromHandle })
       }
-      if (b && (name || handle)) {
-        contactData.set(b, { name, handle })
+      if (b && (toName || toHandle)) {
+        contactData.set(b, { name: toName, handle: toHandle })
       }
     }
   }
@@ -232,7 +242,10 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   
   console.log('🔍 [HCSDataUtils] Final contacts:', [...contacts])
   
-  const result = [...contacts].map(id => {
+  // Filter out any invalid IDs (null, undefined, or non-strings)
+  const validContacts = [...contacts].filter(id => id && typeof id === 'string')
+  
+  const result = validContacts.map(id => {
     // Check if this contact is bonded (mutual ACCEPT)
     const isBonded = Array.from(bondedPairs.keys()).some(key => {
       const [a, b] = key.split('|')

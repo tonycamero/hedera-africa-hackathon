@@ -5,6 +5,10 @@ export interface SessionProfile {
   sessionId: string
   handle: string
   profileHrl: string
+  displayName?: string
+  email?: string
+  hederaAccountId?: string
+  bio?: string
 }
 
 let _sessionId: string | null = null
@@ -21,6 +25,22 @@ export function getSessionId(ephemeralStrict?: boolean): string {
     return envSession
   }
 
+  // Use Hedera Account ID from Magic auth if available
+  if (typeof window !== 'undefined') {
+    try {
+      const usersData = localStorage.getItem('tm:users')
+      if (usersData) {
+        const [user] = JSON.parse(usersData)
+        if (user?.hederaAccountId) {
+          _sessionId = user.hederaAccountId
+          return user.hederaAccountId
+        }
+      }
+    } catch (error) {
+      console.warn('[Session] Failed to read Hedera account from localStorage:', error)
+    }
+  }
+
   // Use runtime flags to determine ephemeral mode
   const isEphemeral = ephemeralStrict ?? getRuntimeEphemeralMode()
   
@@ -30,7 +50,7 @@ export function getSessionId(ephemeralStrict?: boolean): string {
 
   // Demo path removed in Step 5: Demo removal
 
-  // Live/random session id path (prod default)
+  // Fallback: random session id (only if not logged in)
   const key = 'tm_session_id'
   if (!isEphemeral && typeof window !== 'undefined') {
     const existing = window.sessionStorage.getItem(key)
@@ -54,11 +74,27 @@ export async function getSessionProfile(): Promise<SessionProfile> {
   }
 
   const sessionId = getSessionId()
-  // Default handle just mirrors the id unless demo decoration is allowed
+  
+  // Get display name from Magic auth email if available
   let handle = sessionId
   let bio = `TrustMesh user (${sessionId})`
-
-  // Demo decoration removed in Step 5: Demo removal
+  
+  if (typeof window !== 'undefined') {
+    try {
+      const usersData = localStorage.getItem('tm:users')
+      if (usersData) {
+        const [user] = JSON.parse(usersData)
+        if (user?.email) {
+          // Use email or extract name from email
+          const emailName = user.email.split('@')[0]
+          handle = user.displayName || emailName || user.email
+          bio = `${user.email}`
+        }
+      }
+    } catch (error) {
+      console.warn('[Session] Failed to read user info from localStorage:', error)
+    }
+  }
 
   // Try to get/create profile HRL
   let profileHrl = `hcs://11/${process.env.NEXT_PUBLIC_TOPIC_PROFILE}/local-${sessionId}`
@@ -75,10 +111,33 @@ export async function getSessionProfile(): Promise<SessionProfile> {
     console.log('[Session] Failed to publish profile, using local HRL:', error)
   }
 
+  // Get additional user data for profile
+  let email: string | undefined
+  let displayName: string | undefined
+  let hederaAccountId: string | undefined
+  
+  if (typeof window !== 'undefined') {
+    try {
+      const usersData = localStorage.getItem('tm:users')
+      if (usersData) {
+        const [user] = JSON.parse(usersData)
+        email = user?.email
+        displayName = user?.displayName
+        hederaAccountId = user?.hederaAccountId
+      }
+    } catch (error) {
+      // Already warned above
+    }
+  }
+  
   const profile = {
     sessionId,
     handle,
-    profileHrl
+    profileHrl,
+    email,
+    displayName,
+    hederaAccountId,
+    bio
   }
 
   _sessionProfile = profile

@@ -30,14 +30,21 @@ export default function GenZOnboardingPage() {
   const [knsAvailable, setKnsAvailable] = useState<boolean | null>(null)
   const [checkingKns, setCheckingKns] = useState(false)
   const [stipendAccepted, setStipendAccepted] = useState(false)
+  const [stipendLoading, setStipendLoading] = useState(false)
 
-  // Check if user is logged in with Magic
+  // Check if user is logged in with Magic and if stipend already accepted
   useEffect(() => {
     const users = localStorage.getItem('tm:users')
     if (users) {
       const parsed = JSON.parse(users)
       if (parsed.length > 0) {
         setMagicUser(parsed[0])
+        
+        // Check if stipend was already accepted (stored in localStorage)
+        const stipendAcceptedKey = `tm:stipend:${parsed[0].hederaAccountId}`
+        const alreadyAccepted = localStorage.getItem(stipendAcceptedKey) === 'true'
+        setStipendAccepted(alreadyAccepted)
+        
         setCurrentStep(0) // Start at profile setup
       } else {
         // No Magic user, redirect to landing
@@ -154,9 +161,9 @@ export default function GenZOnboardingPage() {
   }
 
   const handleAcceptStipend = async () => {
-    if (!magicUser) return
+    if (!magicUser || stipendLoading || stipendAccepted) return
     
-    setIsLoading(true)
+    setStipendLoading(true)
     try {
       const magicToken = await magic?.user.getIdToken()
       if (!magicToken) throw new Error('Not authenticated')
@@ -186,6 +193,10 @@ export default function GenZOnboardingPage() {
       const result = await response.json()
       console.log('[Onboarding] Stipend transferred:', result)
       
+      // Mark stipend as accepted in localStorage to prevent double-claim
+      const stipendAcceptedKey = `tm:stipend:${accountId}`
+      localStorage.setItem(stipendAcceptedKey, 'true')
+      
       setStipendAccepted(true)
       toast.success('🎁 Stipend accepted!', {
         description: 'You received 1 HBAR + 1.35 TRST'
@@ -196,13 +207,19 @@ export default function GenZOnboardingPage() {
         description: error.message
       })
     } finally {
-      setIsLoading(false)
+      setStipendLoading(false)
     }
   }
 
   const handleCompleteOnboarding = async () => {
-    if (!magicUser || !desiredName) {
-      toast.error('Please enter your display name')
+    // Validate minimum required fields
+    if (!magicUser) {
+      toast.error('Not authenticated')
+      return
+    }
+    
+    if (!desiredName || desiredName.trim().length < 2) {
+      toast.error('Display name must be at least 2 characters')
       return
     }
     
@@ -347,12 +364,12 @@ export default function GenZOnboardingPage() {
               <GenZButton
                 variant="boost"
                 onClick={handleAcceptStipend}
-                disabled={isLoading}
+                disabled={stipendLoading || stipendAccepted}
                 className="w-full"
-                glow
+                glow={!stipendAccepted}
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Gift className="w-4 h-4 mr-2" />}
-                Accept Stipend
+                {stipendLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Gift className="w-4 h-4 mr-2" />}
+                {stipendAccepted ? 'Stipend Accepted ✓' : 'Accept Stipend'}
               </GenZButton>
 
               <GenZText size="sm" dim className="text-center">
@@ -404,13 +421,17 @@ export default function GenZOnboardingPage() {
               <GenZButton
                 variant="boost"
                 onClick={handleCompleteOnboarding}
-                disabled={!desiredName || isLoading}
+                disabled={!desiredName || desiredName.trim().length < 2 || isLoading}
                 className="w-full"
-                glow={!!desiredName}
+                glow={desiredName.trim().length >= 2}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                 Create Profile
               </GenZButton>
+              
+              <GenZText size="sm" dim className="text-center">
+                Min 2 characters required
+              </GenZText>
             </div>
 
             <GenZCard variant="glass" className="p-3 bg-pri-500/5 border-pri-500/20">

@@ -50,7 +50,41 @@ export default function ContactsPage() {
           throw new Error(data.error || 'Failed to load contacts')
         }
         
-        setBondedContacts(data.bondedContacts)
+        // Merge optimistic CONTACT_ACCEPT events from local store
+        const optimisticContacts = signalsStore.getAll().filter(e => 
+          (e.type === 'CONTACT_ACCEPT' || e.type === 'CONTACT_MIRROR') &&
+          (e.actor === effectiveSessionId || e.target === effectiveSessionId) &&
+          e.source === 'hcs-cached' &&
+          e.ts > Date.now() - 60000 // Only consider events from last minute
+        )
+        
+        const allContacts = [...data.bondedContacts]
+        
+        optimisticContacts.forEach(event => {
+          const contactId = event.actor === effectiveSessionId ? event.target : event.actor
+          const contactMetadata = event.metadata as any
+          
+          // Check if this contact is already in the list from HCS
+          const existsInHCS = allContacts.some(c => 
+            c.peerId === contactId || 
+            c.peerId === contactMetadata?.from?.acct ||
+            c.peerId === contactMetadata?.to?.acct
+          )
+          
+          if (!existsInHCS && contactId) {
+            // Add optimistic contact with pending indicator
+            allContacts.push({
+              peerId: contactId,
+              handle: contactMetadata?.from?.handle || contactMetadata?.to?.handle || contactId,
+              hrl: contactMetadata?.from?.hrl || contactMetadata?.to?.hrl || `hrl:tm/${contactId}`,
+              bondedAt: new Date(event.ts).toISOString(),
+              isPending: true // Mark as pending confirmation
+            })
+            console.log(`[ContactsPage] Added optimistic contact bond: ${contactId}`)
+          }
+        })
+        
+        setBondedContacts(allContacts)
         
         // Convert trust levels object back to Map
         const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
@@ -169,7 +203,7 @@ export default function ContactsPage() {
         </div>
         <div className="flex items-center justify-between text-xs text-white/60 mb-3">
           <span>{bondedContacts.length} contacts • Recognition signals available</span>
-          {!mintsLoading && (
+          {!mintsLoading && typeof trstBalance === 'number' && (
             <div
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${
                 needsTopUp
@@ -241,7 +275,14 @@ export default function ContactsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <div className="text-sm font-medium text-white">{displayName}</div>
-                          {isBonded ? (
+                          {contact.isPending ? (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 animate-pulse"
+                              title="Confirming on Hedera... (~3-5 sec)"
+                            >
+                              ⏱️ Confirming
+                            </span>
+                          ) : isBonded ? (
                             <span 
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
                               title="Mutual acceptance complete - can send signals"

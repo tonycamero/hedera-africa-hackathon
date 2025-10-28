@@ -30,13 +30,33 @@ import {
 const HCS_ENABLED = (process.env.NEXT_PUBLIC_HCS_ENABLED ?? "false") === "true"
 const CONTACT_TOPIC = process.env.NEXT_PUBLIC_TOPIC_CONTACT || ""
 
-// Background submit helper with HCS protection for seed data
-async function submitContactToHCS(envelope: any, signalEvent: SignalEvent, signalId?: string) {
+// Background submit helper - uses server-side API
+async function submitContactToHCS(payload: any, signalEvent: SignalEvent, signalId?: string) {
   if (!HCS_ENABLED || !CONTACT_TOPIC) return
-  // Demo filtering removed in Step 5: Demo removal
   
   try {
-    await hederaClient.submitMessage(CONTACT_TOPIC, JSON.stringify(envelope))
+    // Wrap payload in proper HCS envelope format
+    const envelope = {
+      type: payload.type,
+      from: payload.from?.acct || payload.acceptor?.acct,
+      nonce: Date.now(),
+      ts: Math.floor(Date.now() / 1000),
+      payload: payload
+    }
+    
+    // Use server-side API instead of direct client submission
+    const response = await fetch('/api/hcs/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(envelope)
+    })
+    
+    const result = await response.json()
+    
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || 'Failed to submit to HCS')
+    }
+    
     if (signalId) {
       signalsStore.updateSignalStatus(signalId, "onchain")
     }
@@ -45,18 +65,20 @@ async function submitContactToHCS(envelope: any, signalEvent: SignalEvent, signa
     logTxClient({
       action: envelope.type === "CONTACT_ACCEPT" ? "CONTACT_ACCEPT" : "CONTACT_REQUEST",
       status: "SUCCESS",
-      topicId: CONTACT_TOPIC
+      topicId: CONTACT_TOPIC,
+      txId: result.transactionId
     })
     
-    toast.success("On-chain ✓", { description: `CONTACT …${CONTACT_TOPIC.slice(-6)}` })
+    toast.success("On-chain ✓", { description: `TX: ${result.transactionId?.slice(-8) || 'confirmed'}` })
   } catch (e: any) {
+    console.error('[submitContactToHCS] Error:', e)
     if (signalId) {
       signalsStore.updateSignalStatus(signalId, "error")
     }
     
     // Log failed HCS submit
     logTxClient({
-      action: envelope.type === "CONTACT_ACCEPT" ? "CONTACT_ACCEPT" : "CONTACT_REQUEST",
+      action: payload.type === "CONTACT_ACCEPT" ? "CONTACT_ACCEPT" : "CONTACT_REQUEST",
       status: "ERROR",
       topicId: CONTACT_TOPIC,
       meta: { error: e?.message }
