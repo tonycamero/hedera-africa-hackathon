@@ -15,15 +15,15 @@ let _sessionId: string | null = null
 let _sessionProfile: SessionProfile | null = null
 
 export function getSessionId(ephemeralStrict?: boolean): string {
-  // Honor explicit session override in preview/demo
-  const envSession = process.env.NEXT_PUBLIC_SESSION_ID?.trim()
-  if (envSession) {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('tm_session_id', envSession)
-    }
-    _sessionId = envSession
-    return envSession
-  }
+  // REMOVED: Demo session override - use real authenticated sessions only
+  // const envSession = process.env.NEXT_PUBLIC_SESSION_ID?.trim()
+  // if (envSession) {
+  //   if (typeof window !== 'undefined') {
+  //     sessionStorage.setItem('tm_session_id', envSession)
+  //   }
+  //   _sessionId = envSession
+  //   return envSession
+  // }
 
   // Use Hedera Account ID from Magic auth if available
   if (typeof window !== 'undefined') {
