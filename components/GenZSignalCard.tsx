@@ -26,7 +26,7 @@ const rarityConfig = {
     bgGlow: "bg-slate-500/10",
   },
   rare: {
-    gradient: "from-blue-400 to-cyan-500",
+    gradient: "from-blue-400 to-purple-500",
     glow: "shadow-blue-500/30",
     border: "border-blue-300",
     text: "text-blue-700",

@@ -65,7 +65,7 @@ export default function CollectionsPage() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin motion-reduce:animate-none rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading Recognition Cards...</p>
@@ -77,7 +77,7 @@ export default function CollectionsPage() {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-white mb-2">Error Loading Cards</h1>
@@ -94,7 +94,7 @@ export default function CollectionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-sm sm:max-w-2xl lg:max-w-6xl">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
@@ -112,7 +112,7 @@ export default function CollectionsPage() {
           {/* Collection Stats - mobile optimized */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-6 max-w-sm sm:max-w-none mx-auto">
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400">{currentStats.total}</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-400">{currentStats.total}</div>
               <div className="text-sm sm:text-base text-purple-300 font-medium">
                 {categoryFilter === 'all' ? 'Total' : categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
               </div>
@@ -148,7 +148,7 @@ export default function CollectionsPage() {
               className={`
                 snap-start px-4 py-3 sm:px-6 sm:py-3 rounded-full min-h-[44px] text-base sm:text-sm font-medium transition-all active:scale-95 focus:outline-none focus:ring-2 whitespace-nowrap
                 ${categoryFilter === 'all' 
-                  ? 'bg-cyan-500/40 border border-cyan-500/60 ring-1 ring-white/15 text-cyan-200 focus:ring-cyan-500' 
+                  ? 'bg-purple-500/40 border border-purple-500/60 ring-1 ring-white/15 text-purple-200 focus:ring-cyan-500' 
                   : 'bg-slate-500/20 border border-slate-500/30 ring-1 ring-white/10 text-slate-300 md:hover:bg-slate-500/30 focus:ring-slate-500'
                 }
               `}
@@ -271,12 +271,12 @@ export default function CollectionsPage() {
 
         {/* CTA Section */}
         <div className="mt-8 sm:mt-12 text-center mx-4">
-          <div className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 md:backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/20">
+          <div className="bg-gradient-to-r from-purple-500/20 to-purple-500/20 md:backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/20">
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Ready to Send Your First Signal?</h3>
             <p className="text-base sm:text-lg text-purple-200 mb-4 sm:mb-6">Join TrustMesh to start recognizing others and building your network</p>
             <button
               onClick={() => window.open('/signup?intent=create_signal', '_blank')}
-              className="w-full sm:w-auto px-8 py-4 sm:py-3 min-h-[56px] sm:min-h-0 bg-gradient-to-r from-purple-500 to-cyan-500 md:hover:from-purple-600 md:hover:to-cyan-600 rounded-full text-white font-medium transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              className="w-full sm:w-auto px-8 py-4 sm:py-3 min-h-[56px] sm:min-h-0 bg-gradient-to-r from-purple-500 to-purple-500 md:hover:from-purple-600 md:hover:to-purple-600 rounded-full text-white font-medium transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
               Create Account & Start Sending
             </button>

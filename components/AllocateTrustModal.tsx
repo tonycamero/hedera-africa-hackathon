@@ -208,7 +208,7 @@ export function AllocateTrustModal({
         <div className="bg-white/5 rounded-xl p-4 border border-white/20">
           <GenZText className="font-semibold mb-3">Preview</GenZText>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-cyan-400 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-400 rounded-full flex items-center justify-center">
               <Users className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">

@@ -6,7 +6,7 @@ import { MirrorNodeReader } from "@/lib/services/MirrorNodeReader"
 import { toSignalEvents } from "@/lib/services/MirrorNormalize"
 import { saveMirrorRaw } from "@/lib/cache/sessionCache"
 import { hcs2Registry, type TrustMeshTopics } from "@/lib/services/HCS2RegistryClient"
-import { TOPIC } from "@/lib/env"
+import { getRegistryTopics } from "@/lib/hcs2/registry"
 
 export type HCSFeedEvent = {
   id: string
@@ -99,16 +99,24 @@ export class HCSFeedService {
   }
 
   private async loadVerifiedTopics(): Promise<void> {
-    // Load the verified topics from centralized env configuration
-    this.topics = {
-      feed: TOPIC.contacts || '0.0.6896005', // Using contacts topic as feed
-      contacts: TOPIC.contacts || '0.0.6896005',
-      trust: TOPIC.trust || '0.0.6896005',
-      recognition: TOPIC.recognition || '0.0.6895261',
-      profiles: TOPIC.profile || '0.0.6896008',
-      system: TOPIC.profile || '0.0.6896008' // Using profile topic as system
+    // Load topics from THE SINGLE SOURCE OF TRUTH: the registry
+    // The registry reads from env vars internally
+    console.log('[HCSFeedService] Loading topics from registry...')
+    const registryTopics = await getRegistryTopics()
+    
+    if (!registryTopics.contacts || !registryTopics.trust || !registryTopics.profile || !registryTopics.recognition) {
+      throw new Error('[HCSFeedService] Registry returned incomplete topics - check NEXT_PUBLIC_TOPIC_* env vars')
     }
-    console.log('[HCSFeedService] Loaded verified topics:', this.topics)
+    
+    this.topics = {
+      feed: registryTopics.contacts!, // Using contacts topic as feed
+      contacts: registryTopics.contacts!,
+      trust: registryTopics.trust!,
+      recognition: registryTopics.recognition!,
+      profiles: registryTopics.profile!,
+      system: registryTopics.profile! // Using profile topic as system
+    }
+    console.log('[HCSFeedService] Loaded topics from registry:', this.topics)
   }
 
   private hasEssentialTopics(): boolean {
@@ -124,13 +132,14 @@ export class HCSFeedService {
       const registryTopics = await hcs2Registry.resolveTopics()
       
       // Use registry topics if available, otherwise use our verified ones as fallback
+      // NO HARDCODED FALLBACKS
       this.topics = {
-        feed: registryTopics.feed || this.topics.feed || '0.0.6896005',
-        contacts: registryTopics.contacts || this.topics.contacts || '0.0.6896005',
-        trust: registryTopics.trust || this.topics.trust || '0.0.6896005',
-        recognition: registryTopics.recognition || this.topics.recognition || '0.0.6895261',
-        profiles: registryTopics.profiles || this.topics.profiles || '0.0.6896008',
-        system: registryTopics.system || this.topics.system || '0.0.6896008'
+        feed: registryTopics.feed || this.topics.feed,
+        contacts: registryTopics.contacts || this.topics.contacts,
+        trust: registryTopics.trust || this.topics.trust,
+        recognition: registryTopics.recognition || this.topics.recognition,
+        profiles: registryTopics.profiles || this.topics.profiles,
+        system: registryTopics.system || this.topics.system
       }
       
       // Register our verified topics in the registry if not already there
@@ -173,6 +182,7 @@ export class HCSFeedService {
       this.topics.contacts,
       this.topics.trust, 
       this.topics.recognition,
+      this.topics.profiles,  // Include profile topic for PROFILE_UPDATE events
       this.topics.system
     ].filter(Boolean) as string[]
     
@@ -579,6 +589,7 @@ export class HCSFeedService {
         this.topics.contacts!,
         this.topics.trust!,
         this.topics.recognition!,
+        this.topics.profile!,  // Added profile topic for HCS-11 profiles
         this.topics.system!
       ].filter(Boolean) as string[];
 

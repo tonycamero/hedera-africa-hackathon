@@ -3,8 +3,7 @@ import { submitToTopic } from "@/lib/hedera/serverClient"
 import { hasSufficientTRST, recordTRSTDebit } from "@/lib/services/trstBalanceService"
 import { getTRSTCost } from "@/lib/config/pricing"
 import { verifyRecognitionSignature, type SignedRecognitionPayload } from "@/lib/hedera/signRecognition"
-
-const SIGNAL_TOPIC = process.env.NEXT_PUBLIC_TOPIC_SIGNAL || ""
+import { topics } from "@/lib/registry/serverRegistry"
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,6 +72,9 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[HCS Mint] User ${issuerId} has sufficient TRST (${balanceCheck.current} >= ${trstCost})`)
+
+    // Get signal topic from registry
+    const SIGNAL_TOPIC = topics().signal
 
     // Create SIGNAL_MINT envelope (hashinal mint) with user signature
     const envelope = {

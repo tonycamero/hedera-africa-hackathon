@@ -1,0 +1,310 @@
+{
+  "african_professional_leadership": [
+    {
+      "id": "strategic-visionary-af",
+      "base_id": "strategic-visionary",
+      "type_id": "strategic-visionary@2-african",
+      "maps_to": "strategic-visionary",
+      "name": "Ọgá Visionary",
+      "short": "Sees the path forward with ancestral wisdom",
+      "long": "This leader combines forward vision with deep wisdom, seeing opportunities others miss while honoring the lessons of those who came before. They chart the course with both innovation and respect for tradition.",
+      "icon": "🎯",
+      "trust": 0.5,
+      "rarity": "legendary",
+      "tags": [
+        "leadership",
+        "strategy",
+        "vision",
+        "wisdom"
+      ],
+      "cultural_notes": "Ọgá = Boss/Chief (Yoruba/Nigerian Pidgin)"
+    },
+    {
+      "id": "team-catalyst-af",
+      "base_id": "team-catalyst",
+      "type_id": "team-catalyst@2-african",
+      "maps_to": "team-catalyst",
+      "name": "Ubuntu Builder",
+      "short": "Lifts the whole community, celebrates collective success",
+      "long": "Embodies Ubuntu - 'I am because we are.' This person understands that individual success means nothing without community elevation. They create spaces where everyone's gifts contribute to collective flourishing.",
+      "icon": "⚡",
+      "trust": 0.5,
+      "rarity": "legendary",
+      "tags": [
+        "leadership",
+        "ubuntu",
+        "community",
+        "collective"
+      ],
+      "cultural_notes": "Ubuntu = Humanity/Interconnectedness (Nguni Bantu)"
+    },
+    {
+      "id": "decision-maker-af",
+      "base_id": "decision-maker",
+      "type_id": "decision-maker@2-african",
+      "maps_to": "decision-maker",
+      "name": "Council Leader",
+      "short": "Makes wise decisions with counsel, not alone",
+      "long": "Knows that the best decisions come from gathering diverse wisdom. They consult elders, peers, and even youth before making important calls, but have the strength to decide when the time comes.",
+      "icon": "⚖️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "wisdom",
+        "counsel",
+        "decision-making"
+      ]
+    },
+    {
+      "id": "culture-builder-af",
+      "base_id": "culture-builder",
+      "type_id": "culture-builder@2-african",
+      "maps_to": "culture-builder",
+      "name": "Griot of Values",
+      "short": "Keeps the culture alive through stories and example",
+      "long": "Like the griots who preserve oral history, this person keeps organizational culture alive through storytelling, example, and teaching. They ensure the values are not just written down but lived out daily.",
+      "icon": "🏛️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "culture",
+        "storytelling",
+        "tradition"
+      ],
+      "cultural_notes": "Griot = West African historian/storyteller"
+    },
+    {
+      "id": "community-organizer-af",
+      "base_id": "community-organizer",
+      "type_id": "community-organizer@2-african",
+      "maps_to": "community-organizer",
+      "name": "Sankofa Organizer",
+      "short": "Builds community while honoring the ancestors",
+      "long": "Practices Sankofa - going back to fetch what was left behind. This organizer mobilizes communities with deep respect for cultural roots, traditional knowledge, and the strength that comes from collective memory.",
+      "icon": "📢",
+      "trust": 0.5,
+      "rarity": "legendary",
+      "tags": [
+        "organizing",
+        "community",
+        "heritage",
+        "sankofa"
+      ],
+      "cultural_notes": "Sankofa = 'Go back and get it' (Akan/Ghana)"
+    }
+  ],
+  "african_social_character": [
+    {
+      "id": "shows-up-af",
+      "base_id": "shows-up",
+      "type_id": "shows-up@2-african",
+      "maps_to": "shows-up",
+      "name": "Harambee Spirit",
+      "short": "Pulls together when community needs them",
+      "long": "Embodies Harambee - the spirit of pulling together. When the community calls, they answer. Not for recognition or reward, but because that's what community members do for each other.",
+      "icon": "✅",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "reliability",
+        "community",
+        "solidarity",
+        "harambee"
+      ],
+      "cultural_notes": "Harambee = 'All pull together' (Swahili/Kenya)"
+    },
+    {
+      "id": "honest-communicator-af",
+      "base_id": "honest-communicator",
+      "type_id": "honest-communicator@2-african",
+      "maps_to": "honest-communicator",
+      "name": "Truth Speaker",
+      "short": "Speaks truth with love and respect for community",
+      "long": "Speaks truth not to tear down but to build up. They understand that honest communication is an act of love and respect for the community's wellbeing, delivered with care for relationships.",
+      "icon": "💬",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "honesty",
+        "communication",
+        "respect",
+        "truth"
+      ]
+    },
+    {
+      "id": "authentic-self-af",
+      "base_id": "authentic-self",
+      "type_id": "authentic-self@2-african",
+      "maps_to": "authentic-self",
+      "name": "Rooted In Self",
+      "short": "Grounded in identity, culture, and heritage",
+      "long": "Deeply rooted in their identity and cultural heritage. They don't code-switch to please others - they bring their full authentic self while respecting the spaces they enter. Confidence from knowing who they are.",
+      "icon": "🦋",
+      "trust": 0.3,
+      "rarity": "common",
+      "tags": [
+        "authenticity",
+        "identity",
+        "heritage",
+        "pride"
+      ]
+    },
+    {
+      "id": "emotional-intelligence-af",
+      "base_id": "emotional-intelligence",
+      "type_id": "emotional-intelligence@2-african",
+      "maps_to": "emotional-intelligence",
+      "name": "Ubuntu Heart",
+      "short": "Feels the community's pulse, responds with care",
+      "long": "Has deep Ubuntu consciousness - feels when someone in the community is struggling before they say a word. Responds with the care and attention that honors our interconnectedness.",
+      "icon": "❤️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "empathy",
+        "ubuntu",
+        "awareness",
+        "care"
+      ]
+    }
+  ],
+  "african_social_connection": [
+    {
+      "id": "connector-af",
+      "base_id": "connector",
+      "type_id": "connector@2-african",
+      "maps_to": "connector",
+      "name": "Bridge Builder",
+      "short": "Connects diaspora, builds Pan-African networks",
+      "long": "Actively builds connections across the African diaspora - linking Kenya to Nigeria, Ghana to South Africa, Atlanta to London. They understand that our collective power comes from these connections.",
+      "icon": "🔗",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "networking",
+        "diaspora",
+        "pan-african",
+        "connection"
+      ]
+    },
+    {
+      "id": "space-holder-af",
+      "base_id": "space-holder",
+      "type_id": "space-holder@2-african",
+      "maps_to": "space-holder",
+      "name": "Sacred Circle Keeper",
+      "short": "Creates safe space for vulnerability and truth",
+      "long": "Creates and protects sacred spaces where people can be vulnerable, share burdens, and speak truths. Like the village circle where elders and youth gather to process life together.",
+      "icon": "🕊️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "safety",
+        "circle",
+        "sacred-space",
+        "community"
+      ]
+    }
+  ],
+  "african_civic_service": [
+    {
+      "id": "volunteer-champion-af",
+      "base_id": "volunteer-champion",
+      "type_id": "volunteer-champion@2-african",
+      "maps_to": "volunteer-champion",
+      "name": "Ajé Giver",
+      "short": "Gives resources, time, and energy for community",
+      "long": "Practices Ajé - the principle of shared prosperity. They give their time, resources, and energy knowing that when the community prospers, everyone prospers. No one succeeds alone.",
+      "icon": "🙋",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "service",
+        "giving",
+        "prosperity",
+        "aje"
+      ],
+      "cultural_notes": "Ajé = Wealth/Prosperity (Yoruba)"
+    },
+    {
+      "id": "mentor-af",
+      "base_id": "mentor",
+      "type_id": "mentor@2-african",
+      "maps_to": "mentor",
+      "name": "Elder Wisdom Keeper",
+      "short": "Passes down knowledge to the next generation",
+      "long": "Follows the African tradition of elders mentoring youth. They don't gatekeep knowledge - they actively pass down wisdom, skills, and cultural knowledge to ensure the next generation stands on their shoulders.",
+      "icon": "🌟",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "mentorship",
+        "wisdom",
+        "elders",
+        "tradition"
+      ]
+    }
+  ],
+  "african_academic_scholarship": [
+    {
+      "id": "research-contributor-af",
+      "base_id": "research-contributor",
+      "type_id": "research-contributor@2-african",
+      "maps_to": "research-contributor",
+      "name": "Knowledge Griot",
+      "short": "Preserves and creates knowledge for the people",
+      "long": "Like the griots who preserved African knowledge through oral tradition, this scholar creates and documents knowledge that serves the community. Research that uplifts, not extracts.",
+      "icon": "🔬",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "research",
+        "scholarship",
+        "knowledge",
+        "griot"
+      ]
+    },
+    {
+      "id": "critical-thinker-af",
+      "base_id": "critical-thinker",
+      "type_id": "critical-thinker@2-african",
+      "maps_to": "critical-thinker",
+      "name": "Sankofa Scholar",
+      "short": "Questions colonial narratives, reclaims truth",
+      "long": "Applies Sankofa thinking to scholarship - critically examining what was taught, reclaiming what was taken, and building knowledge that centers African perspectives and experiences.",
+      "icon": "🧠",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "critical-thinking",
+        "decolonization",
+        "sankofa",
+        "truth"
+      ]
+    }
+  ],
+  "_metadata": {
+    "version": "1.0",
+    "overlay_type": "cultural_linguistic",
+    "base_catalog": "signals-v2-data.json",
+    "target_demographic": "African & African Diaspora",
+    "philosophy": "Ubuntu (I am because we are), Pan-Africanism, Cultural preservation",
+    "language_sources": [
+      "Yoruba",
+      "Swahili",
+      "Akan",
+      "Nguni Bantu",
+      "Pan-African concepts"
+    ],
+    "usage": "Alternative display names/descriptions honoring African values and philosophy",
+    "notes": "Maintains same trust values and rarity - cultural framing changes",
+    "key_concepts": {
+      "ubuntu": "Philosophy of interconnectedness - I am because we are",
+      "sankofa": "Go back and get it - learning from the past",
+      "harambee": "All pull together - collective effort",
+      "aje": "Shared prosperity - wealth that circulates"
+    }
+  }
+}

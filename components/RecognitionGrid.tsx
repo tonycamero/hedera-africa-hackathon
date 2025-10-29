@@ -27,7 +27,7 @@ interface RecognitionDisplay {
 
 function MiniRecognitionCard({ signal }: { signal: RecognitionDisplay }) {
   const categoryColors = {
-    social: "border-cyan-500/50 bg-cyan-500/10",
+    social: "border-purple-500/50 bg-purple-500/10",
     academic: "border-purple-500/50 bg-purple-500/10", 
     professional: "border-slate-500/50 bg-slate-500/10"
   }

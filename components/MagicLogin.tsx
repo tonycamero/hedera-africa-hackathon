@@ -40,11 +40,11 @@ export function MagicLogin() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-panel border-white/10">
+    <Card className="w-full max-w-md mx-auto bg-panel border-orange-500/20 shadow-[0_0_24px_rgba(251,146,60,0.15)]">
       <CardHeader>
         <CardTitle className="text-genz-text">Welcome to TrustMesh</CardTitle>
         <CardDescription className="text-genz-text-dim">
-          Sign in with your email to get started with 27 free recognition mints
+          Sign in with your email to get started with 135 free recognition mints
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -56,6 +56,7 @@ export function MagicLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
+              className="bg-panel2 border-white/10 text-white placeholder:text-genz-text-dim"
             />
           </div>
 
@@ -67,7 +68,7 @@ export function MagicLogin() {
 
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold shadow-lg shadow-orange-500/25 transition-all" 
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign in with Magic'}

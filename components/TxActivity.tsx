@@ -71,7 +71,7 @@ export function TxActivity({ limit = 10 }: { limit?: number }) {
                     href={getHashScanTxUrl(e.txId)}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-cyan-300 hover:underline mt-1 inline-block"
+                    className="text-xs text-purple-300 hover:underline mt-1 inline-block"
                   >
                     View on HashScan →
                   </a>

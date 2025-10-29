@@ -123,7 +123,7 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           {/* Collection Stats */}
           <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-4 sm:mt-6 max-w-md mx-auto">
             <div className="text-center">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-cyan-400">1/∞</div>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-400">1/∞</div>
               <div className="text-xs sm:text-sm text-purple-300">Collected</div>
             </div>
             <div className="text-center">
@@ -141,7 +141,7 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
         <div className="flex justify-center mb-6 sm:mb-8 px-4">
           <div className="relative w-full max-w-sm sm:max-w-md">
             {/* Glow effect background - reduced on mobile */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 md:from-purple-500/30 to-cyan-500/20 md:to-cyan-500/30 md:blur-xl blur-lg rounded-xl opacity-50 md:opacity-70"></div>
+            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 md:from-purple-500/30 to-purple-500/20 md:to-purple-500/30 md:blur-xl blur-lg rounded-xl opacity-50 md:opacity-70"></div>
             
             {/* The NFT Card - 3D Trading Card */}
             <TradeCard3D
@@ -188,7 +188,7 @@ export function BoostViewer({ boostId }: BoostViewerProps) {
           
           <button
             onClick={() => window.open('/signup?intent=create_signal', '_blank')}
-            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[48px] bg-gradient-to-r from-purple-500 to-cyan-500 md:hover:from-purple-600 md:hover:to-cyan-600 rounded-full text-white font-semibold transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 active:scale-95 text-base sm:text-sm"
+            className="flex items-center justify-center gap-2 px-8 py-4 sm:px-6 sm:py-3 min-h-[48px] bg-gradient-to-r from-purple-500 to-purple-500 md:hover:from-purple-600 md:hover:to-purple-600 rounded-full text-white font-semibold transition-all md:hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 active:scale-95 text-base sm:text-sm"
           >
             <ExternalLink className="h-5 w-5" />
             Start Collecting

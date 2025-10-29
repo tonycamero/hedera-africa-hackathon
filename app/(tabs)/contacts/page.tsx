@@ -210,7 +210,7 @@ export default function ContactsPage() {
                   ? 'border-amber-500/50 bg-amber-500/20 text-amber-300 animate-pulse'
                   : remainingMints > 50
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                  : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'
+                  : 'border-purple-500/30 bg-purple-500/10 text-purple-400'
               }`}
               title={`TRST balance: ${trstBalance.toFixed(2)} • Cost per mint: ${cost.toFixed(2)}${needsTopUp ? ' • Time to top up!' : ''}`}
             >
@@ -277,7 +277,7 @@ export default function ContactsPage() {
                           <div className="text-sm font-medium text-white">{displayName}</div>
                           {contact.isPending ? (
                             <span 
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 animate-pulse"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/20 border border-purple-500/40 text-purple-300 animate-pulse"
                               title="Confirming on Hedera... (~3-5 sec)"
                             >
                               ⏱️ Confirming

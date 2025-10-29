@@ -29,8 +29,8 @@ export function TrustCircleVisualization({
     
     if (i < allocatedOut) {
       // CYAN LEDs for trust allocations - enhanced with metallic glow
-      ledStyle = "bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-[0_0_12px_rgba(0,246,255,0.6),0_0_24px_rgba(0,246,255,0.3)] border-2 border-cyan-300"
-      innerStyle = "bg-gradient-to-br from-cyan-300 to-cyan-500"
+      ledStyle = "bg-gradient-to-br from-purple-400 to-purple-600 shadow-[0_0_12px_rgba(0,246,255,0.6),0_0_24px_rgba(0,246,255,0.3)] border-2 border-purple-300"
+      innerStyle = "bg-gradient-to-br from-purple-300 to-purple-500"
       pulseEffect = "animate-pulse"
     } else {
       // Gray LEDs for available trust slots - slightly more visible

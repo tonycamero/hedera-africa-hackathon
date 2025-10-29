@@ -35,7 +35,7 @@ export function BadgeCollection({ userId, badges }: BadgeCollectionProps) {
       case "rare":
         return "bg-gradient-to-r from-purple-400 to-pink-500"
       default:
-        return "bg-gradient-to-r from-blue-400 to-cyan-500"
+        return "bg-gradient-to-r from-blue-400 to-purple-500"
     }
   }
 

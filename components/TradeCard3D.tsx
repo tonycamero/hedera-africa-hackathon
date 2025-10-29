@@ -27,7 +27,7 @@ const rarityRings: Record<Rarity, string> = {
 
 const rarityGlow: Record<Rarity, string> = {
   common:     "from-slate-400/18 to-slate-600/14",
-  rare:       "from-cyan-400/20 to-blue-500/14",
+  rare:       "from-purple-400/20 to-blue-500/14",
   epic:       "from-fuchsia-400/20 to-purple-500/14",
   legendary:  "from-amber-400/22 to-rose-500/16"
 }

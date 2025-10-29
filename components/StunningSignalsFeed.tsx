@@ -54,7 +54,7 @@ const SignalCard = ({ signal, onLike, onComment, onShare, onBookmark, isLiked, i
     const typeMap = {
       'CONTACT_REQUEST': { 
         icon: UserPlus, 
-        color: 'from-blue-500 to-cyan-500', 
+        color: 'from-blue-500 to-purple-500', 
         title: 'Connection Request',
         description: 'wants to connect with you! 🤝',
         isNFT: false

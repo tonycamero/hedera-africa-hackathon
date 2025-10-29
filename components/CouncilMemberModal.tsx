@@ -488,12 +488,12 @@ function NetworkDensityGauge({ density }: { density: number }) {
       <div className="relative w-20 h-10 overflow-hidden">
         <div className="absolute inset-0 border-4 border-white/20 rounded-t-full" />
         <div 
-          className="absolute bottom-0 left-1/2 w-0.5 h-8 bg-cyan-400 origin-bottom transform-gpu transition-transform duration-500"
+          className="absolute bottom-0 left-1/2 w-0.5 h-8 bg-purple-400 origin-bottom transform-gpu transition-transform duration-500"
           style={{ transform: `translateX(-50%) rotate(${rotation}deg)` }}
         />
-        <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-cyan-400 rounded-full transform -translate-x-1/2" />
+        <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-purple-400 rounded-full transform -translate-x-1/2" />
       </div>
-      <div className="text-xs text-cyan-400 font-medium mt-1">
+      <div className="text-xs text-purple-400 font-medium mt-1">
         {percentage.toFixed(0)}% dense
       </div>
     </div>

@@ -54,15 +54,14 @@ module.exports = {
         "card-border": "var(--card-border)",
         // Neon colors
         "neon-green": "var(--neon-green)",
-        "neon-cyan": "var(--neon-cyan)",
-        // GenZ Design System - Dark Campus + Cyber Glow
+        // GenZ Design System - Dark Campus + Purple Glow
         ink: '#0B0F14',
         panel: '#111827',
         panel2: '#0F172A',
         pri: {
-          500: '#22D3EE', // cyan 400 - boost actions
-          600: '#06B6D4', // cyan 500
-          glow: '#67E8F9', // cyan 300
+          500: '#A78BFA', // purple/violet - primary actions
+          600: '#8B5CF6', // purple/violet darker
+          glow: '#C4B5FD', // purple lighter glow
         },
         sec: {
           500: '#A78BFA', // violet 400 - signal send

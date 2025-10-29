@@ -2,12 +2,174 @@
 
 import { useEffect, useState } from 'react'
 import { GenZCard, GenZHeading, GenZText, GenZButton } from '@/components/ui/genz-design-system'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { getHBARBalance } from '@/lib/services/hbarBalanceService'
 import { getTRSTBalance } from '@/lib/services/trstBalanceService'
 import { magic } from '@/lib/magic'
 import { hashScanAccountUrl } from '@/lib/util/hashscan'
-import { Loader2, RefreshCcw, Wallet, Link as LinkIcon } from 'lucide-react'
+import { Loader2, RefreshCcw, Wallet, Link as LinkIcon, Save, User } from 'lucide-react'
 import { toast } from 'sonner'
+
+function ProfileEditor({ accountId }: { accountId: string | null }) {
+  const [handle, setHandle] = useState('')
+  const [bio, setBio] = useState('')
+  const [visibility, setVisibility] = useState<'public' | 'contacts'>('public')
+  const [location, setLocation] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Load existing profile from localStorage
+  useEffect(() => {
+    const users = localStorage.getItem('tm:users')
+    if (users) {
+      try {
+        const [u] = JSON.parse(users)
+        if (u?.handle) setHandle(u.handle)
+        if (u?.bio) setBio(u.bio)
+        if (u?.visibility) setVisibility(u.visibility)
+        if (u?.location) setLocation(u.location)
+      } catch {}
+    }
+  }, [])
+
+  async function saveProfile() {
+    if (!accountId) {
+      toast.error('No account ID available')
+      return
+    }
+
+    if (!handle || handle.trim().length === 0) {
+      toast.error('Handle is required')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: accountId,
+          handle: handle.trim(),
+          bio: bio.trim(),
+          visibility,
+          location: location.trim(),
+          avatar: ''
+        })
+      })
+
+      const result = await response.json()
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to update profile')
+      }
+
+      // Update localStorage with new profile data
+      const users = localStorage.getItem('tm:users')
+      if (users) {
+        try {
+          const parsed = JSON.parse(users)
+          const [u] = parsed
+          if (u) {
+            u.handle = handle.trim()
+            u.bio = bio.trim()
+            u.visibility = visibility
+            u.location = location.trim()
+            u.profileHrl = result.profileHrl
+            localStorage.setItem('tm:users', JSON.stringify(parsed))
+          }
+        } catch {}
+      }
+
+      toast.success('Profile updated on HCS-11!', {
+        description: `Sequence: ${result.sequenceNumber}`
+      })
+    } catch (error: any) {
+      console.error('[ProfileEditor] Failed to save profile:', error)
+      toast.error('Failed to update profile', {
+        description: error.message || 'Please try again'
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!accountId) {
+    return <GenZText dim className="text-sm mt-1">Connect your account to edit profile.</GenZText>
+  }
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="space-y-2">
+        <label className="text-xs text-white/70">Handle (Display Name)</label>
+        <Input
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          placeholder="e.g., tony@, admin@"
+          className="bg-white/5 border-white/10 text-white"
+          maxLength={50}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-white/70">Bio</label>
+        <Textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          placeholder="Tell others about yourself..."
+          className="bg-white/5 border-white/10 text-white min-h-[80px]"
+          maxLength={500}
+        />
+        <div className="text-xs text-white/40 text-right">{bio.length}/500</div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-white/70">Location</label>
+        <Input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g., San Francisco, CA"
+          className="bg-white/5 border-white/10 text-white"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-white/70">Visibility</label>
+        <select
+          value={visibility}
+          onChange={(e) => setVisibility(e.target.value as 'public' | 'contacts')}
+          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white text-sm"
+        >
+          <option value="public">Public (visible to everyone)</option>
+          <option value="contacts">Contacts Only (visible to bonded contacts)</option>
+        </select>
+      </div>
+
+      <GenZButton
+        variant="primary"
+        onClick={saveProfile}
+        disabled={saving || !handle.trim()}
+        className="w-full text-white border-2 border-white"
+      >
+        {saving ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Updating on HCS-11...
+          </>
+        ) : (
+          <>
+            <Save className="w-4 h-4 mr-2" />
+            Save Profile to HCS-11
+          </>
+        )}
+      </GenZButton>
+
+      <div className="text-xs text-white/50 text-center">
+        Profile will be published to Hedera Consensus Service (HCS) topic 11
+      </div>
+    </div>
+  )
+}
 
 export default function MePage() {
   const [email, setEmail] = useState<string | null>(null)
@@ -148,7 +310,7 @@ export default function MePage() {
 
         <GenZCard variant="glass" className="p-5">
           <GenZHeading level={4}>Profile</GenZHeading>
-          <GenZText dim className="text-sm mt-1">Profile editing coming soon.</GenZText>
+          <ProfileEditor accountId={accountId} />
         </GenZCard>
       </div>
     </div>

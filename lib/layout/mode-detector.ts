@@ -103,11 +103,11 @@ export function getModeBackground(mode: LayoutMode): string {
     case 'app':
       return 'bg-ink' // Core app dark background
     case 'viral':
-      return 'bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900' // Viral gradient
+      return 'bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900' // Viral gradient
     case 'embed':
       return 'bg-transparent' // Transparent for embedding
     case 'kiosk':
-      return 'bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900' // Same as viral
+      return 'bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900' // Same as viral
     case 'vip':
       return 'bg-gradient-to-br from-amber-900 via-yellow-900 to-orange-900' // VIP gold
     case 'civic-leader':
@@ -115,7 +115,7 @@ export function getModeBackground(mode: LayoutMode): string {
     case 'collector':
       return 'bg-gradient-to-br from-fuchsia-900 via-pink-900 to-rose-900' // Collector pink
     case 'premium':
-      return 'bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-900' // Premium green
+      return 'bg-gradient-to-br from-emerald-900 via-teal-900 to-purple-900' // Premium green
     default:
       return 'bg-ink'
   }

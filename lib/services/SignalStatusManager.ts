@@ -236,11 +236,15 @@ export class SignalStatusManager {
   }
 
   private getTopicForSignal(signal: SignalEvent): string | null {
+    // Import registry at usage to avoid circular deps
+    const { getTopicRegistry } = require('@/lib/hooks/useTopicRegistry')
+    const topics = getTopicRegistry()
+    
     switch (signal.class) {
       case 'contact':
-        return process.env.NEXT_PUBLIC_TOPIC_CONTACT || null
+        return topics.contacts || null
       case 'trust':
-        return process.env.NEXT_PUBLIC_TOPIC_TRUST || null
+        return topics.trust || null
       default:
         return null
     }

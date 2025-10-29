@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { requireMagic, getAccountId } from '@/lib/server/auth'
+import { profileStore } from '@/lib/server/profileStore'
+import { DEFAULT_LENS } from '@/lib/lens/lensConfig'
+
+export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/profile/get-lens
+ * 
+ * Returns user's lens state (active, owned, unlocks)
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const user = await requireMagic(req)
+    const accountId = getAccountId(user)
+    const profile = (await profileStore.get(accountId)) || {}
+
+    // normalize shape
+    const owned = profile.lens?.owned ?? (profile.createdAt ? [profile.lens?.active ?? DEFAULT_LENS] : [])
+    const active = profile.lens?.active ?? owned[0] ?? DEFAULT_LENS
+
+    return NextResponse.json({ owned, active }, { status: 200 })
+  } catch (error: any) {
+    console.error('[API /profile/get-lens] Error:', error)
+    const status = error?.status ?? 500
+    return NextResponse.json(
+      { error: error.message || 'Failed to get lens' },
+      { status }
+    )
+  }
+}

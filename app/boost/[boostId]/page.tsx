@@ -30,7 +30,7 @@ export default async function BoostPage({ params }: PageProps) {
   const { boostId } = await params
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900">
       <BoostViewer boostId={boostId} />
     </div>
   )
