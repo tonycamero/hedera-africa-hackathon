@@ -25,7 +25,7 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_TOPIC_RECOGNITION: TopicIdSchema,
   NEXT_PUBLIC_TOPIC_RECOGNITION_GENZ: TopicIdSchema.optional(),
   NEXT_PUBLIC_TOPIC_RECOGNITION_AFRICAN: TopicIdSchema.optional(),
-  NEXT_PUBLIC_TOPIC_SIGNAL: TopicIdSchema.optional(),  // Optional, fallback to RECOGNITION
+  NEXT_PUBLIC_TOPIC_SIGNAL: z.string().optional(),  // Optional, can be empty, fallback to RECOGNITION
   HEDERA_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEXT_PUBLIC_HCS_ENABLED: z.string().transform(v => v === 'true')
 })
@@ -65,8 +65,19 @@ function initializeRegistry(): Readonly<TopicsRegistry> {
     })
 
     // Resolve topics (system = signal per our architecture)
-    // Fallback: if TOPIC_SIGNAL not set, use TOPIC_RECOGNITION
-    const signalTopic = env.NEXT_PUBLIC_TOPIC_SIGNAL || env.NEXT_PUBLIC_TOPIC_RECOGNITION
+    // Fallback: if TOPIC_SIGNAL not set or invalid, use TOPIC_RECOGNITION
+    let signalTopic = env.NEXT_PUBLIC_TOPIC_SIGNAL
+    
+    // Validate signal topic if provided, otherwise fallback
+    if (signalTopic) {
+      const validation = TopicIdSchema.safeParse(signalTopic)
+      if (!validation.success) {
+        console.warn('[Registry] Invalid TOPIC_SIGNAL, falling back to TOPIC_RECOGNITION')
+        signalTopic = env.NEXT_PUBLIC_TOPIC_RECOGNITION
+      }
+    } else {
+      signalTopic = env.NEXT_PUBLIC_TOPIC_RECOGNITION
+    }
     
     const resolved: TopicsRegistry = Object.freeze({
       contacts: env.NEXT_PUBLIC_TOPIC_CONTACT,
