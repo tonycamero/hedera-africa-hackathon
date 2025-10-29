@@ -1,7 +1,7 @@
 /**
  * Catalog loader for lens-specific recognition types
  * 
- * Each lens has its own vocabulary for recognition types.
+ * Fetches the full 84-signal catalog from API with cultural overlays.
  * When minting, the selected type's metadata is frozen permanently.
  */
 
@@ -12,47 +12,74 @@ export type RecognitionType = {
   label: string
   emoji: string
   description: string
+  category?: string
 }
 
-// Base catalog (neutral, professional)
-const BASE_CATALOG: RecognitionType[] = [
-  { id: 'truth', label: 'Truth', emoji: '💎', description: 'Honest and transparent' },
-  { id: 'courage', label: 'Courage', emoji: '🦁', description: 'Brave and bold action' },
-  { id: 'wisdom', label: 'Wisdom', emoji: '🦉', description: 'Deep insight and guidance' },
-  { id: 'kindness', label: 'Kindness', emoji: '🤝', description: 'Compassionate support' },
-  { id: 'innovation', label: 'Innovation', emoji: '💡', description: 'Creative breakthrough' },
-]
+// Cache to avoid repeated API calls
+let catalogCache: Record<LensKey, RecognitionType[]> = {
+  base: [],
+  genz: [],
+  african: []
+}
 
-// GenZ catalog (casual, energetic)
-const GENZ_CATALOG: RecognitionType[] = [
-  { id: 'no-cap', label: 'No Cap', emoji: '🔥', description: 'Straight facts, zero lies' },
-  { id: 'vibes', label: 'Good Vibes', emoji: '✨', description: 'Immaculate energy' },
-  { id: 'slaps', label: 'That Slaps', emoji: '🎵', description: 'Absolutely fire' },
-  { id: 'goat', label: 'GOAT', emoji: '🐐', description: 'Greatest of all time' },
-  { id: 'based', label: 'Based', emoji: '💯', description: 'Authentically yourself' },
-]
-
-// African catalog (Ubuntu philosophy)
-const AFRICAN_CATALOG: RecognitionType[] = [
-  { id: 'ubuntu', label: 'Ubuntu', emoji: '🌍', description: 'I am because we are' },
-  { id: 'sankofa', label: 'Sankofa', emoji: '🦅', description: 'Learn from the past' },
-  { id: 'ujamaa', label: 'Ujamaa', emoji: '🤲', description: 'Collective work and responsibility' },
-  { id: 'harambee', label: 'Harambee', emoji: '🙌', description: 'All pull together' },
-  { id: 'umoja', label: 'Umoja', emoji: '🔗', description: 'Unity and togetherness' },
-]
-
-const CATALOGS: Record<LensKey, RecognitionType[]> = {
-  base: BASE_CATALOG,
-  genz: GENZ_CATALOG,
-  african: AFRICAN_CATALOG,
+let fetchPromises: Record<LensKey, Promise<RecognitionType[]> | null> = {
+  base: null,
+  genz: null,
+  african: null
 }
 
 /**
  * Get recognition catalog for a lens
  * 
- * Returns the full set of recognition types available for that lens.
- * When minting, the selected type's metadata is frozen permanently.
+ * Fetches from /api/registry/catalog?edition={lens}
+ * Returns the full set of 84 recognition types with cultural overlays.
  */
-export function getCatalogForLens(lens: LensKey): RecognitionType[] {
-  return CATALOGS[lens] || BASE_CATALOG
+export async function getCatalogForLens(lens: LensKey): Promise<RecognitionType[]> {
+  // Return from cache if available
+  if (catalogCache[lens].length > 0) {
+    return catalogCache[lens]
+  }
+
+  // Return pending promise if already fetching
+  if (fetchPromises[lens]) {
+    return fetchPromises[lens]!
+  }
+
+  // Fetch catalog
+  fetchPromises[lens] = fetch(`/api/registry/catalog?edition=${lens}`)
+    .then(res => {
+      if (!res.ok) throw new Error(`Failed to fetch ${lens} catalog`)
+      return res.json()
+    })
+    .then((data: any) => {
+      // Transform API response to RecognitionType format
+      const signals = data.signals || data.items || []
+      const catalog: RecognitionType[] = signals.map((s: any) => ({
+        id: s.id || s.signalId,
+        label: s.name || s.label,
+        emoji: s.icon || s.emoji || '💫',
+        description: s.description || '',
+        category: s.category || 'general'
+      }))
+      
+      catalogCache[lens] = catalog
+      fetchPromises[lens] = null
+      return catalog
+    })
+    .catch(err => {
+      console.error(`Failed to load ${lens} catalog:`, err)
+      fetchPromises[lens] = null
+      // Return empty array on error
+      return []
+    })
+
+  return fetchPromises[lens]!
+}
+
+/**
+ * Synchronous version for components that need immediate data
+ * Returns cached catalog or empty array
+ */
+export function getCatalogForLensSync(lens: LensKey): RecognitionType[] {
+  return catalogCache[lens] || []
 }

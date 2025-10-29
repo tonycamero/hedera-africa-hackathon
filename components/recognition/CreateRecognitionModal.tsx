@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { magic } from '@/lib/magic'
 import { useLens } from '@/lib/hooks/useLens'
 import { getCatalogForLens, RecognitionType } from '@/lib/catalog/getCatalog'
@@ -19,11 +19,13 @@ type Props = {
  * Create recognition modal
  * 
  * Shows recognition types filtered by minter's active lens.
+ * Loads full 84-signal catalog from API.
  * Selected metadata is FROZEN permanently in the minted signal.
  */
 export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
   const { active: minterLens } = useLens()
-  const catalog = getCatalogForLens(minterLens)
+  const [catalog, setCatalog] = useState<RecognitionType[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
   
   const [selectedId, setSelectedId] = useState<string>()
   const [note, setNote] = useState('')
@@ -31,6 +33,29 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false)
 
   const selectedType = catalog.find(t => t.id === selectedId)
+
+  // Load catalog on mount and lens change
+  useEffect(() => {
+    let cancelled = false
+    setCatalogLoading(true)
+    
+    getCatalogForLens(minterLens)
+      .then(data => {
+        if (!cancelled) {
+          setCatalog(data)
+          setCatalogLoading(false)
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          console.error('Failed to load catalog:', err)
+          toast.error('Failed to load recognition types')
+          setCatalogLoading(false)
+        }
+      })
+
+    return () => { cancelled = true }
+  }, [minterLens])
 
   const handleSubmit = async () => {
     if (!selectedType || submitting) return
@@ -101,23 +126,33 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
         {/* Recognition type picker - Grid */}
         <div className="space-y-3">
           <label className="text-sm font-medium text-white">
-            Select Recognition
+            Select Recognition {catalogLoading && <span className="text-xs text-white/50">(loading...)</span>}
           </label>
           <div className="grid grid-cols-3 gap-3 max-h-[40vh] overflow-y-auto">
-            {catalog.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedId(type.id)}
-                className={`p-4 rounded-lg border text-center transition ${
-                  selectedId === type.id
-                    ? 'border-white bg-white/10'
-                    : 'border-white/20 hover:border-white/40 bg-panel'
-                }`}
-              >
-                <div className="text-4xl mb-2">{type.emoji}</div>
-                <div className="text-white font-medium text-sm leading-tight">{type.label}</div>
-              </button>
-            ))}
+            {catalogLoading ? (
+              <div className="col-span-3 flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-white/50" />
+              </div>
+            ) : catalog.length === 0 ? (
+              <div className="col-span-3 text-center text-white/50 py-8">
+                No recognition types available
+              </div>
+            ) : (
+              catalog.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setSelectedId(type.id)}
+                  className={`p-4 rounded-lg border text-center transition ${
+                    selectedId === type.id
+                      ? 'border-white bg-white/10'
+                      : 'border-white/20 hover:border-white/40 bg-panel'
+                  }`}
+                >
+                  <div className="text-4xl mb-2">{type.emoji}</div>
+                  <div className="text-white font-medium text-sm leading-tight">{type.label}</div>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
