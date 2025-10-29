@@ -5,6 +5,7 @@ import { RecognitionSignalCard } from '@/components/recognition/RecognitionSigna
 import { magic } from '@/lib/magic'
 import { RecognitionSignal } from '@/lib/recognition/types'
 import AppShell from '@/components/layout/AppShell'
+import { HeaderLensSwitcher } from '@/components/layout/HeaderLensSwitcher'
 import { Loader2 } from 'lucide-react'
 
 export default function SignalsPage() {
@@ -43,9 +44,16 @@ export default function SignalsPage() {
 
   return (
     <AppShell
-      variant="main"
       title="Recognition Signals"
       subtitle="View all recognition signals you've sent and received"
+      topbar={
+        <div className="bg-panel border-b border-white/10 px-4 py-3">
+          <div className="max-w-md mx-auto flex items-center justify-between">
+            <div className="text-white font-semibold">TrustMesh</div>
+            <HeaderLensSwitcher />
+          </div>
+        </div>
+      }
     >
       <div className="space-y-4">
         {loading ? (
