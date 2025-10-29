@@ -19,8 +19,18 @@ export async function GET(req: NextRequest) {
     // normalize shape
     const owned = profile.lens?.owned ?? (profile.createdAt ? [profile.lens?.active ?? DEFAULT_LENS] : [])
     const active = profile.lens?.active ?? owned[0] ?? DEFAULT_LENS
+    
+    // Include profile metadata for existing user detection
+    const hasProfile = !!(profile.displayName || profile.createdAt)
 
-    return NextResponse.json({ owned, active }, { status: 200 })
+    return NextResponse.json({ 
+      accountId,
+      owned, 
+      active,
+      hasProfile,
+      displayName: profile.displayName,
+      createdAt: profile.createdAt
+    }, { status: 200 })
   } catch (error: any) {
     console.error('[API /profile/get-lens] Error:', error)
     const status = error?.status ?? 500

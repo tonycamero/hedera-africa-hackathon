@@ -1,0 +1,121 @@
+title: "HCS-22: Implement EVM Signature Verification"
+status: QUEUED
+priority: LOW
+phase: 5
+dependencies:
+  - T2_first_onchain_provision (completed)
+  - Stable production usage for 1+ week
+
+description: |
+  Implement proper EVM signature verification for ROTATE and UNBIND events.
+  
+  Currently, these operations are safely blocked by the stub verifier. This task
+  enables account rotation and unbinding with cryptographic proof of ownership.
+
+scope:
+  file: lib/server/hcs22/verify.ts
+  functions: verifyEthSig, verifyEthSigMatch
+  
+tasks:
+  - Install ethers.js or viem dependency
+  - Implement verifyEthSig() using signature recovery
+  - Add unit tests for signature verification
+  - Create ROTATE endpoint (POST /api/identity/rotate)
+  - Create UNBIND endpoint (POST /api/identity/unbind)
+  - Add signature verification to reducer
+
+dependencies_new:
+  packages:
+    - ethers@^6.0.0 (or viem@^2.0.0)
+
+implementation:
+  approach: "Use ethers.js verifyMessage for ECDSA recovery"
+  code: |
+    // lib/server/hcs22/verify.ts
+    import { verifyMessage } from 'ethers';
+    
+    export function verifyEthSig(message: string, signature: string): string | null {
+      try {
+        // Recover signer address from signature
+        const recoveredAddress = verifyMessage(message, signature);
+        return recoveredAddress.toLowerCase();
+      } catch (error) {
+        console.error('[HCS22 Verify] Signature verification failed:', error);
+        return null;
+      }
+    }
+    
+    export function verifyEthSigMatch(
+      message: string, 
+      signature: string, 
+      expectedAddress: string
+    ): boolean {
+      const recoveredAddress = verifyEthSig(message, signature);
+      if (!recoveredAddress) return false;
+      return recoveredAddress.toLowerCase() === expectedAddress.toLowerCase();
+    }
+
+api_endpoints:
+  rotate:
+    path: /api/identity/rotate
+    method: POST
+    body: |
+      {
+        "issuer": "did:ethr:0x...",
+        "fromHederaId": "0.0.123456",
+        "toHederaId": "0.0.789012",
+        "signature": "0x...",
+        "reason": "key-rotation"
+      }
+    
+  unbind:
+    path: /api/identity/unbind
+    method: POST
+    body: |
+      {
+        "issuer": "did:ethr:0x...",
+        "hederaId": "0.0.123456",
+        "signature": "0x...",
+        "reason": "account-recovery"
+      }
+
+acceptance_criteria:
+  - verifyEthSig() recovers correct address from valid signatures
+  - Invalid signatures rejected
+  - ROTATE endpoint publishes signed ROTATE events
+  - UNBIND endpoint publishes signed UNBIND events
+  - Reducer validates signatures before processing
+  - Unit tests cover signature verification edge cases
+
+testing:
+  - Valid signature → address recovered correctly
+  - Invalid signature → returns null
+  - Tampered message → signature fails
+  - ROTATE with valid signature → event published
+  - ROTATE without signature → rejected (400)
+  - UNBIND with operator signature → accepted
+  - Unit tests for ethers.js integration
+
+rollback:
+  - Revert verify.ts to stub implementation
+  - Remove ROTATE/UNBIND endpoints
+  - Signatures continue to be rejected (safe default)
+
+risks: MEDIUM
+  - Signature format mismatches (v/r/s encoding)
+  - EVM address case sensitivity issues
+  - Replay attack vectors (need nonces)
+
+effort: 5 hours
+verification: "Test signature recovery with known test vectors"
+
+security_notes: |
+  - Add nonce/timestamp to prevent replay attacks
+  - Rate limit ROTATE/UNBIND operations
+  - Log all signature verification attempts
+  - Consider requiring 2FA for unbind operations
+  
+notes: |
+  This is Step 3 of HCS-22 integration - enables advanced features.
+  Not critical for basic operation - can be deferred to Phase 5.
+  Requires careful security review before enabling in production.

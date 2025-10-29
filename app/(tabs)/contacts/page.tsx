@@ -44,9 +44,13 @@ export default function ContactsPage() {
         const effectiveSessionId = currentSessionId || 'tm-alex-chen'
         setSessionId(effectiveSessionId)
         
+        console.log('[ContactsPage] Loading contacts for Hedera Account ID:', effectiveSessionId)
+        
         // Load from server-side API (same as circle page)
         const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
         const data = await response.json()
+        
+        console.log('[ContactsPage] API response:', data)
         
         if (!data.success) {
           throw new Error(data.error || 'Failed to load contacts')

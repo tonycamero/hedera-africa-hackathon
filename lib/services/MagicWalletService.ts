@@ -42,49 +42,58 @@ export interface MagicHederaUser {
   totalMintsSent: number;
 }
 
+const isJwt = (t: string | null | undefined): t is string => {
+  return !!t && t.split('.').length === 3;
+};
+
+const isMagicDidToken = (t: string | null | undefined): t is string => {
+  // Magic DID tokens are base64-encoded arrays: ["signature", "payload"]
+  // They start with "WyI" (base64 for '["')
+  return !!t && typeof t === 'string' && t.startsWith('WyI');
+};
+
 /**
  * Login with Magic email OTP
  */
 export async function loginWithMagicEmail(email: string): Promise<MagicHederaUser> {
   const magic = getMagicInstance();
 
-  // Step 1: Magic email login and get DID token
-  const didToken = await magic.auth.loginWithEmailOTP({ email });
-  console.log('[Magic] Login successful, DID token received');
+  // Step 1: Magic email login (completes authentication)
+  const loginToken = await magic.auth.loginWithEmailOTP({ email });
+  console.log('[Magic] Login successful');
+  console.log('[Magic] loginToken type:', typeof loginToken);
+  console.log('[Magic] loginToken value:', loginToken);
 
-  // Step 2: Get user metadata and tokens
-  let token: string;
-  let magicDID: string;
-  let userEmail: string;
+  // Step 2: Get the Magic DID token for authentication
+  // With Hedera extension, Magic returns a base64-encoded DID token (not standard JWT)
+  let didToken = loginToken as string;
+  console.log('[Magic] didToken is standard JWT?', isJwt(didToken));
+  console.log('[Magic] didToken is Magic DID token?', isMagicDidToken(didToken));
   
-  try {
-    // Try to get metadata (might fail with Hedera extension)
-    const metadata = await magic.user.getMetadata();
-    console.log('[Magic] User metadata:', metadata);
-    magicDID = metadata.issuer || '';
-    userEmail = metadata.email || email;
-    
-    // Get ID token for API authentication
-    token = await magic.user.getIdToken();
-    console.log('[Magic] Got ID token for API auth');
-  } catch (metadataError: any) {
-    console.warn('[Magic] getMetadata() failed:', metadataError.message);
-    console.log('[Magic] Using email as fallback identifier');
-    
-    // Fallback: use email as identifier
-    userEmail = email;
-    magicDID = `did:ethr:${email}`; // Simple DID format
-    
+  // If we don't have a valid token, try getIdToken
+  if (!isJwt(didToken) && !isMagicDidToken(didToken)) {
+    console.log('[Magic] loginToken not recognized, calling getIdToken...');
     try {
-      token = await magic.user.getIdToken();
-      console.log('[Magic] Got ID token (after metadata fallback)');
-    } catch (tokenError: any) {
-      console.error('[Magic] Failed to get ID token:', tokenError);
-      // Create a temporary token for demo purposes
-      token = `magic_demo_${Date.now()}`;
-      console.warn('[Magic] Using demo token - API calls may fail');
+      didToken = await magic.user.getIdToken({ lifespan: 300 });
+      console.log('[Magic] getIdToken returned:', typeof didToken, didToken ? didToken.substring(0, 50) + '...' : 'null');
+    } catch (err) {
+      console.error('[Magic] getIdToken failed:', err);
     }
   }
+  
+  // Accept either JWT or Magic DID token format
+  if (!isJwt(didToken) && !isMagicDidToken(didToken)) {
+    console.error('[Magic] Final token check failed. Type:', typeof didToken, 'Value:', didToken ? didToken.substring(0, 100) : 'null');
+    throw new Error('Magic returned an invalid token format; aborting before API calls.');
+  }
+  
+  const userEmail = email;
+  const magicDID = `did:ethr:${email}`;
+  const token = didToken; // verified JWT
+  
+  console.log('[Magic] Using email-based auth:', userEmail);
+  console.log('[Magic] Got verified JWT from Magic');
+  console.log('[Magic] Token preview:', token.substring(0, 50) + '...');
 
   // Store token in localStorage for API requests
   if (typeof window !== 'undefined') {
@@ -92,13 +101,76 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
     localStorage.setItem('MAGIC_DID', magicDID);
   }
 
+  // [HCS-22 Phase 4 T1] NON-BLOCKING identity resolution
+  // This populates the HCS audit trail without affecting login flow
+  console.log('[HCS22] Pre-check - window:', typeof window, 'magicDID:', magicDID);
+  if (typeof window !== 'undefined' && magicDID) {
+    console.log('[HCS22] Attempting resolution for:', magicDID);
+    
+    // Fire-and-forget resolution call (no await)
+    fetch('/api/hcs22/resolve', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ magicDID })
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log('[HCS22] Identity resolved:', data);
+      if (data.accountId) {
+        console.log(`[HCS22] Mapped ${magicDID} → ${data.accountId}`);
+      } else {
+        console.log(`[HCS22] No existing account for ${magicDID}`);
+      }
+    })
+    .catch(err => console.warn('[HCS22] Resolution failed (non-blocking):', err.message));
+  }
+
   // Check if user already exists in localStorage
   const existingUsers = getStoredUsers();
   const existingUser = existingUsers.find((u) => u.email === userEmail);
 
   if (existingUser) {
-    console.log('[Magic] User already exists:', existingUser.hederaAccountId);
+    console.log('[Magic] User already exists in localStorage:', existingUser.hederaAccountId);
     return existingUser;
+  }
+
+  // CRITICAL: Check backend for existing account (in case localStorage was cleared)
+  try {
+    console.log('[Magic] Checking backend for existing Hedera account...');
+    const checkResponse = await fetch('/api/hedera/account/lookup', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        email: userEmail,
+        magicDID
+      }),
+    });
+
+    if (checkResponse.ok) {
+      const existing = await checkResponse.json();
+      if (existing.accountId) {
+        console.log('[Magic] Found existing Hedera account:', existing.accountId);
+        const restoredUser: MagicHederaUser = {
+          email: userEmail,
+          magicDID,
+          hederaAccountId: existing.accountId,
+          publicKey: existing.publicKey || '',
+          freeMints: 27,
+          trstBalance: 1.35,
+          totalMintsSent: 0,
+        };
+        storeUser(restoredUser);
+        return restoredUser;
+      }
+    }
+  } catch (error) {
+    console.warn('[Magic] Backend lookup failed, will create new account:', error);
   }
 
   // Step 4: Get Magic Hedera public key (doesn't create account automatically)

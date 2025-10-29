@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { loginWithMagicEmail } from '@/lib/services/MagicWalletService';
+import { getValidMagicToken } from '@/lib/auth/getValidMagicToken';
 import { useRouter } from 'next/navigation';
 
 export function MagicLogin() {
@@ -28,7 +29,58 @@ export function MagicLogin() {
       const user = await loginWithMagicEmail(email);
       console.log('[MagicLogin] User logged in:', user);
       
-      // Redirect to onboarding for profile creation
+      // [HCS-22] Non-blocking identity ASSERT - Phase 4 T1
+      // SECURITY: Server derives canonical DID from Magic token, no PII sent
+      if (user?.magicDID) {
+        console.log('[HCS22 ASSERT] Logging identity assertion for:', user.magicDID);
+        
+        // Get fresh JWT (guaranteed valid)
+        getValidMagicToken().then(token => {
+          console.log('[HCS22 ASSERT] JWT (fresh):', token.substring(0, 50) + '...');
+          
+          // Fire and forget - don't await (non-blocking)
+          fetch('/api/hcs22/resolve?mode=ASSERT', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }).then(res => {
+            console.log('[HCS22 ASSERT] Response status:', res.status);
+            return res.json();
+          }).then(data => {
+            console.log('[HCS22 ASSERT] Result:', data);
+          }).catch(err => {
+            console.warn('[HCS22 ASSERT] Failed (non-blocking):', err.message);
+          });
+        }).catch(err => {
+          console.warn('[HCS22 ASSERT] Could not get valid token:', err.message);
+        });
+      }
+      
+      // Check if user has existing profile
+      try {
+        const token = await getValidMagicToken();
+        const res = await fetch('/api/profile/status', { 
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.hasCompletedOnboarding) {
+            // Existing user - go to contacts
+            console.log('[MagicLogin] Returning user, routing to /contacts');
+            router.push('/contacts');
+            router.refresh();
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('[MagicLogin] Profile check failed, routing to onboarding');
+      }
+      
+      // New user - go to onboarding
+      console.log('[MagicLogin] New user, routing to /onboard');
       router.push('/onboard');
       router.refresh();
     } catch (err: any) {

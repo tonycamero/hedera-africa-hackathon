@@ -17,20 +17,64 @@ function ProfileEditor({ accountId }: { accountId: string | null }) {
   const [visibility, setVisibility] = useState<'public' | 'contacts'>('public')
   const [location, setLocation] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // Load existing profile from localStorage
+  // Load existing profile from backend (profileStore)
   useEffect(() => {
-    const users = localStorage.getItem('tm:users')
-    if (users) {
+    async function loadProfile() {
+      setLoading(true)
+      let loadedHandle = ''
+      let loadedBio = ''
+      
       try {
-        const [u] = JSON.parse(users)
-        if (u?.handle) setHandle(u.handle)
-        if (u?.bio) setBio(u.bio)
-        if (u?.visibility) setVisibility(u.visibility)
-        if (u?.location) setLocation(u.location)
-      } catch {}
+        // First try to fetch from backend
+        const token = await magic?.user.getIdToken()
+        if (token) {
+          const res = await fetch('/api/profile/status', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.profile) {
+              // Backend profile is source of truth
+              if (data.profile.displayName) {
+                loadedHandle = data.profile.displayName
+                setHandle(data.profile.displayName)
+              }
+              if (data.profile.bio) {
+                loadedBio = data.profile.bio
+                setBio(data.profile.bio)
+              }
+              console.log('[ProfileEditor] Loaded profile from backend:', data.profile.displayName)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[ProfileEditor] Failed to load profile from backend:', err)
+      }
+      
+      // Also check localStorage for fields not in profileStore (fallback only)
+      const users = localStorage.getItem('tm:users')
+      if (users) {
+        try {
+          const [u] = JSON.parse(users)
+          // Only use localStorage if backend didn't have the data
+          if (!loadedHandle && u?.handle) setHandle(u.handle)
+          if (!loadedBio && u?.bio) setBio(u.bio)
+          if (u?.visibility) setVisibility(u.visibility)
+          if (u?.location) setLocation(u.location)
+        } catch {}
+      }
+      
+      setLoading(false)
     }
-  }, [])
+    
+    if (accountId) {
+      loadProfile()
+    } else {
+      setLoading(false)
+    }
+  }, [accountId])
 
   async function saveProfile() {
     if (!accountId) {
@@ -96,6 +140,15 @@ function ProfileEditor({ accountId }: { accountId: string | null }) {
 
   if (!accountId) {
     return <GenZText dim className="text-sm mt-1">Connect your account to edit profile.</GenZText>
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-5 h-5 animate-spin text-white/50" />
+        <span className="ml-2 text-sm text-white/50">Loading profile...</span>
+      </div>
+    )
   }
 
   return (

@@ -132,7 +132,9 @@ async function backfillAllTopics(): Promise<void> {
   
   const backfillPromises = validTopics.map(async ([key, topicId]) => {
     const topicKey = key as TopicKey
-    const since = await loadCursor(topicKey)
+    // HACKATHON: Always fetch ALL messages, don't use cursor
+    // const since = await loadCursor(topicKey)
+    const since = null // Fetch from beginning
     
     try {
       const { count, last } = await backfillTopic({

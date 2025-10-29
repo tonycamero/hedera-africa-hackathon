@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LENSES, LensKey } from '@/lib/lens/lensConfig'
+import { LENSES, LensKey, ENABLE_LENS_UNLOCK } from '@/lib/lens/lensConfig'
 import { useLens } from '@/lib/hooks/useRecognitionSignals'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,8 @@ type Props = {
 }
 
 export default function LensUnlockModal({ open, onClose }: Props) {
+  // Rollback: disable lens unlock UI
+  if (!ENABLE_LENS_UNLOCK) return null
   const { active, owned, unlockAndSwitch, setActiveLens } = useLens()
   const [pending, setPending] = useState<LensKey | null>(null)
 

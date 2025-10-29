@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { LENSES } from '@/lib/lens/lensConfig'
+import { LENSES, ENABLE_LENS_UNLOCK } from '@/lib/lens/lensConfig'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,8 +8,17 @@ export const dynamic = 'force-dynamic'
  * 
  * Unlocks a new lens after TRST payment
  * Body: { lens: 'genz' | 'african', payment: { txId: string, amount: number } }
+ * 
+ * ROLLBACK: Disabled for hackathon (single-lens mode)
  */
 export async function POST(req: NextRequest) {
+  // Rollback: disable unlock endpoint
+  if (!ENABLE_LENS_UNLOCK) {
+    return NextResponse.json(
+      { ok: false, disabled: true, message: 'Lens unlock is currently disabled' },
+      { status: 410 }
+    )
+  }
   try {
     const authHeader = req.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {

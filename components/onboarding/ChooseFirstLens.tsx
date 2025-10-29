@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { LENSES, LensKey, DEFAULT_LENS } from '@/lib/lens/lensConfig'
+import { useState, useEffect } from 'react'
+import { LENSES, LensKey, DEFAULT_LENS, SINGLE_LENS, ENABLE_SWITCHER } from '@/lib/lens/lensConfig'
 import { magic } from '@/lib/magic'
 import { Card } from '@/components/ui/kit'
 import { toast } from 'sonner'
@@ -12,6 +12,36 @@ type Props = {
 }
 
 export default function ChooseFirstLens({ onSelected, className }: Props) {
+  // Rollback: auto-advance with SINGLE_LENS in single-lens mode
+  useEffect(() => {
+    if (!ENABLE_SWITCHER && SINGLE_LENS) {
+      const autoSelect = async () => {
+        try {
+          const token = await magic?.user.getIdToken()
+          if (!token) return
+          
+          const res = await fetch('/api/lens/init-first', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              Authorization: `Bearer ${token}` 
+            },
+            body: JSON.stringify({ lens: SINGLE_LENS }),
+          })
+          
+          if (res.ok) {
+            onSelected(SINGLE_LENS)
+          }
+        } catch (err) {
+          console.error('[ChooseFirstLens] Auto-select error:', err)
+        }
+      }
+      autoSelect()
+    }
+  }, [onSelected])
+
+  // Hide UI in single-lens mode
+  if (!ENABLE_SWITCHER) return null
   const [choice, setChoice] = useState<LensKey>(DEFAULT_LENS)
   const [busy, setBusy] = useState(false)
 

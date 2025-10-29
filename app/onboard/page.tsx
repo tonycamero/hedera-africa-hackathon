@@ -10,8 +10,7 @@ import { toHex } from '@/lib/util/hex'
 import { stableStringify } from '@/lib/util/stableStringify'
 import AppShell from '@/components/layout/AppShell'
 import { OnboardingCarousel } from '@/components/OnboardingCarousel'
-import ChooseFirstLens from '@/components/onboarding/ChooseFirstLens'
-import { LENSES, type LensKey } from '@/lib/lens/lensConfig'
+import { SINGLE_LENS } from '@/lib/lens/lensConfig'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -23,8 +22,7 @@ export default function OnboardingPage() {
   const [stipendAccepted, setStipendAccepted] = useState(false)
   const [stipendLoading, setStipendLoading] = useState(false)
   const [showCarousel, setShowCarousel] = useState(false)
-  const [firstLensSet, setFirstLensSet] = useState(false)
-  const [firstLens, setFirstLens] = useState<LensKey | null>(null)
+  const [hasExistingProfile, setHasExistingProfile] = useState(false)
 
   useEffect(() => {
     async function checkAuth() {
@@ -36,30 +34,35 @@ export default function OnboardingPage() {
           
           const stipendAcceptedKey = `tm:stipend:${parsed[0].hederaAccountId}`
           const alreadyAccepted = localStorage.getItem(stipendAcceptedKey) === 'true'
-          setStipendAccepted(alreadyAccepted)
           
-          // Show carousel for first-time users
-          const hasSeenCarousel = localStorage.getItem('tm:carousel:seen') === 'true'
-          setShowCarousel(!hasSeenCarousel && !alreadyAccepted)
-          
-          // Check if lens already initialized (resume-friendly)
+          // Check if user has existing profile (returning user)
           try {
             const token = await magic?.user.getIdToken()
             if (token) {
-              const res = await fetch('/api/profile/get-lens', { 
+              const res = await fetch('/api/profile/status', { 
                 headers: { Authorization: `Bearer ${token}` }
               })
               if (res.ok) {
-                const lens = await res.json()
-                if (Array.isArray(lens?.owned) && lens.owned.length > 0) {
-                  setFirstLensSet(true)
-                  setFirstLens(lens.active)
+                const data = await res.json()
+                if (data?.hasCompletedOnboarding) {
+                  // User has existing profile, redirect to app
+                  console.log('[Onboarding] Returning user detected, redirecting to contacts')
+                  setHasExistingProfile(true)
+                  router.push('/contacts')
+                  return
                 }
               }
             }
           } catch (err) {
-            // Ignore lens check errors
+            console.log('[Onboarding] Profile check failed, continuing with onboarding')
           }
+          
+          // If stipend already accepted (from localStorage or backend response), set it
+          setStipendAccepted(alreadyAccepted)
+          
+          // Show carousel for first-time users only
+          const hasSeenCarousel = localStorage.getItem('tm:carousel:seen') === 'true'
+          setShowCarousel(!hasSeenCarousel && !alreadyAccepted)
         } else {
           router.push('/')
         }
@@ -98,6 +101,14 @@ export default function OnboardingPage() {
       
       if (!response.ok) {
         const error = await response.json()
+        // If stipend already claimed, just mark it as accepted and move on
+        if (error.error?.includes('already claimed')) {
+          console.log('[Onboarding] Stipend already claimed, continuing to profile')
+          const stipendAcceptedKey = `tm:stipend:${accountId}`
+          localStorage.setItem(stipendAcceptedKey, 'true')
+          setStipendAccepted(true)
+          return
+        }
         throw new Error(error.error || 'Failed to transfer stipend')
       }
       
@@ -147,6 +158,21 @@ export default function OnboardingPage() {
       const magicToken = await magic?.user.getIdToken()
       if (!magicToken) {
         throw new Error('Not authenticated with Magic. Please log in again.')
+      }
+
+      // Initialize lens with base (single-lens mode)
+      try {
+        await fetch('/api/lens/init-first', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            Authorization: `Bearer ${magicToken}` 
+          },
+          body: JSON.stringify({ lens: SINGLE_LENS }),
+        })
+        console.log('[Onboarding] Initialized base lens')
+      } catch (err) {
+        console.warn('[Onboarding] Lens init failed (non-critical):', err)
       }
 
       console.log('[Onboarding] Signing profile with Magic Hedera extension...')
@@ -294,35 +320,13 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {/* First Lens Selection (one-time) */}
-        {magicUser && stipendAccepted && !firstLensSet && (
-          <ChooseFirstLens
-            onSelected={(lens) => { 
-              setFirstLens(lens)
-              setFirstLensSet(true)
-              localStorage.setItem('tm:lens', JSON.stringify({
-                active: lens,
-                owned: [lens],
-                lastSwitch: new Date().toISOString(),
-                unlocks: {}
-              }))
-            }}
-            className="mb-6"
-          />
-        )}
-
-        {/* Profile Creation Form (gated on first lens) */}
-        {magicUser && stipendAccepted && firstLensSet && (
+        {/* Profile Creation Form */}
+        {magicUser && stipendAccepted && (
           <Card className="p-6 space-y-6 bg-panel border-white/10">
             <div className="text-center">
               <h2 className="text-xl font-semibold text-white mb-2">Create Your Profile</h2>
               <p className="text-white/70">Set up your TrustMesh identity to start exchanging recognitions</p>
               <p className="text-xs text-white/70 mt-2">Logged in as: {magicUser.email}</p>
-              {firstLens && (
-                <p className="text-xs text-white/60 mt-1">
-                  Initial lens: {LENSES[firstLens].label} {LENSES[firstLens].emoji}
-                </p>
-              )}
             </div>
 
             <div className="space-y-4">

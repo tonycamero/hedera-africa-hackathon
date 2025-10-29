@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { LENSES, type LensKey } from '@/lib/lens/lensConfig'
+import { LENSES, type LensKey, ENABLE_SWITCHER } from '@/lib/lens/lensConfig'
 import { magic } from '@/lib/magic'
 import { LensUnlockModal } from '@/components/LensUnlockModal'
 
 export function HeaderLensSwitcher() {
+  // Rollback: hide switcher in single-lens mode
+  if (!ENABLE_SWITCHER) return null
   const [active, setActive] = useState<LensKey>('base')
   const [owned, setOwned] = useState<LensKey[]>(['base'])
   const [open, setOpen] = useState(false)

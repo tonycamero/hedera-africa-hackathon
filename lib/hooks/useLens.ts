@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { SINGLE_LENS } from '@/lib/lens/lensConfig'
 
 export type Lens = 'genz' | 'pro' | 'civic'
 
@@ -24,9 +25,17 @@ const VALID_LENSES: Lens[] = ['genz', 'pro', 'civic']
  */
 export function useLens(): Lens {
   const searchParams = useSearchParams()
-  const [lens, setLens] = useState<Lens>('genz')
+  // Rollback: force single-lens mode
+  const forced = SINGLE_LENS as Lens
+  const [lens, setLens] = useState<Lens>(forced || 'genz')
 
   useEffect(() => {
+    // If single-lens mode is enforced, ignore all other sources
+    if (forced) {
+      setLens(forced)
+      return
+    }
+
     // Priority 1: URL param
     const urlLens = searchParams?.get('lens') as Lens | null
     if (urlLens && VALID_LENSES.includes(urlLens)) {
@@ -49,7 +58,7 @@ export function useLens(): Lens {
 
     // Priority 3: default to genz
     setLens('genz')
-  }, [searchParams])
+  }, [searchParams, forced])
 
   return lens
 }

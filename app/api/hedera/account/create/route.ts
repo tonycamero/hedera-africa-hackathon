@@ -10,6 +10,7 @@ import {
   PrivateKey as HederaPrivateKey,
 } from '@hashgraph/sdk';
 import { getHederaClient } from '@/lib/hedera/serverClient';
+import { emailToAccountMap } from '../lookup/route';
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,14 @@ export async function POST(req: NextRequest) {
         // Don't fail the whole request if TRST transfer fails
       }
     }
+
+    // Register account in lookup map to prevent duplicates
+    emailToAccountMap.set(email, {
+      accountId: newAccountId,
+      publicKey: userPublicKey.toStringDer(),
+      magicDID: magicDID || email
+    });
+    console.log('[API] Registered account in lookup map:', email, '→', newAccountId);
 
     const response: any = {
       accountId: newAccountId,
