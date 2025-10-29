@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { magic } from '@/lib/magic'
 import { useLens } from '@/lib/hooks/useLens'
 import { getCatalogForLens, RecognitionType } from '@/lib/catalog/getCatalog'
+import { LENSES } from '@/lib/lens/lensConfig'
 import { Button, Card, Input } from '@/components/ui/kit'
 import { X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -78,8 +79,9 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <Card className="w-full max-w-lg bg-panel border-white/10 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <Card className="bg-panel border-white/10 p-6 space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -96,33 +98,30 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        {/* Lens indicator */}
-        <div className="text-xs text-white/50 border-l-2 border-white/20 pl-3">
-          Using {minterLens} lens vocabulary
-        </div>
-
         {/* Recognition type picker */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-white">Select Recognition Type</label>
-          <div className="grid grid-cols-1 gap-2">
+        <div className="space-y-3">
+          <div className="text-sm text-white/60">
+            Choose a recognition to send using {LENSES[minterLens].emoji} {LENSES[minterLens].label} lens
+          </div>
+          <div className="space-y-2">
             {catalog.map((type) => (
               <button
                 key={type.id}
                 onClick={() => setSelectedId(type.id)}
-                className={`text-left p-3 rounded-lg border transition ${
+                className={`w-full text-left p-4 rounded-lg border transition ${
                   selectedId === type.id
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-white/10 hover:border-white/30 bg-white/5'
+                    ? 'border-white/30 bg-white/10'
+                    : 'border-white/10 hover:border-white/20 bg-panel'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{type.emoji}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-4xl">{type.emoji}</span>
                   <div className="flex-1">
-                    <div className="font-medium text-white">{type.label}</div>
-                    <div className="text-xs text-white/60">{type.description}</div>
+                    <div className="text-white font-semibold text-lg">{type.label}</div>
+                    <div className="text-sm text-white/60 mt-1">{type.description}</div>
                   </div>
                   {selectedId === type.id && (
-                    <div className="text-purple-400 text-sm">✓</div>
+                    <div className="text-white text-xl">✓</div>
                   )}
                 </div>
               </button>
@@ -149,7 +148,7 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
         </div>
 
         {/* NFT mint option */}
-        <div className="flex items-start gap-3 p-3 rounded-lg border border-white/10 bg-white/5">
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-white/10">
           <input
             type="checkbox"
             id="mintAsNFT"
@@ -157,17 +156,16 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
             onChange={(e) => setMintAsNFT(e.target.checked)}
             className="mt-1"
           />
-          <label htmlFor="mintAsNFT" className="flex-1 cursor-pointer">
-            <div className="text-sm font-medium text-white">Mint as NFT (transferable asset)</div>
-            <div className="text-xs text-white/60 mt-1">
-              Create a transferable token that can be shown in wallets and marketplaces.
-              Costs additional 0.001 HBAR for minting.
+          <label htmlFor="mintAsNFT" className="flex-1 cursor-pointer text-sm">
+            <div className="font-medium text-white">Mint as NFT (optional)</div>
+            <div className="text-white/60 mt-1">
+              Create a transferable token (+0.001 HBAR)
             </div>
           </label>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-4">
           <Button
             onClick={onClose}
             variant="outline"
@@ -186,10 +184,11 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
         </div>
 
         {/* Info */}
-        <div className="text-xs text-white/40 text-center pt-2">
-          Costs 0.01 TRST{mintAsNFT && ' + 0.001 HBAR (NFT mint)'} • Recognition is permanent and immutable
+        <div className="text-xs text-white/50 text-center pt-3">
+          Costs 0.01 TRST{mintAsNFT && ' + 0.001 HBAR'} • Permanent and immutable
         </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }
