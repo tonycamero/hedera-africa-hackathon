@@ -1,0 +1,88 @@
+title: "HCS-22: Provision on First On-Chain Action"
+status: QUEUED
+priority: MEDIUM
+phase: 4
+dependencies:
+  - T1_magic_nonblocking_resolve (completed)
+  - At least 48 hours of monitoring ASSERT events
+
+description: |
+  Integrate HCS-22 account provisioning into first on-chain action (mint/payment).
+  
+  Instead of creating accounts during login, defer creation until user actually needs
+  an on-chain identity. This reduces unnecessary account creation and transaction costs.
+
+scope:
+  files:
+    - app/api/recognition/mint/route.ts (or equivalent mint endpoint)
+    - lib/services/MagicWalletService.ts (modify account creation)
+  
+tasks:
+  - Identify first on-chain action entry points (mint, payment, etc.)
+  - Add resolveHederaAccountId() check before on-chain operations
+  - Call provisionAndBind() only if account doesn't exist
+  - Update existing account creation to use HCS-22 provision
+  - Preserve transaction IDs for BIND events
+
+implementation:
+  approach: "Lazy provisioning on demand"
+  code: |
+    // In mint/payment API route
+    import { resolveHederaAccountId } from '@/lib/server/hcs22/resolver';
+    import { provisionAndBind } from '@/lib/server/hcs22/provision';
+    import * as crypto from 'crypto';
+    
+    export async function POST(req: Request) {
+      const { issuer, evmAddress, email } = await req.json();
+      
+      // Try to resolve existing account
+      let accountId = await resolveHederaAccountId(issuer);
+      
+      // Provision if needed (only on first on-chain action)
+      if (!accountId) {
+        console.log('[Mint] No account found, provisioning via HCS-22...');
+        const result = await provisionAndBind({
+          evmAddress,
+          issuer,
+          emailHash: crypto.createHash('sha256').update(email).digest('hex')
+        });
+        accountId = result.accountId;
+        console.log('[Mint] Provisioned account:', accountId);
+      }
+      
+      // Proceed with mint using accountId
+      // ...
+    }
+
+acceptance_criteria:
+  - Account resolution attempted before provisioning
+  - Provision only happens when account doesn't exist
+  - BIND events published for new accounts
+  - Transaction IDs captured in BIND events
+  - Existing accounts resolved via Mirror (fast path)
+  - Login flow unchanged - no account creation during login
+
+testing:
+  - New user: login → no account → mint → provision → account created
+  - Existing user: login → resolve → mint → account found → no provision
+  - Verify BIND events only for new accounts
+  - Check provision latency (< 5 seconds)
+  - Monitor HCS topic for BIND events
+
+rollback:
+  - Revert to localStorage-based account creation
+  - Remove resolver/provision calls
+  - No HCS events affected (read-only change)
+
+risks: MEDIUM
+  - Provision latency could delay first mint
+  - Dust transfer might fail (need retry logic)
+  - Mirror Node lag could cause duplicate provisioning
+
+effort: 3 hours
+verification: "Monitor BIND events on HCS topic for new account creations"
+
+notes: |
+  This is Step 2 of gradual HCS-22 integration.
+  Shifts account creation from login to first on-chain action.
+  Requires monitoring provision success rate and latency.

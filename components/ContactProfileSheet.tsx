@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { signalsStore } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
+import { useTopicRegistry } from "@/lib/hooks/useTopicRegistry"
 import { 
   MapPin, 
   Globe, 
@@ -89,6 +90,7 @@ export function ContactProfileSheet({
   contactHandle?: string;
   onClose: () => void 
 }) {
+  const topics = useTopicRegistry()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<ProfileData | null>(null)
   const [hrl, setHrl] = useState<string | null>(null)
@@ -155,6 +157,151 @@ export function ContactProfileSheet({
     let email: string | undefined = undefined;
     let lastActiveAt = 0;
     
+    // FIRST: Check for PROFILE_UPDATE events (HCS-11 profile data)
+    console.log(`[ContactProfileSheet] Searching for PROFILE_UPDATE events. Total events: ${allEvents.length}`);
+    console.log(`[ContactProfileSheet] Looking for peerId: ${peerId}`);
+    
+    // Debug: Log all PROFILE_UPDATE events
+    const allProfileUpdates = allEvents.filter(e => e.type === 'PROFILE_UPDATE');
+    console.log(`[ContactProfileSheet] Total PROFILE_UPDATE events in store: ${allProfileUpdates.length}`);
+    if (allProfileUpdates.length > 0) {
+      console.log('[ContactProfileSheet] Sample PROFILE_UPDATE event:', JSON.stringify(allProfileUpdates[0], null, 2));
+    }
+    
+    const profileEvents = allEvents.filter(event => {
+      if (event.type !== 'PROFILE_UPDATE') return false;
+      
+      // Check multiple possible locations for sessionId (nested in metadata.payload for HCS events)
+      const sessionId = event.metadata?.payload?.sessionId || event.payload?.sessionId || event.metadata?.sessionId;
+      const actor = event.actor;
+      const target = event.target;
+      
+      const matches = sessionId === peerId || actor === peerId || target === peerId;
+      
+      if (matches) {
+        console.log(`[ContactProfileSheet] MATCHED PROFILE_UPDATE:`, {
+          eventType: event.type,
+          sessionId,
+          actor,
+          target,
+          peerId,
+          payload: event.payload,
+          metadata: event.metadata
+        });
+      }
+      
+      return matches;
+    });
+    
+    console.log(`[ContactProfileSheet] Found ${profileEvents.length} PROFILE_UPDATE events for ${peerId}`);
+    
+    // Extract profile data from most recent PROFILE_UPDATE
+    // Sort by HCS sequence number (from id like '0.0.7148066/64') for accurate ordering
+    if (profileEvents.length > 0) {
+      const latestProfile = profileEvents.sort((a, b) => {
+        const getSeq = (id: string) => {
+          const match = id?.match(/\/(\d+)$/);
+          return match ? parseInt(match[1], 10) : 0;
+        };
+        return getSeq(b.id) - getSeq(a.id);  // Higher sequence = more recent
+      })[0];
+      
+      // Profile data could be in payload or metadata (check both)
+      // HCS events have data nested in metadata.payload
+      const profilePayload = latestProfile.metadata?.payload || latestProfile.payload || {};
+      const profileMetadata = latestProfile.metadata || {};
+      
+      console.log('[ContactProfileSheet] Latest profile raw data:', {
+        payload: profilePayload,
+        metadata: profileMetadata,
+        fullEvent: latestProfile
+      });
+      
+      // Extract comprehensive profile info from HCS-11 PROFILE_UPDATE
+      // Data is in metadata.payload for HCS events
+      const profileHandle = profilePayload.handle || profileMetadata.handle;
+      const profileBio = profilePayload.bio || profileMetadata.bio;
+      const profileLocation = profilePayload.location || profileMetadata.location;
+      const profileAvatar = profilePayload.avatar || profileMetadata.avatar;
+      const profileVisibility = profilePayload.visibility || profileMetadata.visibility;
+      
+      console.log('[ContactProfileSheet] Extracted profile fields:', {
+        profileHandle,
+        profileBio,
+        profileLocation,
+        profileAvatar,
+        profileVisibility
+      });
+      
+      if (profileHandle || profileBio) {
+        // We have HCS-11 profile data - use it!
+        const richProfile = {
+          handle: profileHandle || peerId,
+          displayName: profileHandle,
+          fullName: profileHandle,
+          bio: profileBio || 'TrustMesh user',
+          location: profileLocation,
+          avatar: profileAvatar,
+          visibility: profileVisibility || 'public',
+          joinedAt: latestProfile.ts,
+          lastActiveAt: latestProfile.ts,
+          onlineStatus: 'unknown' as const
+        };
+        
+        console.log('[ContactProfileSheet] ✅ Using HCS-11 profile:', richProfile);
+        
+        setData(richProfile);
+        setSource('hcs-profile');
+        setBasicDataLoaded(true);
+        
+        // Load enhanced stats in background
+        setTimeout(() => {
+          // Get trust and recognition stats
+          const trustEvents = allEvents.filter(event => {
+            const actor = getActor(event);
+            const target = getTarget(event);
+            return event.type === 'TRUST_ALLOCATE' && 
+                   actor === currentSessionId && 
+                   target === peerId;
+          });
+          
+          let trustWeight: number | undefined = undefined;
+          if (trustEvents.length > 0) {
+            const latest = trustEvents.sort((a, b) => b.ts - a.ts)[0];
+            trustWeight = latest.metadata?.weight;
+          }
+          
+          const recognitionEvents = allEvents.filter(event => {
+            const target = getTarget(event);
+            return event.type === 'RECOGNITION_MINT' && target === peerId;
+          });
+          
+          const connectionEvents = allEvents.filter(event => {
+            const actor = getActor(event);
+            const target = getTarget(event);
+            return event.type.includes('CONTACT') && 
+                   (actor === peerId || target === peerId) &&
+                   (event.type === 'CONTACT_ACCEPT' || event.type === 'CONTACT_ACCEPTED');
+          });
+          
+          setData({
+            ...richProfile,
+            trustScore: trustWeight,
+            connections: Math.floor(connectionEvents.length / 2),
+            recognitionsReceived: recognitionEvents.length
+          });
+          setLoading(false);
+        }, 0);
+        
+        return; // Early return with rich profile data
+      } else {
+        console.warn('[ContactProfileSheet] ⚠️ PROFILE_UPDATE found but no handle/bio extracted');
+      }
+    } else {
+      console.warn(`[ContactProfileSheet] ⚠️ No PROFILE_UPDATE events found for ${peerId}`);
+    }
+    
+    // FALLBACK: If no PROFILE_UPDATE found, extract from contact events
     for (const event of peerEvents) {
       // Extract name information from multiple possible locations
       const eventHandle = event.metadata?.handle || event.payload?.handle;
@@ -474,7 +621,7 @@ export function ContactProfileSheet({
             </button>
             {/* Modal Header */}
             <div className="mb-6 pb-4 border-b border-blue-500/20">
-              <h2 className="text-white text-2xl font-bold bg-gradient-to-r from-white via-blue-400 to-cyan-500 bg-clip-text text-transparent flex items-center gap-2">
+              <h2 className="text-white text-2xl font-bold bg-gradient-to-r from-white via-blue-400 to-purple-500 bg-clip-text text-transparent flex items-center gap-2">
                 Contact Profile
               </h2>
             </div>
@@ -796,14 +943,14 @@ export function ContactProfileSheet({
                 </summary>
                 <div className="mt-2 space-y-1">
                   <button
-                    onClick={() => openHashScan(generateHashScanUrl('0.0.6896005'))}
+                    onClick={() => openHashScan(generateHashScanUrl(topics.contacts))}
                     className="text-xs text-white/60 hover:text-blue-400 hover:underline flex items-center gap-1 w-full text-left"
                   >
                     <ExternalLink className="w-3 h-3" />
                     Contact & Trust Topic
                   </button>
                   <button
-                    onClick={() => openHashScan(generateHashScanUrl('0.0.6895261'))}
+                    onClick={() => openHashScan(generateHashScanUrl(topics.recognition))}
                     className="text-xs text-white/60 hover:text-[#FF6B35] hover:underline flex items-center gap-1 w-full text-left"
                   >
                     <ExternalLink className="w-3 h-3" />
@@ -836,10 +983,12 @@ export function ContactProfileSheet({
               )}
               <div className="text-xs text-[hsl(var(--muted-foreground))]">
                 Source: {source}
+                {source === "hcs-profile" && <span className="ml-1 text-green-600">✓ HCS-11 Profile</span>}
                 {source === "mirror_node" && <span className="ml-1 text-green-600">✓ HCS Profile + Mirror Node</span>}
                 {source === "hcs_signals" && <span className="ml-1 text-blue-600">✓ From HCS signals</span>}
                 {source === "hcs_signals_only" && <span className="ml-1 text-blue-600">✓ HCS Contact (No Profile)</span>}
                 {source === "hcs_contact_only" && <span className="ml-1 text-amber-600">⚠ Contact ID Only</span>}
+                {source === "hcs-cached" && <span className="ml-1 text-blue-600">✓ HCS Cached</span>}
                 {source === "fallback" && <span className="ml-1 text-amber-600">⚠ Offline fallback</span>}
                 {source === "error" && <span className="ml-1 text-red-600">⚠ HCS Fetch Failed</span>}
               </div>

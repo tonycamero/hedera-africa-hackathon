@@ -91,7 +91,7 @@ export function PublicContactCard({ accountId, handle }: PublicContactCardProps)
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
       <div className="flex items-center gap-4">
         {/* Avatar */}
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center">
           {profile.avatar ? (
             <img 
               src={profile.avatar} 

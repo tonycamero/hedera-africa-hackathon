@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
+import { topics } from '@/lib/registry/serverRegistry'
 
 export async function GET() {
   try {
     console.log('🐛 Debug: Checking client-side environment variables...')
     
-    // These should be inlined at build time if properly set
+    const topicRegistry = topics()
+    
+    // Show both raw env vars and validated registry
     const clientEnvs = {
       NEXT_PUBLIC_TOPIC_PROFILE: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
       NEXT_PUBLIC_TOPIC_CONTACT: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
@@ -32,6 +35,7 @@ export async function GET() {
       success: true,
       available,
       missing,
+      registry: topicRegistry,
       totalCount: Object.keys(clientEnvs).length,
       availableCount: Object.keys(available).length,
       missingCount: missing.length,

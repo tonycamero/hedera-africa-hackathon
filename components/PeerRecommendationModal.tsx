@@ -363,8 +363,8 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
               })}
             </div>
             
-            {/* Compact Token Grid */}
-            <div className="grid grid-cols-3 gap-1">
+            {/* Token Grid - Cleaner Layout */}
+            <div className="grid grid-cols-3 gap-2 max-h-[40vh] overflow-y-auto">
               {genZRecognitions.map((recognition) => {
                 const Icon = recognition.icon
                 const isSelected = selectedRecognitions.includes(recognition.id)
@@ -373,30 +373,16 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
                   <div
                     key={recognition.id}
                     onClick={() => handleTokenDetail(recognition)}
-                    className={`cursor-pointer p-1.5 rounded border transition-all hover:scale-105 ${
+                    className={`cursor-pointer p-3 rounded-lg border transition-all text-center ${
                       isSelected 
-                        ? `${recognition.bgColor} ${recognition.borderColor} shadow-[0_0_10px_rgba(217,70,239,0.3)]` 
-                        : 'bg-black/30 border-white/10 hover:border-fuchsia-500/30'
+                        ? 'bg-white/10 border-white shadow-lg' 
+                        : 'bg-panel border-white/20 hover:border-white/40'
                     }`}
                   >
-                    <div className="flex flex-col items-center gap-0.5">
-                      <div className={`p-1 rounded border ${
-                        recognition.category === 'leadership' ? 'border-orange-400/50 bg-orange-400/10' :
-                        recognition.category === 'knowledge' ? 'border-emerald-400/50 bg-emerald-400/10' :
-                        recognition.category === 'execution' ? 'border-purple-400/50 bg-purple-400/10' : 'border-fuchsia-500/50 bg-fuchsia-500/10'
-                      }`}>
-                        <Icon className={`w-2.5 h-2.5 ${
-                          recognition.category === 'leadership' ? 'text-orange-400' :
-                          recognition.category === 'knowledge' ? 'text-emerald-400' :
-                          recognition.category === 'execution' ? 'text-purple-400' : 'text-fuchsia-500'
-                        }`} />
-                      </div>
-                      <div className="text-[10px] text-white text-center truncate w-full leading-tight">{recognition.name}</div>
-                      <div className={`text-[10px] font-medium ${
-                        recognition.category === 'leadership' ? 'text-orange-400' :
-                        recognition.category === 'knowledge' ? 'text-emerald-400' :
-                        recognition.category === 'execution' ? 'text-purple-400' : 'text-fuchsia-400'
-                      }`}>{recognition.trustValue}</div>
+                    <div className="flex flex-col items-center gap-2">
+                      <Icon className="w-6 h-6 text-white" />
+                      <div className="text-xs text-white font-medium leading-tight">{recognition.name}</div>
+                      <div className="text-xs text-white/60">{recognition.trustValue}</div>
                     </div>
                   </div>
                 )

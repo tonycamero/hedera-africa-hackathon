@@ -5,6 +5,7 @@ import { ensureHbar } from "@/lib/services/hbarGuardrail"
 import { logTxServer } from "@/lib/telemetry/txLog"
 import { hasSufficientTRST, recordTRSTDebit } from "@/lib/services/trstBalanceService"
 import { TRST_PRICING } from "@/lib/config/pricing"
+import { topics } from "@/lib/registry/serverRegistry"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
 
@@ -12,7 +13,6 @@ const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornod
 const OPERATOR_ID = process.env.HEDERA_OPERATOR_ID || process.env.NEXT_PUBLIC_HEDERA_OPERATOR_ID
 const OPERATOR_KEY = process.env.HEDERA_OPERATOR_KEY
 const HEDERA_NETWORK = process.env.HEDERA_NETWORK || "testnet"
-const PROFILE_TOPIC_ID = process.env.NEXT_PUBLIC_PROFILE_TOPIC_ID || "0.0.6896005"
 
 export async function GET(req: NextRequest) {
   try {
@@ -157,6 +157,7 @@ export async function POST(req: NextRequest) {
       publicKey  // User's public key for verification
     }
 
+    const PROFILE_TOPIC_ID = topics().profile
     console.log(`[HCS Profile POST] Submitting signed profile for ${accountId} to topic ${PROFILE_TOPIC_ID}`)
     console.log(`[HCS Profile POST] Signature: ${signature.slice(0, 16)}...`)
     console.log(`[HCS Profile POST] Public Key: ${publicKey}`)

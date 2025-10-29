@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
+import { topics as getTopics } from '@/lib/registry/serverRegistry';
 
 const MIRROR = process.env.NEXT_PUBLIC_MIRROR_NODE_URL || "https://testnet.mirrornode.hedera.com/api/v1";
+const topicRegistry = getTopics();
 const topics = {
-  contact: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
-  trust: process.env.NEXT_PUBLIC_TOPIC_TRUST,
-  recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION ||  process.env.NEXT_PUBLIC_TOPIC_SIGNAL,
-  profile: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
+  contact: topicRegistry.contacts,
+  trust: topicRegistry.trust,
+  recognition: topicRegistry.recognition,
+  profile: topicRegistry.profile,
 };
 
 export async function GET() {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { submitToTopic } from "@/lib/hedera/serverClient"
-
-const SYSTEM_TOPIC = process.env.NEXT_PUBLIC_TOPIC_PROFILE || "0.0.6896008" // Using profile topic for system messages
+import { topics } from "@/lib/registry/serverRegistry"
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,8 +26,9 @@ export async function POST(req: NextRequest) {
 
     console.log(`[HCS System] Writing system message: ${type}`)
 
-    // Submit to HCS System/Profile topic
-    if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true" && SYSTEM_TOPIC) {
+    // Submit to HCS System topic (uses signal topic per registry)
+    const SYSTEM_TOPIC = topics().system
+    if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true") {
       const result = await submitToTopic(
         SYSTEM_TOPIC, 
         JSON.stringify(systemMessage)

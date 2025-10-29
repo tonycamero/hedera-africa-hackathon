@@ -187,13 +187,17 @@ export class GenzSignalService {
     senderHandle: string
     timestamp: number
   }): void {
+    // Import registry at usage to avoid circular deps
+    const { getTopicRegistry } = require('@/lib/hooks/useTopicRegistry')
+    const topics = getTopicRegistry()
+    
     const signalEvent = {
       id: `genz_signal_${params.boostId}`,
       type: 'RECOGNITION_MINT',
       actor: params.senderAccountId,
       target: params.recipientAccountId,
       ts: params.timestamp,
-      topicId: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || '0.0.6895261',
+      topicId: topics.recognition,
       metadata: {
         templateId: params.templateId,
         template: params.template,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { signalsStore } from '@/lib/stores/signalsStore'
+import { topics } from '@/lib/registry/serverRegistry'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,17 +22,20 @@ export async function GET(request: NextRequest) {
     // Get ingestion status - not available server-side
     const ingestionStatus = 'server: use window.trustmeshIngest in browser console'
     
+    const topicRegistry = topics()
+    
     return NextResponse.json({
       timestamp: new Date().toISOString(),
       environment: {
         HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED,
         MIRROR_REST: process.env.NEXT_PUBLIC_MIRROR_NODE_URL,
         TOPICS: {
-          profile: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
-          contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
-          trust: process.env.NEXT_PUBLIC_TOPIC_TRUST,
-          recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION,
-          signal: process.env.NEXT_PUBLIC_TOPIC_SIGNAL
+          profile: topicRegistry.profile,
+          contacts: topicRegistry.contacts,
+          trust: topicRegistry.trust,
+          recognition: topicRegistry.recognition,
+          signal: topicRegistry.signal,
+          system: topicRegistry.system
         }
       },
       store: {

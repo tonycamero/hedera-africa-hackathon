@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,11 +20,31 @@ import {
   ArrowUp,
   Command,
   Gauge,
-  Radio
+  Radio,
+  UserCheck,
+  AlertCircle
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function TrustOperationsCenter() {
+  const router = useRouter()
   const [selectedTab, setSelectedTab] = useState<"operations" | "alerts" | "resources">("operations")
+  const [profileStatus, setProfileStatus] = useState<{ hasProfile: boolean; handle?: string; accountId?: string }>({ hasProfile: false })
+
+  useEffect(() => {
+    const users = localStorage.getItem('tm:users')
+    if (users) {
+      try {
+        const [u] = JSON.parse(users)
+        if (u?.handle && u?.hederaAccountId) {
+          setProfileStatus({ hasProfile: true, handle: u.handle, accountId: u.hederaAccountId })
+        } else if (u?.hederaAccountId) {
+          setProfileStatus({ hasProfile: false, accountId: u.hederaAccountId })
+        }
+      } catch {}
+    }
+  }, [])
 
   return (
     <div className="max-w-md mx-auto px-4 py-4 space-y-4">
@@ -40,6 +60,55 @@ export default function TrustOperationsCenter() {
           </p>
         </div>
       </div>
+
+      {/* Profile Status Alert */}
+      {!profileStatus.hasProfile && profileStatus.accountId && (
+        <Card className="bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-2 border-orange-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="font-semibold text-sm text-white mb-1">Profile Update Required</div>
+                <div className="text-xs text-white/80 mb-3">
+                  Your bonded contacts won't appear until you publish your profile to HCS-11.
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => router.push('/me')}
+                  className="h-8 px-4 text-xs bg-orange-500/20 text-orange-300 border border-orange-500/30 hover:bg-orange-500/30"
+                >
+                  <UserCheck className="w-3 h-3 mr-1" />
+                  Update Profile Now
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Profile Status - Success */}
+      {profileStatus.hasProfile && (
+        <Card className="bg-gradient-to-br from-emerald-900/30 to-green-900/30 border border-emerald-500/20">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <div className="flex-1">
+                <div className="text-xs text-white/90">
+                  Profile Active: <span className="font-semibold text-emerald-400">{profileStatus.handle}</span>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => router.push('/me')}
+                className="h-6 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10"
+              >
+                Edit
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* System Status */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/10">

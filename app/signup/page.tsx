@@ -28,7 +28,7 @@ export default function SignupPage() {
 
   if (step === 3) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full text-center">
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
             <div className="text-6xl mb-4">🎉</div>
@@ -40,7 +40,7 @@ export default function SignupPage() {
             <div className="space-y-4">
               <button 
                 onClick={() => window.open('/send', '_blank')}
-                className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full text-white font-medium hover:scale-105 transition-all shadow-lg"
+                className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-purple-500 rounded-full text-white font-medium hover:scale-105 transition-all shadow-lg"
               >
                 <MessageSquare className="h-5 w-5 inline mr-2" />
                 Send Your First Signal
@@ -62,7 +62,7 @@ export default function SignupPage() {
 
   if (step === 2) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
             <div className="text-center mb-6">
@@ -85,7 +85,7 @@ export default function SignupPage() {
 
             <button 
               onClick={handleCreateSignal}
-              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full text-white font-medium hover:scale-105 transition-all shadow-lg"
+              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-500 rounded-full text-white font-medium hover:scale-105 transition-all shadow-lg"
             >
               Start Creating Signals
             </button>
@@ -96,7 +96,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900">
       <div className="container mx-auto px-4 py-8 max-w-md">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -173,7 +173,7 @@ export default function SignupPage() {
               className={`w-full px-6 py-3 rounded-full font-medium transition-all ${
                 isLoading 
                   ? 'bg-white/20 text-purple-300 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white hover:scale-105 shadow-lg'
+                  : 'bg-gradient-to-r from-purple-500 to-purple-500 hover:from-purple-600 hover:to-purple-600 text-white hover:scale-105 shadow-lg'
               }`}
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}

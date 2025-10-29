@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear TrustMesh Cache</title>
+</head>
+<body>
+    <h1>Clear TrustMesh Cache</h1>
+    <button onclick="clearCache()">Clear All Cache</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function clearCache() {
+            const output = document.getElementById('output');
+            output.textContent = 'Clearing cache...\n';
+            
+            // List all localStorage keys
+            const keys = Object.keys(localStorage);
+            output.textContent += `Found ${keys.length} localStorage keys:\n`;
+            keys.forEach(key => {
+                output.textContent += `  - ${key}\n`;
+            });
+            
+            // Clear everything
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            output.textContent += '\n✅ All cache cleared!\n';
+            output.textContent += 'Please refresh the page and log in again.\n';
+        }
+    </script>
+</body>
+</html>

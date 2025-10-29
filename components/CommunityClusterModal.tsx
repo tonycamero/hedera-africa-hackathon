@@ -499,7 +499,7 @@ export function CommunityClusterModal({ cluster, children }: CommunityClusterMod
                       </div>
                       <div className="flex justify-between">
                         <span className="text-blue-300/80">Network Density:</span>
-                        <span className="text-cyan-400 font-medium">{hcsData.trustMetrics.networkDensity.toFixed(2)}</span>
+                        <span className="text-purple-400 font-medium">{hcsData.trustMetrics.networkDensity.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-purple-300/80">Cross-Cluster Links:</span>
@@ -649,8 +649,8 @@ export function CommunityClusterModal({ cluster, children }: CommunityClusterMod
                       <span className="text-emerald-400 font-medium">{hcsData.governanceData.complianceScore}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-cyan-300/80">🔍 Transparency:</span>
-                      <span className="text-cyan-400 font-medium">{hcsData.governanceData.transparency}%</span>
+                      <span className="text-purple-300/80">🔍 Transparency:</span>
+                      <span className="text-purple-400 font-medium">{hcsData.governanceData.transparency}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-amber-300/80">🏆 Success Rate:</span>

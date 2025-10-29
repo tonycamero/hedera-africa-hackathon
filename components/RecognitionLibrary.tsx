@@ -19,7 +19,7 @@ const rarityColors: Record<RarityLevel, string> = {
 }
 
 const categoryColors: Record<SignalCategory, string> = {
-  'social': 'border-l-cyan-500 bg-cyan-50',
+  'social': 'border-l-cyan-500 bg-purple-50',
   'academic': 'border-l-purple-500 bg-purple-50', 
   'professional': 'border-l-blue-500 bg-blue-50'
 }
@@ -210,7 +210,7 @@ export default function RecognitionLibrary() {
         </p>
         <div className="flex justify-center items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-cyan-500" />
+            <Globe className="w-4 h-4 text-purple-500" />
             <span>{categoryStats.social} Social</span>
           </div>
           <div className="flex items-center gap-2">

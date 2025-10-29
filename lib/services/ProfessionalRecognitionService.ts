@@ -307,13 +307,17 @@ export class ProfessionalRecognitionService {
    * Add recognition to signals store for immediate UI feedback
    */
   private addToSignalsStore(message: any, recipientId: string, issuerId: string): void {
+    // Import registry at usage to avoid circular deps
+    const { getTopicRegistry } = require('@/lib/hooks/useTopicRegistry')
+    const topics = getTopicRegistry()
+    
     const signalEvent = {
       id: `recognition_${message.definitionId}_${recipientId}_${Date.now()}`,
       type: 'RECOGNITION_MINT',
       actor: issuerId,
       target: recipientId,
       ts: Date.now(),
-      topicId: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || '0.0.6895261',
+      topicId: topics.recognition,
       metadata: {
         definitionId: message.definitionId,
         definitionSlug: message.definitionSlug,

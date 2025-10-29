@@ -7,7 +7,7 @@
 
 import React from 'react'
 import type { LayoutMode } from '@/lib/layout/mode-detector'
-import { AppShell } from './AppShell'
+import AppShell from './AppShell'
 import { ViralShell } from './ViralShell'
 import { EmbedShell } from './EmbedShell'
 import { KioskShell } from './KioskShell'

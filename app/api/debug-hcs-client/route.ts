@@ -1,9 +1,11 @@
 // app/api/debug-hcs-client/route.ts
 import { NextResponse } from "next/server"
-import { HCS_ENABLED, MIRROR_REST, TOPIC } from "@/lib/env"
+import { topics } from '@/lib/registry/serverRegistry'
 
 export async function GET() {
   try {
+    const topicRegistry = topics()
+    
     return NextResponse.json({
       status: 'info',
       message: 'Server-side debugging not available - signals store is client-side only',
@@ -18,11 +20,12 @@ export async function GET() {
         HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED,
         NODE_ENV: process.env.NODE_ENV,
         topics: {
-          profile: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
-          contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
-          trust: process.env.NEXT_PUBLIC_TOPIC_TRUST,
-          recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION,
-          signal: process.env.NEXT_PUBLIC_TOPIC_SIGNAL
+          profile: topicRegistry.profile,
+          contacts: topicRegistry.contacts,
+          trust: topicRegistry.trust,
+          recognition: topicRegistry.recognition,
+          signal: topicRegistry.signal,
+          system: topicRegistry.system
         }
       }
     })

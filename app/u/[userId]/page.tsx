@@ -89,7 +89,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
       <div className="max-w-md mx-auto px-4 py-8 space-y-6">
         {/* Gamer Profile Card */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-cyan-500/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-purple-500/10" />
           <div className="relative">
             {/* Level Badge */}
             <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full">
@@ -109,7 +109,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
                 <div className="text-purple-200 text-sm mb-2">
                   @{params.userId.replace('tm-', '')}
                 </div>
-                <div className="text-xs text-cyan-300">
+                <div className="text-xs text-purple-300">
                   Trust Score: {totalScore} • XP to next level: {xpToNext}
                 </div>
               </div>
@@ -123,7 +123,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
               </div>
               <div className="w-full bg-white/20 rounded-full h-2">
                 <div 
-                  className="bg-gradient-to-r from-cyan-400 to-purple-400 h-2 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-purple-400 to-purple-400 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${xpProgress}%` }}
                 />
               </div>
@@ -134,12 +134,12 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
         {/* Gaming Stats */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
           <h2 className="text-white font-bold mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-cyan-400" />
+            <Target className="w-5 h-5 text-purple-400" />
             Player Stats
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/10 rounded-xl p-4 text-center">
-              <Shield className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+              <Shield className="w-6 h-6 text-purple-400 mx-auto mb-2" />
               <div className="text-2xl font-bold text-white mb-1">
                 {profileStats.friends}
               </div>
@@ -181,7 +181,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
             </h2>
             <div className="flex flex-wrap gap-3">
               {achievements.map((achievement, i) => (
-                <div key={i} className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-lg p-3 border border-white/20">
+                <div key={i} className="bg-gradient-to-r from-purple-500/20 to-purple-500/20 rounded-lg p-3 border border-white/20">
                   <div className="text-2xl mb-1 text-center">{achievement.icon}</div>
                   <div className="text-white text-xs font-bold text-center">{achievement.name}</div>
                   <div className="text-white/60 text-xs text-center">{achievement.desc}</div>
@@ -193,7 +193,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
 
         {/* Join The Game CTA */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-purple-500/10" />
           <div className="relative text-center">
             <div className="text-4xl mb-3">🎮</div>
             <h2 className="text-2xl font-bold text-white mb-3">
@@ -204,7 +204,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
             </p>
             
             <Link href="/">
-              <button className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold py-4 px-6 rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2">
+              <button className="w-full bg-gradient-to-r from-purple-500 to-purple-500 hover:from-purple-400 hover:to-purple-400 text-white font-bold py-4 px-6 rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2">
                 <UserPlus className="w-5 h-5" />
                 Start Playing
                 <ArrowRight className="w-4 h-4" />
@@ -216,7 +216,7 @@ export default function PublicProfilePage({ params }: PublicProfileProps) {
         {/* About The Game */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
           <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-            <Gamepad2 className="w-4 h-4 text-cyan-400" />
+            <Gamepad2 className="w-4 h-4 text-purple-400" />
             How to Play TrustMesh
           </h3>
           <p className="text-white/70 text-sm">

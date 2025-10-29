@@ -15,7 +15,7 @@ export function useProfileGate() {
   const [isLoading, setIsLoading] = useState(true)
 
   // Pages that don't require profile
-  const PUBLIC_ROUTES = ['/', '/login', '/onboard']
+  const PUBLIC_ROUTES = ['/', '/login', '/onboard', '/signals']
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
 
   useEffect(() => {

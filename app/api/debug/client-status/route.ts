@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { topics } from '@/lib/registry/serverRegistry'
 
 export async function GET(request: NextRequest) {
+  const topicRegistry = topics()
+  
   return NextResponse.json({
     message: 'Use the browser console to check client status',
     instructions: [
@@ -13,11 +16,12 @@ export async function GET(request: NextRequest) {
     environment: {
       HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED,
       topics: {
-        profile: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
-        contacts: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
-        trust: process.env.NEXT_PUBLIC_TOPIC_TRUST,
-        recognition: process.env.NEXT_PUBLIC_TOPIC_RECOGNITION,
-        signal: process.env.NEXT_PUBLIC_TOPIC_SIGNAL
+        profile: topicRegistry.profile,
+        contacts: topicRegistry.contacts,
+        trust: topicRegistry.trust,
+        recognition: topicRegistry.recognition,
+        signal: topicRegistry.signal,
+        system: topicRegistry.system
       }
     }
   })

@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getBondedContactsFromHCS, getTrustStatsFromHCS, getTrustLevelsPerContact } from '@/lib/services/HCSDataUtils'
 import { toLegacyEventArray } from '@/lib/services/HCSDataAdapter'
 import { listSince, decodeBase64Json } from '@/lib/mirror/serverMirror'
-
-const TOPICS = {
-  contact: process.env.TOPIC_CONTACT,
-  trust: process.env.TOPIC_TRUST,
-}
+import { getRegistryTopics } from '@/lib/hcs2/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,12 +13,15 @@ export async function GET(request: NextRequest) {
     
     console.log('[API /circle] Loading circle data for:', sessionId)
     
-    // Load all HCS events from server-side using mirror API
-    const trustTopicId = TOPICS.trust
-    const contactTopicId = TOPICS.contact
+    // Get topics from registry (single source of truth)
+    const registry = await getRegistryTopics()
+    const trustTopicId = registry.trust
+    const contactTopicId = registry.contacts
+    
+    console.log('[API /circle] Using registry topics:', { trust: trustTopicId, contacts: contactTopicId })
     
     if (!trustTopicId || !contactTopicId) {
-      throw new Error('Missing required topic IDs')
+      throw new Error('Missing required topic IDs from registry')
     }
     
     const [trustResult, contactResult] = await Promise.all([

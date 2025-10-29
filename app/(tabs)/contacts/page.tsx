@@ -7,7 +7,7 @@ import { type BondedContact, signalsStore } from '@/lib/stores/signalsStore'
 import { getSessionId } from '@/lib/session'
 import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
-import { PeerRecommendationModal } from '@/components/PeerRecommendationModal'
+import { CreateRecognitionModal } from '@/components/recognition/CreateRecognitionModal'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { useRemainingMints } from '@/lib/hooks/useRemainingMints'
 import { 
@@ -30,6 +30,8 @@ export default function ContactsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null)
   const [selectedContact, setSelectedContact] = useState<BondedContact | null>(null)
+  const [showRecognitionModal, setShowRecognitionModal] = useState(false)
+  const [recognitionRecipient, setRecognitionRecipient] = useState<{ accountId: string; handle?: string } | null>(null)
   
   // Mint counter hook
   const { loading: mintsLoading, remainingMints, trstBalance, cost, needsTopUp } = useRemainingMints(sessionId)
@@ -42,9 +44,13 @@ export default function ContactsPage() {
         const effectiveSessionId = currentSessionId || 'tm-alex-chen'
         setSessionId(effectiveSessionId)
         
+        console.log('[ContactsPage] Loading contacts for Hedera Account ID:', effectiveSessionId)
+        
         // Load from server-side API (same as circle page)
         const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
         const data = await response.json()
+        
+        console.log('[ContactsPage] API response:', data)
         
         if (!data.success) {
           throw new Error(data.error || 'Failed to load contacts')
@@ -210,7 +216,7 @@ export default function ContactsPage() {
                   ? 'border-amber-500/50 bg-amber-500/20 text-amber-300 animate-pulse'
                   : remainingMints > 50
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                  : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'
+                  : 'border-purple-500/30 bg-purple-500/10 text-purple-400'
               }`}
               title={`TRST balance: ${trstBalance.toFixed(2)} • Cost per mint: ${cost.toFixed(2)}${needsTopUp ? ' • Time to top up!' : ''}`}
             >
@@ -218,12 +224,25 @@ export default function ContactsPage() {
             </div>
           )}
         </div>
-        <PeerRecommendationModal>
-          <Button className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]">
-            <Award className="w-5 h-5 mr-2" />
-            Send Signal
-          </Button>
-        </PeerRecommendationModal>
+        <Button 
+          onClick={() => {
+            // Set first contact as recipient (TODO: add contact picker)
+            const firstContact = bondedContacts[0]
+            if (firstContact) {
+              setRecognitionRecipient({ 
+                accountId: firstContact.peerId || sessionId, 
+                handle: firstContact.handle 
+              })
+              setShowRecognitionModal(true)
+            } else {
+              toast.error('No contacts available')
+            }
+          }}
+          className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]"
+        >
+          <Award className="w-5 h-5 mr-2" />
+          Send Signal
+        </Button>
       </div>
 
       {/* All Contacts with Trust Levels */}
@@ -277,7 +296,7 @@ export default function ContactsPage() {
                           <div className="text-sm font-medium text-white">{displayName}</div>
                           {contact.isPending ? (
                             <span 
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 animate-pulse"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/20 border border-purple-500/40 text-purple-300 animate-pulse"
                               title="Confirming on Hedera... (~3-5 sec)"
                             >
                               ⏱️ Confirming
@@ -356,6 +375,22 @@ export default function ContactsPage() {
           onClose={() => {
             setSelectedPeerId(null)
             setSelectedContact(null)
+          }}
+        />
+      )}
+      
+      {/* Recognition Modal */}
+      {showRecognitionModal && recognitionRecipient && (
+        <CreateRecognitionModal
+          to={recognitionRecipient}
+          onClose={() => {
+            setShowRecognitionModal(false)
+            setRecognitionRecipient(null)
+          }}
+          onSuccess={() => {
+            setShowRecognitionModal(false)
+            setRecognitionRecipient(null)
+            toast.success('Recognition sent!')
           }}
         />
       )}

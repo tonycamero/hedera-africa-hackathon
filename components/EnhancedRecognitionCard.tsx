@@ -37,7 +37,7 @@ interface Props {
 type RarityLevel = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary'
 
 const categoryStyles = {
-  social: 'border-l-cyan-500 bg-gradient-to-r from-cyan-50 to-blue-50 text-cyan-700',
+  social: 'border-l-cyan-500 bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700',
   academic: 'border-l-purple-500 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700',
   professional: 'border-l-blue-500 bg-gradient-to-r from-blue-50 to-slate-50 text-blue-700',
 }

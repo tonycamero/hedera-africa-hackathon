@@ -152,7 +152,7 @@ export function AddContactModal({ children }: AddContactModalProps) {
               <Button 
                 onClick={handleImportContacts}
                 disabled={importing}
-                className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-cyan-500/80 hover:from-[#00F6FF] hover:to-cyan-500 text-white font-medium py-3"
+                className="w-full bg-gradient-to-r from-[#00F6FF]/80 to-purple-500/80 hover:from-[#00F6FF] hover:to-purple-500 text-white font-medium py-3"
               >
                 {importing ? (
                   <>
