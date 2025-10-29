@@ -5,7 +5,7 @@ import { magic } from '@/lib/magic'
 import { useLens } from '@/lib/hooks/useLens'
 import { getCatalogForLens, RecognitionType } from '@/lib/catalog/getCatalog'
 import { LENSES } from '@/lib/lens/lensConfig'
-import { Button, Card, Input } from '@/components/ui/kit'
+import { Button, Input, Card } from '@/components/ui/kit'
 import { X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -101,29 +101,26 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
         {/* Recognition type picker */}
         <div className="space-y-3">
           <div className="text-sm text-white/60">
-            Choose a recognition to send using {LENSES[minterLens].emoji} {LENSES[minterLens].label} lens
+            Choose a recognition using {LENSES[minterLens].emoji} {LENSES[minterLens].label} lens
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {catalog.map((type) => (
               <button
                 key={type.id}
                 onClick={() => setSelectedId(type.id)}
-                className={`w-full text-left p-4 rounded-lg border transition ${
-                  selectedId === type.id
-                    ? 'border-white/30 bg-white/10'
-                    : 'border-white/10 hover:border-white/20 bg-panel'
-                }`}
+                className="w-full text-left"
               >
-                <div className="flex items-center gap-4">
-                  <span className="text-4xl">{type.emoji}</span>
-                  <div className="flex-1">
-                    <div className="text-white font-semibold text-lg">{type.label}</div>
-                    <div className="text-sm text-white/60 mt-1">{type.description}</div>
+                <Card className={`p-4 bg-panel border-white/10 transition ${
+                  selectedId === type.id ? 'ring-2 ring-white/30' : 'hover:border-white/20'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl leading-none">{type.emoji}</div>
+                    <div className="flex-1">
+                      <div className="text-white font-semibold">{type.label}</div>
+                      <div className="text-xs text-white/60 mt-0.5">{type.description}</div>
+                    </div>
                   </div>
-                  {selectedId === type.id && (
-                    <div className="text-white text-xl">✓</div>
-                  )}
-                </div>
+                </Card>
               </button>
             ))}
           </div>
