@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { LENSES, LensKey, DEFAULT_LENS } from '@/lib/lens/lensConfig'
 import { magic } from '@/lib/magic'
 import { Card } from '@/components/ui/kit'
+import { toast } from 'sonner'
 
 type Props = {
   onSelected: (lens: LensKey) => void
@@ -32,9 +33,16 @@ export default function ChooseFirstLens({ onSelected, className }: Props) {
       
       if (!res.ok) throw new Error('Failed to set initial lens')
       
+      toast.success('Lens selected', {
+        description: `${LENSES[choice].emoji} ${LENSES[choice].label} activated`
+      })
+      
       onSelected(choice)
     } catch (err) {
       console.error('[ChooseFirstLens] Error:', err)
+      toast.error('Failed to select lens', {
+        description: err instanceof Error ? err.message : 'Please try again'
+      })
     } finally {
       setBusy(false)
     }
