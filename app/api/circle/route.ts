@@ -9,7 +9,31 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const sessionId = searchParams.get('sessionId') || 'tm-alex-chen'
+    const sessionId = searchParams.get('sessionId')
+    
+    // Validate session ID - must be a real Hedera account ID (0.0.X format) or null
+    if (!sessionId) {
+      return NextResponse.json(
+        { success: false, error: 'No session ID provided - user not authenticated' },
+        { status: 401 }
+      )
+    }
+    
+    // Reject legacy demo IDs
+    if (sessionId.startsWith('tm-')) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid session ID - demo accounts not supported. Please sign in with Magic.' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate Hedera account ID format (0.0.XXXXX)
+    if (!sessionId.match(/^0\.0\.\d+$/)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid Hedera account ID format' },
+        { status: 400 }
+      )
+    }
     
     console.log('[API /circle] Loading circle data for:', sessionId)
     

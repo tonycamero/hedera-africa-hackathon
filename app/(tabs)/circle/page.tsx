@@ -102,13 +102,21 @@ export default function CirclePage() {
       try {
         setIsLoading(true)
         const currentSessionId = getSessionId()
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
         
-        console.log('🔥 [CirclePage] Loading circle data from server API for:', effectiveSessionId)
+        // If no session (not authenticated), don't try to load from backend
+        if (!currentSessionId) {
+          console.log('🔥 [CirclePage] No session ID - user not authenticated')
+          setSessionId('') // Empty session indicates unauthenticated state
+          setIsLoading(false)
+          return
+        }
+        
+        setSessionId(currentSessionId)
+        
+        console.log('🔥 [CirclePage] Loading circle data from server API for:', currentSessionId)
         
         // Load circle data from server-side API
-        const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
+        const response = await fetch(`/api/circle?sessionId=${currentSessionId}`)
         const data = await response.json()
         
         if (!data.success) {
@@ -127,7 +135,7 @@ export default function CirclePage() {
         // Merge optimistic TRUST_ALLOCATE events from local store that haven't arrived via HCS yet
         const localTrustEvents = signalsStore.getAll().filter(e => 
           e.type === 'TRUST_ALLOCATE' && 
-          e.actor === effectiveSessionId &&
+          e.actor === currentSessionId &&
           e.source === 'hcs-cached' &&
           e.ts > Date.now() - 60000 // Only consider events from last minute
         )

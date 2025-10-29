@@ -41,13 +41,21 @@ export default function ContactsPage() {
       try {
         setIsLoading(true)
         const currentSessionId = getSessionId()
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
         
-        console.log('[ContactsPage] Loading contacts for Hedera Account ID:', effectiveSessionId)
+        // If no session (not authenticated), don't try to load from backend
+        if (!currentSessionId) {
+          console.log('[ContactsPage] No session ID - user not authenticated')
+          setSessionId('') // Empty session indicates unauthenticated state
+          setIsLoading(false)
+          return
+        }
+        
+        setSessionId(currentSessionId)
+        
+        console.log('[ContactsPage] Loading contacts for Hedera Account ID:', currentSessionId)
         
         // Load from server-side API (same as circle page)
-        const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
+        const response = await fetch(`/api/circle?sessionId=${currentSessionId}`)
         const data = await response.json()
         
         console.log('[ContactsPage] API response:', data)
@@ -59,7 +67,7 @@ export default function ContactsPage() {
         // Merge optimistic CONTACT_ACCEPT events from local store
         const optimisticContacts = signalsStore.getAll().filter(e => 
           (e.type === 'CONTACT_ACCEPT' || e.type === 'CONTACT_MIRROR') &&
-          (e.actor === effectiveSessionId || e.target === effectiveSessionId) &&
+          (e.actor === currentSessionId || e.target === currentSessionId) &&
           e.source === 'hcs-cached' &&
           e.ts > Date.now() - 60000 // Only consider events from last minute
         )
@@ -101,7 +109,7 @@ export default function ContactsPage() {
         // Merge optimistic TRUST_ALLOCATE events from local store (same as circle page)
         const localTrustEvents = signalsStore.getAll().filter(e => 
           e.type === 'TRUST_ALLOCATE' && 
-          e.actor === effectiveSessionId &&
+          e.actor === currentSessionId &&
           e.source === 'hcs-cached' &&
           e.ts > Date.now() - 60000 // Only consider events from last minute
         )
@@ -157,6 +165,27 @@ export default function ContactsPage() {
   const handleContactClick = (contact: BondedContact) => {
     setSelectedPeerId(contact.peerId || null)
     setSelectedContact(contact)
+  }
+
+  // Show authentication prompt if no session
+  if (!sessionId && !isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]">
+        <div className="max-w-md mx-auto px-4 py-20 space-y-6 text-center">
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-orange-400/30 to-orange-500/20 flex items-center justify-center border border-orange-500/30">
+            <UserCheck className="w-10 h-10 text-orange-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Sign in to view your contacts</h2>
+          <p className="text-white/60">Connect with Magic to access your trusted network on the blockchain</p>
+          <Button 
+            onClick={() => window.location.href = '/'}
+            className="bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90"
+          >
+            Sign in with Magic
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
