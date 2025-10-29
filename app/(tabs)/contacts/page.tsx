@@ -75,7 +75,7 @@ export default function ContactsPage() {
         const allContacts = [...data.bondedContacts]
         
         optimisticContacts.forEach(event => {
-          const contactId = event.actor === effectiveSessionId ? event.target : event.actor
+          const contactId = event.actor === currentSessionId ? event.target : event.actor
           const contactMetadata = event.metadata as any
           
           // Check if this contact is already in the list from HCS
