@@ -98,25 +98,24 @@ export function CreateRecognitionModal({ to, onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        {/* Recognition type picker */}
+        {/* Recognition type picker - Grid */}
         <div className="space-y-3">
-          <div className="text-sm text-white/70">
-            Browse recognition types ({LENSES[minterLens].emoji} {LENSES[minterLens].label} lens):
-          </div>
-          <div className="grid grid-cols-3 gap-3">
+          <label className="text-sm font-medium text-white">
+            Select Recognition
+          </label>
+          <div className="grid grid-cols-3 gap-3 max-h-[40vh] overflow-y-auto">
             {catalog.map((type) => (
               <button
                 key={type.id}
                 onClick={() => setSelectedId(type.id)}
-                className={`p-3 rounded-lg border transition text-center ${
-                  selectedId === type.id 
-                    ? 'border-white/50 bg-white/10' 
-                    : 'border-white/10 bg-panel hover:border-white/20'
+                className={`p-4 rounded-lg border text-center transition ${
+                  selectedId === type.id
+                    ? 'border-white bg-white/10'
+                    : 'border-white/20 hover:border-white/40 bg-panel'
                 }`}
               >
-                <div className="text-3xl mb-2">{type.emoji}</div>
-                <div className="text-white font-semibold text-sm">{type.label}</div>
-                <div className="text-xs text-white/50 mt-1">{type.description}</div>
+                <div className="text-4xl mb-2">{type.emoji}</div>
+                <div className="text-white font-medium text-sm leading-tight">{type.label}</div>
               </button>
             ))}
           </div>
