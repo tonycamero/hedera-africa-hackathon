@@ -7,7 +7,7 @@ import { type BondedContact, signalsStore } from '@/lib/stores/signalsStore'
 import { getSessionId } from '@/lib/session'
 import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
-import { PeerRecommendationModal } from '@/components/PeerRecommendationModal'
+import { CreateRecognitionModal } from '@/components/recognition/CreateRecognitionModal'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { useRemainingMints } from '@/lib/hooks/useRemainingMints'
 import { 
@@ -30,6 +30,8 @@ export default function ContactsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null)
   const [selectedContact, setSelectedContact] = useState<BondedContact | null>(null)
+  const [showRecognitionModal, setShowRecognitionModal] = useState(false)
+  const [recognitionRecipient, setRecognitionRecipient] = useState<{ accountId: string; handle?: string } | null>(null)
   
   // Mint counter hook
   const { loading: mintsLoading, remainingMints, trstBalance, cost, needsTopUp } = useRemainingMints(sessionId)
@@ -218,12 +220,25 @@ export default function ContactsPage() {
             </div>
           )}
         </div>
-        <PeerRecommendationModal>
-          <Button className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]">
-            <Award className="w-5 h-5 mr-2" />
-            Send Signal
-          </Button>
-        </PeerRecommendationModal>
+        <Button 
+          onClick={() => {
+            // Set first contact as recipient (TODO: add contact picker)
+            const firstContact = bondedContacts[0]
+            if (firstContact) {
+              setRecognitionRecipient({ 
+                accountId: firstContact.peerId || sessionId, 
+                handle: firstContact.handle 
+              })
+              setShowRecognitionModal(true)
+            } else {
+              toast.error('No contacts available')
+            }
+          }}
+          className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]"
+        >
+          <Award className="w-5 h-5 mr-2" />
+          Send Signal
+        </Button>
       </div>
 
       {/* All Contacts with Trust Levels */}
@@ -356,6 +371,22 @@ export default function ContactsPage() {
           onClose={() => {
             setSelectedPeerId(null)
             setSelectedContact(null)
+          }}
+        />
+      )}
+      
+      {/* Recognition Modal */}
+      {showRecognitionModal && recognitionRecipient && (
+        <CreateRecognitionModal
+          to={recognitionRecipient}
+          onClose={() => {
+            setShowRecognitionModal(false)
+            setRecognitionRecipient(null)
+          }}
+          onSuccess={() => {
+            setShowRecognitionModal(false)
+            setRecognitionRecipient(null)
+            toast.success('Recognition sent!')
           }}
         />
       )}
