@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { LENSES, type LensKey } from '@/lib/lens/lensConfig'
 import { magic } from '@/lib/magic'
-import { LensUnlockModal } from '@/components/lens/LensUnlockModal'
+import { LensUnlockModal } from '@/components/LensUnlockModal'
 
 export function HeaderLensSwitcher() {
   const [active, setActive] = useState<LensKey>('base')
