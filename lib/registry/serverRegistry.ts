@@ -25,7 +25,7 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_TOPIC_RECOGNITION: TopicIdSchema,
   NEXT_PUBLIC_TOPIC_RECOGNITION_GENZ: TopicIdSchema.optional(),
   NEXT_PUBLIC_TOPIC_RECOGNITION_AFRICAN: TopicIdSchema.optional(),
-  NEXT_PUBLIC_TOPIC_SIGNAL: TopicIdSchema,
+  NEXT_PUBLIC_TOPIC_SIGNAL: TopicIdSchema.optional(),  // Optional, fallback to RECOGNITION
   HEDERA_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEXT_PUBLIC_HCS_ENABLED: z.string().transform(v => v === 'true')
 })
@@ -65,6 +65,9 @@ function initializeRegistry(): Readonly<TopicsRegistry> {
     })
 
     // Resolve topics (system = signal per our architecture)
+    // Fallback: if TOPIC_SIGNAL not set, use TOPIC_RECOGNITION
+    const signalTopic = env.NEXT_PUBLIC_TOPIC_SIGNAL || env.NEXT_PUBLIC_TOPIC_RECOGNITION
+    
     const resolved: TopicsRegistry = Object.freeze({
       contacts: env.NEXT_PUBLIC_TOPIC_CONTACT,
       trust: env.NEXT_PUBLIC_TOPIC_TRUST,
@@ -72,8 +75,8 @@ function initializeRegistry(): Readonly<TopicsRegistry> {
       recognition: env.NEXT_PUBLIC_TOPIC_RECOGNITION,
       recognition_genz: env.NEXT_PUBLIC_TOPIC_RECOGNITION_GENZ,
       recognition_african: env.NEXT_PUBLIC_TOPIC_RECOGNITION_AFRICAN,
-      signal: env.NEXT_PUBLIC_TOPIC_SIGNAL,
-      system: env.NEXT_PUBLIC_TOPIC_SIGNAL  // System messages use signal topic
+      signal: signalTopic,
+      system: signalTopic  // System messages use signal topic
     })
 
     console.log('[Registry] ✅ Validated and froze topic registry:', {
