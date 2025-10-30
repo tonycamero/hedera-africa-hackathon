@@ -360,6 +360,11 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
         await submitContactToHCS(mirrorPayload, mirrorEvent as any, mirrorEvent.id)
       }
 
+      // Emit custom event to trigger contacts refresh
+      window.dispatchEvent(new CustomEvent('contactAdded', { 
+        detail: { contactId: validatedInvite.from.acct, handle: validatedInvite.from.handle } 
+      }))
+      
       setOpen(false)
     } catch (error) {
       console.error('[QR] Failed to accept contact:', error)

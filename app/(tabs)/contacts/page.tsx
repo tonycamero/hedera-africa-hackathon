@@ -136,9 +136,20 @@ export default function ContactsPage() {
 
     loadContacts()
     
+    // Listen for contact added events
+    const handleContactAdded = () => {
+      console.log('[ContactsPage] Contact added event received, reloading...')
+      loadContacts()
+    }
+    window.addEventListener('contactAdded', handleContactAdded)
+    
     // Refresh every 30 seconds
     const interval = setInterval(loadContacts, 30000)
-    return () => clearInterval(interval)
+    
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('contactAdded', handleContactAdded)
+    }
   }, [])
 
   // Sort contacts: Inner Circle members (with trust allocated) first, then others
