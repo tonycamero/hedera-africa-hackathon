@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react'
-import { BrowserQRCodeReader } from '@zxing/browser'
+import { BrowserMultiFormatReader, DecodeHintType } from '@zxing/library'
 import { Camera, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -15,19 +15,20 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
   const videoRef = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const codeReaderRef = useRef<BrowserQRCodeReader | null>(null)
-  const controlsRef = useRef<any>(null)
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     if (!isScanning) {
-      // Stop scanning
-      if (controlsRef.current) {
-        controlsRef.current.stop()
-        controlsRef.current = null
+      // Stop scanning and clean up
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current = null
       }
-      if (codeReaderRef.current) {
-        codeReaderRef.current.reset()
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
       }
+      codeReaderRef.current = null
       setIsReady(false)
       return
     }
@@ -37,54 +38,76 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
       try {
         setError(null)
         
-        // Create ZXing QR code reader
-        const codeReader = new BrowserQRCodeReader()
+        // Create ZXing QR code reader with hints
+        const hints = new Map()
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, ['QR_CODE'])
+        hints.set(DecodeHintType.TRY_HARDER, true)
+        const codeReader = new BrowserMultiFormatReader(hints)
         codeReaderRef.current = codeReader
 
         // Get video devices and prefer back camera
-        const devices = await codeReader.listVideoInputDevices()
-        const backCamera = devices.find(d => 
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const videoDevices = devices.filter(d => d.kind === 'videoinput')
+        const backCamera = videoDevices.find(d => 
           d.label.toLowerCase().includes('back') || 
-          d.label.toLowerCase().includes('rear')
-        ) || devices[0]
+          d.label.toLowerCase().includes('rear') ||
+          d.label.toLowerCase().includes('environment')
+        ) || videoDevices[0]
 
         if (!backCamera) {
           throw new Error('No camera found')
         }
 
-        // Start continuous scanning with optimized constraints
-        const controls = await codeReader.decodeFromVideoDevice(
-          backCamera.deviceId,
-          videoRef.current!,
-          (result, error) => {
-            if (result) {
-              onScan(result.getText())
-              // Keep scanning for more QR codes
-            }
-            // Ignore errors during scanning (normal when no QR in view)
+        // Get media stream with optimized constraints
+        const constraints: MediaStreamConstraints = {
+          video: {
+            deviceId: backCamera.deviceId,
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           }
-        )
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        streamRef.current = stream
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+        }
 
-        controlsRef.current = controls
+        // Apply additional constraints if supported
+        const track = stream.getVideoTracks()[0]
+        try {
+          await track.applyConstraints({
+            advanced: [{ focusMode: 'continuous' }]
+          })
+        } catch {
+          // Focus mode not supported, continue anyway
+        }
+
         setIsReady(true)
 
-        // Apply optimized video constraints for better scanning
-        if (videoRef.current?.srcObject) {
-          const stream = videoRef.current.srcObject as MediaStream
-          const track = stream.getVideoTracks()[0]
+        // Start continuous decoding
+        const decode = async () => {
+          if (!videoRef.current || !isScanning) return
           
-          await track.applyConstraints({
-            advanced: [
-              {
-                focusMode: 'continuous',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              }
-            ]
-          }).catch(() => {
-            // Constraints not supported, continue anyway
-          })
+          try {
+            const result = await codeReader.decodeFromVideoElement(videoRef.current)
+            if (result) {
+              onScan(result.getText())
+            }
+          } catch (err) {
+            // Normal when no QR code in view
+          }
+          
+          // Continue scanning
+          if (isScanning) {
+            requestAnimationFrame(decode)
+          }
         }
+        
+        decode()
 
       } catch (err: any) {
         console.error('[CameraScanner] Error:', err)
@@ -96,11 +119,11 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
     startScanner()
 
     return () => {
-      if (controlsRef.current) {
-        controlsRef.current.stop()
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
       }
-      if (codeReaderRef.current) {
-        codeReaderRef.current.reset()
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
       }
     }
   }, [isScanning, onScan])

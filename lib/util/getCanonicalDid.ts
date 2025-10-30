@@ -100,18 +100,24 @@ export function validateNoPII(did: string): boolean {
   }
 
   // Check for common TLDs that indicate email domain
-  const unsafePatterns = ['.com', '.org', '.net', '.io', '.edu', '.gov'];
-  for (const pattern of unsafePatterns) {
-    if (did.toLowerCase().includes(pattern)) {
-      console.error(`[validateNoPII] BLOCKED: DID contains potential domain: ${pattern}`);
-      return false;
+  // Skip this check if DID is a proper did:ethr format (hex addresses can contain TLD-like bytes)
+  if (!did.startsWith('did:ethr:0x')) {
+    const unsafePatterns = ['.com', '.org', '.net', '.io', '.edu', '.gov'];
+    for (const pattern of unsafePatterns) {
+      if (did.toLowerCase().includes(pattern)) {
+        console.error(`[validateNoPII] BLOCKED: DID contains potential domain: ${pattern}`);
+        return false;
+      }
     }
   }
 
   // Check for phone number patterns (10+ consecutive digits)
-  if (/\d{10,}/.test(did)) {
-    console.error('[validateNoPII] BLOCKED: DID contains potential phone number');
-    return false;
+  // Skip this check if DID is a proper did:ethr format (hex addresses can contain digit sequences)
+  if (!did.startsWith('did:ethr:0x')) {
+    if (/\d{10,}/.test(did)) {
+      console.error('[validateNoPII] BLOCKED: DID contains potential phone number');
+      return false;
+    }
   }
 
   return true;

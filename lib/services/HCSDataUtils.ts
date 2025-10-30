@@ -187,7 +187,7 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   // First pass: collect contact data from all contact events
   for (const ev of events) {
     const t = U(ev?.type)
-    if (t === 'CONTACT_REQUEST' || t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED') {
+    if (t === 'CONTACT_REQUEST' || t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED' || t === 'CONTACT_MIRROR') {
       const a = A(ev), b = T(ev)
       const payload = ev?.payload || ev?.metadata || {}
       
@@ -225,8 +225,8 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
       if (b === me && a !== me && a !== 'peer:unknown') contacts.add(a)
     }
     
-    // CONTACT_ACCEPT means bonded (mutual acceptance)
-    if ((t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED') && a && b && a !== b) {
+    // CONTACT_ACCEPT and CONTACT_MIRROR both mean bonded (mutual acceptance)
+    if ((t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED' || t === 'CONTACT_MIRROR') && a && b && a !== b) {
       const key = k(a, b)
       bondedPairs.set(key, ev)
       // Also ensure they're in contacts set
