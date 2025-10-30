@@ -9,6 +9,7 @@ import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
 import { CreateRecognitionModal } from '@/components/recognition/CreateRecognitionModal'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
+import { SendSignalsModal } from '@/components/SendSignalsModal'
 import { useRemainingMints } from '@/lib/hooks/useRemainingMints'
 import { 
   Search,
@@ -264,25 +265,14 @@ export default function ContactsPage() {
             </div>
           )}
         </div>
-        <Button 
-          onClick={() => {
-            // Set first contact as recipient (TODO: add contact picker)
-            const firstContact = bondedContacts[0]
-            if (firstContact) {
-              setRecognitionRecipient({ 
-                accountId: firstContact.peerId || sessionId, 
-                handle: firstContact.handle 
-              })
-              setShowRecognitionModal(true)
-            } else {
-              toast.error('No contacts available')
-            }
-          }}
-          className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]"
-        >
-          <Award className="w-5 h-5 mr-2" />
-          Send Signal
-        </Button>
+        <SendSignalsModal>
+          <Button 
+            className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]"
+          >
+            <Award className="w-5 h-5 mr-2" />
+            Send Signal
+          </Button>
+        </SendSignalsModal>
       </div>
 
       {/* All Contacts with Trust Levels */}
