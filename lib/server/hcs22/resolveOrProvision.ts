@@ -1,5 +1,7 @@
 import { withIdentityLock } from '@/lib/util/withIdentityLock';
 import { getCanonicalDid, assertSafeForHCS } from '@/lib/util/getCanonicalDid';
+import { publishHcs22 } from './publish';
+import { bindEvent } from './types';
 
 /**
  * Resolve or Provision Service
@@ -93,6 +95,20 @@ export async function resolveOrProvision(issuer: string): Promise<ResolutionResu
     
     // Verify via Mirror Node
     await verifyAccountCreation(newAccountId);
+    
+    // Publish IDENTITY_BIND to HCS-22 topic for durable persistence
+    const evmAddress = did.replace('did:ethr:', '');
+    try {
+      await publishHcs22(bindEvent({
+        issuer: did,
+        hederaId: newAccountId,
+        evmAddress,
+      }));
+      console.log(`[ResolveOrProvision] Published IDENTITY_BIND to HCS-22`);
+    } catch (error) {
+      console.error(`[ResolveOrProvision] Failed to publish IDENTITY_BIND:`, error);
+      // Non-blocking - account is already created and verified
+    }
     
     return newAccountId;
   });

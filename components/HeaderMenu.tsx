@@ -16,14 +16,34 @@ export function HeaderMenu() {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    const users = localStorage.getItem('tm:users')
-    if (users) {
+    const loadCurrentUser = async () => {
       try {
-        const [u] = JSON.parse(users)
-        if (u?.email) setEmail(u.email)
-        if (u?.hederaAccountId) setAccountId(u.hederaAccountId)
-      } catch {}
+        // Get the currently logged-in Magic user
+        const isLoggedIn = await magic?.user.isLoggedIn()
+        if (!isLoggedIn) return
+        
+        const metadata = await magic?.user.getInfo()
+        const currentEmail = metadata?.email
+        
+        if (!currentEmail) return
+        
+        // Find the matching user in localStorage
+        const users = localStorage.getItem('tm:users')
+        if (users) {
+          const allUsers = JSON.parse(users)
+          const currentUser = allUsers.find((u: any) => u.email === currentEmail)
+          
+          if (currentUser) {
+            setEmail(currentUser.email)
+            setAccountId(currentUser.hederaAccountId)
+          }
+        }
+      } catch (error) {
+        console.error('[HeaderMenu] Failed to load current user:', error)
+      }
     }
+    
+    loadCurrentUser()
   }, [])
 
   const doLogout = async () => {

@@ -10,7 +10,8 @@ import {
   PrivateKey as HederaPrivateKey,
 } from '@hashgraph/sdk';
 import { getHederaClient } from '@/lib/hedera/serverClient';
-import { emailToAccountMap } from '../lookup/route';
+import { publishHcs22 } from '@/lib/server/hcs22/publish';
+import { bindEvent } from '@/lib/server/hcs22/types';
 
 export async function POST(req: NextRequest) {
   try {
@@ -82,13 +83,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Register account in lookup map to prevent duplicates
-    emailToAccountMap.set(email, {
-      accountId: newAccountId,
-      publicKey: userPublicKey.toStringDer(),
-      magicDID: magicDID || email
-    });
-    console.log('[API] Registered account in lookup map:', email, '→', newAccountId);
+    // Publish IDENTITY_BIND to HCS-22 for durable persistence
+    if (magicDID) {
+      try {
+        const evmAddress = magicDID.replace('did:ethr:', '');
+        await publishHcs22(bindEvent({
+          issuer: magicDID,
+          hederaId: newAccountId,
+          evmAddress,
+          emailHash: email ? Buffer.from(email).toString('base64') : undefined,
+        }));
+        console.log('[API] Published IDENTITY_BIND to HCS-22:', magicDID, '→', newAccountId);
+      } catch (bindError) {
+        console.error('[API] Failed to publish IDENTITY_BIND (non-blocking):', bindError);
+      }
+    }
 
     const response: any = {
       accountId: newAccountId,

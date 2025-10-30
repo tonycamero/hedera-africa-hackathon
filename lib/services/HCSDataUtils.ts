@@ -308,11 +308,13 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
   
   // Process outbound trust events in chronological order
   const outboundTrust = trustEvents.filter(e => {
-    const actor = e.actor || (e as any).actors?.from
+    const payload = (e as any).payload || {}
+    const actor = e.actor || payload.actor || (e as any).from || (e as any).actors?.from
     return actor === sessionId
   })
   for (const event of outboundTrust) {
-    const peerId = event.target || (event as any).actors?.to
+    const payload = (event as any).payload || {}
+    const peerId = event.target || payload.target || (event as any).to || (event as any).actors?.to
     if (!peerId) continue
     
     // Always use weight of 1 - equal trust for all circle members (deprecated graduated distribution)
@@ -331,11 +333,13 @@ export function getTrustStatsFromHCS(events: SignalEvent[], sessionId: string): 
   
   // Process inbound trust allocations (trust received from others)
   const inboundTrust = trustEvents.filter(e => {
-    const target = e.target || (e as any).actors?.to
+    const payload = (e as any).payload || {}
+    const target = e.target || payload.target || (e as any).to || (e as any).actors?.to
     return target === sessionId
   })
   for (const event of inboundTrust) {
-    const peerId = event.actor || (event as any).actors?.from
+    const payload = (event as any).payload || {}
+    const peerId = event.actor || payload.actor || (event as any).from || (event as any).actors?.from
     if (!peerId) continue
     
     if (event.type === 'TRUST_ALLOCATE') {
@@ -468,8 +472,10 @@ export function getTrustLevelsPerContact(events: SignalEvent[], sessionId: strin
   
   // Process all trust events
   for (const event of trustEvents) {
-    const actor = event.actor || (event as any).actors?.from
-    const target = event.target || (event as any).actors?.to
+    // Extract actor/target from multiple possible locations (top-level, payload, or actors)
+    const payload = (event as any).payload || {}
+    const actor = event.actor || payload.actor || (event as any).from || (event as any).actors?.from
+    const target = event.target || payload.target || (event as any).to || (event as any).actors?.to
     // Always use weight of 1 - equal trust for all circle members (deprecated graduated distribution)
     const weight = 1
     

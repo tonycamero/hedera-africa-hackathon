@@ -1,12 +1,9 @@
 // app/api/hedera/account/lookup/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { Magic } from '@magic-sdk/admin';
+import { resolveHederaAccountId } from '@/lib/server/hcs22/resolver';
 
 const magic = new Magic(process.env.MAGIC_SECRET_KEY!);
-
-// In-memory store for demo (replace with database in production)
-// Maps email -> Hedera Account ID
-const emailToAccountMap = new Map<string, { accountId: string; publicKey: string; magicDID: string }>();
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,29 +18,31 @@ export async function POST(req: NextRequest) {
     
     const { email, magicDID } = await req.json();
 
-    if (!email) {
+    if (!email && !magicDID) {
       return NextResponse.json(
-        { error: 'Missing email' },
+        { error: 'Missing email or magicDID' },
         { status: 400 }
       );
     }
 
-    console.log('[API /hedera/account/lookup] Looking up account for email:', email);
+    // Use magicDID if provided, otherwise construct from email
+    const issuer = magicDID || `did:ethr:${email}`;
     
-    // Check in-memory map
-    const existing = emailToAccountMap.get(email);
+    console.log('[API /hedera/account/lookup] Looking up account for issuer:', issuer);
     
-    if (existing) {
-      console.log('[API /hedera/account/lookup] Found existing account:', existing.accountId);
+    // Query HCS-22 reducer (reads from HCS topic state)
+    const accountId = await resolveHederaAccountId(issuer);
+    
+    if (accountId) {
+      console.log('[API /hedera/account/lookup] Found existing account:', accountId);
       return NextResponse.json({
         found: true,
-        accountId: existing.accountId,
-        publicKey: existing.publicKey,
-        magicDID: existing.magicDID
+        accountId,
+        magicDID: issuer
       });
     }
 
-    console.log('[API /hedera/account/lookup] No existing account found for:', email);
+    console.log('[API /hedera/account/lookup] No existing account found for:', issuer);
     return NextResponse.json({
       found: false
     });
@@ -56,12 +55,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-// Helper function to register an account (called from create endpoint)
-export function registerAccount(email: string, accountId: string, publicKey: string, magicDID: string) {
-  emailToAccountMap.set(email, { accountId, publicKey, magicDID });
-  console.log('[Account Registry] Registered:', email, '→', accountId);
-}
-
-// Export the map for use by create endpoint
-export { emailToAccountMap };

@@ -53,19 +53,39 @@ export async function GET(request: NextRequest) {
       listSince(contactTopicId, undefined, 200)
     ])
     
-    const trustEvents = trustResult.messages.map((m: any) => ({
-      consensus_timestamp: m.consensus_timestamp,
-      sequence_number: m.sequence_number,
-      topic_id: m.topic_id,
-      json: decodeBase64Json(m.message),
-    }))
+    const trustEvents = trustResult.messages
+      .filter((m: any) => m && m.message && m.consensus_timestamp)
+      .map((m: any) => {
+        const json = decodeBase64Json(m.message)
+        if (!json) {
+          console.warn('[API /circle] Failed to decode message:', m.consensus_timestamp)
+          return null
+        }
+        return {
+          consensus_timestamp: m.consensus_timestamp,
+          sequence_number: m.sequence_number,
+          topic_id: m.topic_id,
+          json,
+        }
+      })
+      .filter((m: any) => m !== null)
     
-    const contactEvents = contactResult.messages.map((m: any) => ({
-      consensus_timestamp: m.consensus_timestamp,
-      sequence_number: m.sequence_number,
-      topic_id: m.topic_id,
-      json: decodeBase64Json(m.message),
-    }))
+    const contactEvents = contactResult.messages
+      .filter((m: any) => m && m.message && m.consensus_timestamp)
+      .map((m: any) => {
+        const json = decodeBase64Json(m.message)
+        if (!json) {
+          console.warn('[API /circle] Failed to decode message:', m.consensus_timestamp)
+          return null
+        }
+        return {
+          consensus_timestamp: m.consensus_timestamp,
+          sequence_number: m.sequence_number,
+          topic_id: m.topic_id,
+          json,
+        }
+      })
+      .filter((m: any) => m !== null)
     
     // Filter events by type/version whitelist (v2 schema)
     const filteredEvents = [...trustEvents, ...contactEvents].filter((event: any) => {
@@ -117,6 +137,11 @@ export async function GET(request: NextRequest) {
     const bondedContacts = getBondedContactsFromHCS(allEvents, sessionId)
     const trustStats = getTrustStatsFromHCS(allEvents, sessionId)
     const trustLevels = getTrustLevelsPerContact(allEvents, sessionId)
+    
+    console.log('[API /circle] Trust events found:', allEvents.filter(e => e.type === 'TRUST_ALLOCATE').length)
+    console.log('[API /circle] Sample trust event:', allEvents.find(e => e.type === 'TRUST_ALLOCATE'))
+    console.log('[API /circle] Trust levels calculated:', trustLevels.size, 'contacts')
+    console.log('[API /circle] Trust levels:', Array.from(trustLevels.entries()))
     
     // Convert Map to plain object for JSON serialization
     const trustLevelsObject: Record<string, { allocatedTo: number, receivedFrom: number }> = {}

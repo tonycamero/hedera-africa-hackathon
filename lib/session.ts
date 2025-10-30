@@ -30,7 +30,10 @@ export function getSessionId(ephemeralStrict?: boolean): string {
     try {
       const usersData = localStorage.getItem('tm:users')
       if (usersData) {
-        const [user] = JSON.parse(usersData)
+        const allUsers = JSON.parse(usersData)
+        // For now, use first user as fallback (will be fixed by getCurrentMagicUser in async contexts)
+        // This is a synchronous function so we can't await Magic API calls here
+        const user = allUsers[0]
         if (user?.hederaAccountId) {
           _sessionId = user.hederaAccountId
           return user.hederaAccountId
@@ -81,14 +84,27 @@ export async function getSessionProfile(): Promise<SessionProfile> {
   
   if (typeof window !== 'undefined') {
     try {
-      const usersData = localStorage.getItem('tm:users')
-      if (usersData) {
-        const [user] = JSON.parse(usersData)
-        if (user?.email) {
-          // Use email or extract name from email
-          const emailName = user.email.split('@')[0]
-          handle = user.displayName || emailName || user.email
-          bio = `${user.email}`
+      // Import magic and check current user
+      const { magic } = await import('@/lib/magic')
+      const isLoggedIn = await magic.user.isLoggedIn()
+      
+      if (isLoggedIn) {
+        const metadata = await magic.user.getInfo()
+        const currentEmail = metadata?.email
+        
+        if (currentEmail) {
+          const usersData = localStorage.getItem('tm:users')
+          if (usersData) {
+            const allUsers = JSON.parse(usersData)
+            const user = allUsers.find((u: any) => u.email === currentEmail)
+            
+            if (user?.email) {
+              // Use email or extract name from email
+              const emailName = user.email.split('@')[0]
+              handle = user.displayName || emailName || user.email
+              bio = `${user.email}`
+            }
+          }
         }
       }
     } catch (error) {
@@ -118,12 +134,26 @@ export async function getSessionProfile(): Promise<SessionProfile> {
   
   if (typeof window !== 'undefined') {
     try {
-      const usersData = localStorage.getItem('tm:users')
-      if (usersData) {
-        const [user] = JSON.parse(usersData)
-        email = user?.email
-        displayName = user?.displayName
-        hederaAccountId = user?.hederaAccountId
+      const { magic } = await import('@/lib/magic')
+      const isLoggedIn = await magic.user.isLoggedIn()
+      
+      if (isLoggedIn) {
+        const metadata = await magic.user.getInfo()
+        const currentEmail = metadata?.email
+        
+        if (currentEmail) {
+          const usersData = localStorage.getItem('tm:users')
+          if (usersData) {
+            const allUsers = JSON.parse(usersData)
+            const user = allUsers.find((u: any) => u.email === currentEmail)
+            
+            if (user) {
+              email = user.email
+              displayName = user.displayName
+              hederaAccountId = user.hederaAccountId
+            }
+          }
+        }
       }
     } catch (error) {
       // Already warned above

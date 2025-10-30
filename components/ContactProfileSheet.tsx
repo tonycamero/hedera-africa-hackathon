@@ -171,22 +171,19 @@ export function ContactProfileSheet({
     const profileEvents = allEvents.filter(event => {
       if (event.type !== 'PROFILE_UPDATE') return false;
       
-      // Check multiple possible locations for sessionId (nested in metadata.payload for HCS events)
-      const sessionId = event.metadata?.payload?.sessionId || event.payload?.sessionId || event.metadata?.sessionId;
-      const actor = event.actor;
-      const target = event.target;
+      // Extract sessionId from payload (direct or nested)
+      const payload = event.payload || event.metadata?.payload || {};
+      const sessionId = payload.sessionId || event.metadata?.sessionId || event.actor || (event as any).from;
       
-      const matches = sessionId === peerId || actor === peerId || target === peerId;
+      const matches = sessionId === peerId;
       
       if (matches) {
-        console.log(`[ContactProfileSheet] MATCHED PROFILE_UPDATE:`, {
+        console.log(`[ContactProfileSheet] ✅ MATCHED PROFILE_UPDATE for ${peerId}:`, {
           eventType: event.type,
           sessionId,
-          actor,
-          target,
           peerId,
           payload: event.payload,
-          metadata: event.metadata
+          fullEvent: event
         });
       }
       
