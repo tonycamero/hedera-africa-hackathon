@@ -13,6 +13,10 @@ type Binding = {
 // In-memory binding registry: issuer -> binding
 const bindings = new Map<string, Binding>();
 
+// Track if warmup has completed in this process
+let warmupComplete = false;
+let warmupPromise: Promise<void> | null = null;
+
 /**
  * Process an HCS-22 event and update binding state
  * Implements ordering (by timestamp) and idempotency (skip duplicates)
@@ -73,11 +77,53 @@ export function reduceHcs22(event: Hcs22Envelope) {
 }
 
 /**
+ * Ensure warmup has run in this process
+ * This is needed because Next.js dev mode runs instrumentation in a different process
+ */
+async function ensureWarmup() {
+  if (warmupComplete) return;
+  
+  if (!warmupPromise) {
+    console.log('[HCS Reducer] Starting lazy warmup in API route process...');
+    warmupPromise = (async () => {
+      try {
+        const { initHcs22 } = await import('./init');
+        await initHcs22();
+        warmupComplete = true;
+        console.log(`[HCS Reducer] Lazy warmup complete, loaded ${bindings.size} bindings`);
+      } catch (error) {
+        console.error('[HCS Reducer] Lazy warmup failed:', error);
+        warmupPromise = null; // Allow retry
+      }
+    })();
+  }
+  
+  await warmupPromise;
+}
+
+/**
  * Get the active Hedera Account ID for an issuer
  * Returns null if no active binding exists
+ * Automatically triggers warmup if not yet done in this process
  */
-export function getBinding(issuer: string): string | null {
-  const b = bindings.get(issuer.toLowerCase());
+export async function getBinding(issuer: string): Promise<string | null> {
+  await ensureWarmup();
+  
+  const normalized = issuer.toLowerCase();
+  const b = bindings.get(normalized);
+  
+  console.log(`[HCS Reducer] Lookup for ${normalized}`);
+  console.log(`[HCS Reducer] Total bindings in map: ${bindings.size}`);
+  if (bindings.size > 0 && bindings.size <= 20) {
+    console.log(`[HCS Reducer] All keys: ${Array.from(bindings.keys()).join(', ')}`);
+  }
+  
+  if (b) {
+    console.log(`[HCS Reducer] Found binding: ${normalized} → ${b.accountId} (active: ${b.active})`);
+  } else {
+    console.log(`[HCS Reducer] No binding found for ${normalized}`);
+  }
+  
   return b?.active ? b.accountId : null;
 }
 

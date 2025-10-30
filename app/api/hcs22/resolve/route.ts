@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { incrementPublished, incrementFailed } from '@/lib/hcs22/health';
-import { submitToTopic } from '@/lib/hedera/serverClient';
 import { requireMagicAuth } from '@/lib/server/auth/requireMagicAuth';
 import { getCanonicalDid, assertSafeForHCS } from '@/lib/util/getCanonicalDid';
 import { resolveOrProvision } from '@/lib/server/hcs22/resolveOrProvision';
+import { publishHcs22 } from '@/lib/server/hcs22/publish';
+import { assertEvent } from '@/lib/server/hcs22/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
 
     let hederaAccountId: string | null = null;
     let resolutionSource: string | undefined;
+    let result: any;
     
     // BIND mode: Resolve or provision Hedera account (server-side only)
     if (mode === 'BIND') {
@@ -77,26 +79,19 @@ export async function POST(req: NextRequest) {
       hederaAccountId = resolution.hederaAccountId;
       resolutionSource = resolution.source;
       console.log(`[HCS22 BIND] Resolved to ${hederaAccountId} (source: ${resolutionSource})`);
+      // Note: IDENTITY_BIND event is already published by resolveOrProvision
+      result = { sequenceNumber: 'published-by-resolver', consensusTimestamp: new Date().toISOString() };
+    } else {
+      // ASSERT mode: Publish assertion event
+      // Note: We need an account ID to assert, so resolve without provisioning
+      const resolution = await resolveOrProvision(auth.issuer);
+      hederaAccountId = resolution.hederaAccountId;
+      resolutionSource = resolution.source;
+      
+      // Publish IDENTITY_ASSERT using proper HCS-22 format
+      const assertionEvent = assertEvent(identityDid, hederaAccountId, 'login-assertion');
+      result = await publishHcs22(assertionEvent);
     }
-
-    // Create identity event (ASSERT or BIND)
-    const identityEvent = {
-      type: mode === 'BIND' ? 'IDENTITY_BIND' : 'IDENTITY_ASSERTION',
-      version: '1.0.0',
-      identityDid,
-      hederaAccountId,
-      timestamp: new Date().toISOString(),
-      assertedBy: 'trustmesh-server',
-      metadata: {
-        source: 'magic-auth',
-        environment: process.env.NODE_ENV || 'development',
-        bindingComplete: mode === 'BIND',
-        ...(resolutionSource && { resolutionSource })
-      }
-    };
-
-    // Publish to HCS-22 identity topic
-    const result = await submitToTopic(identityTopicId, JSON.stringify(identityEvent));
     
     incrementPublished();
     

@@ -14,6 +14,7 @@ import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionProfile } from "@/lib/session"
 import { hashContactRequest } from "@/lib/crypto/hash"
 import { logTxClient } from "@/lib/telemetry/txLog"
+import { CameraScanner } from "@/components/CameraScanner"
 import {
   createContactRequest,
   verifyContactRequest,
@@ -98,9 +99,7 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
   const [securePayload, setSecurePayload] = useState<ContactRequestPayload | null>(null)
   const [expiresIn, setExpiresIn] = useState<number>(120) // seconds until expiry
   const [isGenerating, setIsGenerating] = useState(false)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const [cameraReady, setCameraReady] = useState(false)
-  const [detectorSupported, setDetectorSupported] = useState(false)
+  const [isScanning, setIsScanning] = useState(false)
 
   // Load session profile on mount
   useEffect(() => {
@@ -185,54 +184,31 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
     signalsStore.add(signalEvent)
   }, [securePayload, sessionProfile])
 
-  // Camera / BarcodeDetector
-  useEffect(() => {
-    // @ts-expect-error
-    const supported = "BarcodeDetector" in window
-    setDetectorSupported(supported)
-  }, [])
-
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-        setCameraReady(true)
-        // @ts-expect-error
-        const BarcodeDetectorCtor = window.BarcodeDetector
-        const detector = new BarcodeDetectorCtor({ formats: ["qr_code"] })
-        const tick = async () => {
-          if (!videoRef.current) return
-          try {
-            const bitmap = await createImageBitmap(videoRef.current)
-            const codes = await detector.detect(bitmap as any)
-            if (codes && codes[0]?.rawValue) {
-              onDecoded(codes[0].rawValue)
-            } else {
-              requestAnimationFrame(tick)
-            }
-          } catch {
-            requestAnimationFrame(tick)
-          }
-        }
-        requestAnimationFrame(tick)
-      }
-    } catch (e) {
-      toast.error("Camera not available", { description: "Use Paste code instead." })
-    }
-  }
 
   async function onDecoded(raw: string) {
     try {
-      // Try to decode from URL format first
-      let payload = decodeFromUrl(raw)
+      let payload = null
       
-      // Fallback to old base64 JSON format
+      // 1. Try web/deeplink URL format first
+      payload = decodeFromUrl(raw)
+      
+      // 2. Fallback to direct JSON
+      if (!payload && raw.trim().startsWith("{")) {
+        payload = JSON.parse(raw.trim())
+      }
+      
+      // 3. Fallback to base64-encoded JSON
       if (!payload) {
-        let decoded = raw
-        if (!raw.trim().startsWith("{")) decoded = atob(raw.trim())
-        payload = JSON.parse(decoded)
+        try {
+          const decoded = atob(raw.trim())
+          payload = JSON.parse(decoded)
+        } catch {
+          // Not base64, continue
+        }
+      }
+      
+      if (!payload) {
+        throw new Error('Could not decode QR code format')
       }
       
       // Verify the secure payload
@@ -487,54 +463,41 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
 
           {/* Scan - Mobile Optimized */}
           <TabsContent value="scan" className="space-y-4">
-            {detectorSupported ? (
-              <div className="space-y-4 w-full">
-                {/* Camera Section */}
-              <div className="backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 border border-emerald-500/20 rounded-lg p-4 relative overflow-hidden w-full">
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 animate-pulse" />
-                  
-                  <video 
-                    ref={videoRef} 
-                    playsInline 
-                    muted 
-                    className="w-full rounded-lg bg-black/20 aspect-video border-2 border-emerald-500/20 shadow-lg" 
-                  />
-                  
-                  {/* Scanning overlay */}
-                  {cameraReady && (
-                    <div className="absolute inset-3">
-                      <div className="relative w-full h-full">
-                        <div className="absolute inset-1/4 border-2 border-transparent">
-                          <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-emerald-400 animate-pulse" />
-                          <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-emerald-400 animate-pulse" />
-                          <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-emerald-400 animate-pulse" />
-                          <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-emerald-400 animate-pulse" />
-                        </div>
-                        {/* Scanning line */}
-                        <div className="absolute inset-x-1/4 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse" />
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="mt-3 flex justify-center">
-                    <Button 
-                      type="button" 
-                      onClick={startCamera} 
-                      className="bg-gradient-to-r from-emerald-600 via-green-500 to-emerald-700 hover:from-emerald-500 hover:via-green-400 hover:to-emerald-600 text-white font-bold px-4 py-2 shadow-2xl shadow-emerald-500/40 animate-pulse border-2 border-emerald-400/50"
-                    >
-                      <Camera className="w-4 h-4 mr-2 drop-shadow-lg" /> 
-                      {cameraReady ? "🔍 Scanning for QR codes..." : "📱 Start Camera Scan"}
-                    </Button>
+            {/* ZXing Camera Scanner */}
+            <div className="backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 border border-emerald-500/20 rounded-lg p-4 relative overflow-hidden w-full">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 animate-pulse" />
+              
+              <div className="relative z-10 space-y-4">
+                {!isScanning && (
+                  <Button 
+                    type="button" 
+                    onClick={() => setIsScanning(true)} 
+                    className="w-full bg-gradient-to-r from-emerald-600 via-green-500 to-emerald-700 hover:from-emerald-500 hover:via-green-400 hover:to-emerald-600 text-white font-bold px-4 py-3 shadow-2xl shadow-emerald-500/40 border-2 border-emerald-400/50"
+                  >
+                    <Camera className="w-5 h-5 mr-2 drop-shadow-lg" /> 
+                    📱 Open Camera Scanner
+                  </Button>
+                )}
+                
+                <CameraScanner
+                  onScan={(raw) => {
+                    console.log('[QR Scan] Decoded:', raw.substring(0, 100))
+                    onDecoded(raw)
+                    setIsScanning(false)
+                  }}
+                  isScanning={isScanning}
+                  onClose={() => setIsScanning(false)}
+                />
+                
+                {!isScanning && (
+                  <div className="text-center text-xs text-white/50 space-y-1">
+                    <p>• Works on all devices (iOS, Android, Desktop)</p>
+                    <p>• Position QR code in frame</p>
+                    <p>• Use bright lighting for best results</p>
                   </div>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-3 text-center">
-                <Camera className="w-6 h-6 mx-auto mb-2 text-white/40" />
-                <p className="text-sm text-white/60">Camera scanning not available on this device</p>
-                <p className="text-xs text-white/40 mt-1">Use the paste option below instead</p>
-              </div>
-            )}
+            </div>
             
             {/* Manual Input Section */}
             <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4 space-y-4 w-full">

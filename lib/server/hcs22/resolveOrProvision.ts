@@ -30,12 +30,15 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 /**
  * Resolve DID to Hedera account ID, or provision if needed
  * 
- * @param issuer - Raw Magic issuer (will be sanitized to canonical DID)
+ * @param issuer - Magic issuer DID (stable across sessions)
  * @returns Resolution result with Hedera account ID
  */
 export async function resolveOrProvision(issuer: string): Promise<ResolutionResult> {
-  // Step 1: Sanitize to canonical DID (no PII)
-  const did = getCanonicalDid(issuer);
+  // Step 1: Use issuer as stable DID
+  // Magic's issuer is in format did:ethr:0xADDRESS and is stable across sessions
+  console.log(`[ResolveOrProvision] Resolving for issuer: ${issuer}`);
+  
+  const did = issuer.toLowerCase(); // Normalize to lowercase for consistency
   assertSafeForHCS(did);
   
   console.log(`[ResolveOrProvision] Starting resolution for ${did}`);
@@ -99,12 +102,20 @@ export async function resolveOrProvision(issuer: string): Promise<ResolutionResu
     // Publish IDENTITY_BIND to HCS-22 topic for durable persistence
     const evmAddress = did.replace('did:ethr:', '');
     try {
-      await publishHcs22(bindEvent({
+      const bindingEvent = bindEvent({
         issuer: did,
         hederaId: newAccountId,
         evmAddress,
-      }));
+      });
+      
+      await publishHcs22(bindingEvent);
       console.log(`[ResolveOrProvision] Published IDENTITY_BIND to HCS-22`);
+      
+      // Immediately reduce the event to update in-memory cache
+      // This ensures the binding is available for subsequent requests without waiting for topic polling
+      const { reduceHcs22 } = await import('./reducer');
+      reduceHcs22(bindingEvent);
+      console.log(`[ResolveOrProvision] Reduced IDENTITY_BIND locally`);
     } catch (error) {
       console.error(`[ResolveOrProvision] Failed to publish IDENTITY_BIND:`, error);
       // Non-blocking - account is already created and verified
@@ -125,46 +136,17 @@ export async function resolveOrProvision(issuer: string): Promise<ResolutionResu
 
 /**
  * Query HCS reducer for latest DID binding
- * Reads topic messages and reduces to find most recent IDENTITY_BIND event
+ * Uses the in-memory reducer state that was hydrated on startup
  */
 async function queryHCSReducer(did: string): Promise<string | null> {
-  // TODO: Implement HCS topic query + reduce
-  // For now, return null (will provision)
-  
-  const topicId = process.env.HCS22_IDENTITY_TOPIC_ID;
-  if (!topicId) {
-    console.warn('[HCS Reducer] HCS22_IDENTITY_TOPIC_ID not configured');
-    return null;
-  }
-  
   try {
-    // Query Mirror Node for topic messages
-    const url = `https://testnet.mirrornode.hedera.com/api/v1/topics/${topicId}/messages?limit=100&order=desc`;
-    const response = await fetch(url);
+    // Import getBinding from the reducer (now async)
+    const { getBinding } = await import('./reducer');
     
-    if (!response.ok) {
-      console.warn(`[HCS Reducer] Failed to query topic ${topicId}`);
-      return null;
-    }
+    // Query the in-memory binding registry (await since it's now async)
+    const accountId = await getBinding(did);
     
-    const data = await response.json();
-    
-    // Reduce messages to find latest binding for this DID
-    for (const msg of data.messages || []) {
-      try {
-        const content = Buffer.from(msg.message, 'base64').toString('utf8');
-        const event = JSON.parse(content);
-        
-        if (event.type === 'IDENTITY_BIND' && event.identityDid === did && event.hederaAccountId) {
-          return event.hederaAccountId;
-        }
-      } catch (err) {
-        // Skip malformed messages
-        continue;
-      }
-    }
-    
-    return null;
+    return accountId;
   } catch (error) {
     console.error('[HCS Reducer] Query failed:', error);
     return null;
