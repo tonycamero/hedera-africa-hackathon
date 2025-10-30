@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react'
-import { BrowserMultiFormatReader, DecodeHintType } from '@zxing/library'
-import { Camera, AlertCircle } from 'lucide-react'
+import { Html5Qrcode } from 'html5-qrcode'
+import { Camera, AlertCircle, Flashlight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface CameraScannerProps {
@@ -12,154 +12,120 @@ interface CameraScannerProps {
 }
 
 export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
+  const scannerRef = useRef<Html5Qrcode | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const scanningRef = useRef(false)
+  const [torchEnabled, setTorchEnabled] = useState(false)
+  const [hasTorch, setHasTorch] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isScanning) {
       // Stop scanning and clean up
-      scanningRef.current = false
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-        streamRef.current = null
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {})
+        scannerRef.current.clear()
+        scannerRef.current = null
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null
-      }
-      codeReaderRef.current = null
       setIsReady(false)
+      setTorchEnabled(false)
+      setHasTorch(false)
       return
     }
 
-    // Prevent double initialization in React dev mode
-    if (scanningRef.current) return
-    scanningRef.current = true
+    // Prevent double initialization
+    if (scannerRef.current) return
 
     // Start scanning
     const startScanner = async () => {
       try {
         setError(null)
         
-        // Create ZXing QR code reader with hints
-        const hints = new Map()
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, ['QR_CODE'])
-        hints.set(DecodeHintType.TRY_HARDER, true)
-        const codeReader = new BrowserMultiFormatReader(hints)
-        codeReaderRef.current = codeReader
+        // Create html5-qrcode instance
+        const scanner = new Html5Qrcode('qr-reader')
+        scannerRef.current = scanner
 
-        // Get video devices and prefer back camera
-        const devices = await navigator.mediaDevices.enumerateDevices()
-        const videoDevices = devices.filter(d => d.kind === 'videoinput')
-        const backCamera = videoDevices.find(d => 
-          d.label.toLowerCase().includes('back') || 
-          d.label.toLowerCase().includes('rear') ||
-          d.label.toLowerCase().includes('environment')
-        ) || videoDevices[0]
-
-        if (!backCamera) {
+        // Get cameras and prefer back camera
+        const devices = await Html5Qrcode.getCameras()
+        if (!devices || devices.length === 0) {
           throw new Error('No camera found')
         }
 
-        // Get media stream with optimized constraints
-        const constraints: MediaStreamConstraints = {
-          video: {
-            deviceId: backCamera.deviceId,
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        }
-        
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
-        streamRef.current = stream
-        
-        if (!videoRef.current) return
-        
-        videoRef.current.srcObject = stream
-        
-        // Wait for video to be ready
-        await new Promise<void>((resolve) => {
-          if (!videoRef.current) return
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current?.play().then(resolve).catch(() => resolve())
-          }
-        })
+        const backCamera = devices.find(d => 
+          d.label.toLowerCase().includes('back') || 
+          d.label.toLowerCase().includes('rear') ||
+          d.label.toLowerCase().includes('environment')
+        ) || devices[0]
 
-        // Apply additional constraints if supported
-        const track = stream.getVideoTracks()[0]
-        try {
-          await track.applyConstraints({
-            advanced: [{ focusMode: 'continuous' }]
-          })
-        } catch {
-          // Focus mode not supported, continue anyway
+        // Configure scanning
+        const config = {
+          fps: 10, // Battery-efficient frame rate
+          qrbox: { width: 250, height: 250 }, // Scan region
+          aspectRatio: 1.0,
+          videoConstraints: {
+            facingMode: 'environment',
+            advanced: [{ torch: false }] as any[]
+          }
         }
+
+        // Start scanning
+        await scanner.start(
+          backCamera.id,
+          config,
+          (decodedText) => {
+            onScan(decodedText)
+          },
+          () => {
+            // Ignore scan errors (normal when no QR in view)
+          }
+        )
 
         setIsReady(true)
 
-        // Start continuous decoding using canvas
-        const canvas = canvasRef.current
-        const ctx = canvas.getContext('2d', { willReadFrequently: true })
-        if (!ctx) throw new Error('Could not get canvas context')
-
-        const decode = () => {
-          if (!scanningRef.current || !videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
-            if (scanningRef.current) {
-              requestAnimationFrame(decode)
-            }
-            return
+        // Check if torch is available
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+          const track = stream.getVideoTracks()[0]
+          const capabilities = track.getCapabilities() as any
+          if (capabilities.torch) {
+            setHasTorch(true)
           }
-          
-          try {
-            // Draw video frame to canvas
-            canvas.width = videoRef.current.videoWidth
-            canvas.height = videoRef.current.videoHeight
-            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-            
-            // Get image data and decode
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-            const result = codeReader.decodeFromImageData(imageData)
-            
-            if (result) {
-              onScan(result.getText())
-            }
-          } catch (err) {
-            // Normal when no QR code in view
-          }
-          
-          // Continue scanning
-          if (scanningRef.current) {
-            requestAnimationFrame(decode)
-          }
+          stream.getTracks().forEach(t => t.stop())
+        } catch {
+          // Torch not available
         }
-        
-        decode()
 
       } catch (err: any) {
         console.error('[CameraScanner] Error:', err)
         setError(err.message || 'Failed to start camera')
         setIsReady(false)
-        scanningRef.current = false
       }
     }
 
     startScanner()
 
     return () => {
-      scanningRef.current = false
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {})
+        scannerRef.current.clear()
       }
     }
   }, [isScanning, onScan])
+
+  // Torch toggle handler
+  const toggleTorch = async () => {
+    if (!scannerRef.current) return
+    
+    try {
+      const newState = !torchEnabled
+      await scannerRef.current.applyVideoConstraints({
+        advanced: [{ torch: newState }] as any[]
+      })
+      setTorchEnabled(newState)
+    } catch (err) {
+      console.error('[CameraScanner] Torch toggle failed:', err)
+    }
+  }
 
   if (!isScanning) return null
 
@@ -167,29 +133,24 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
     <div className="space-y-4">
       {/* Video Preview */}
       <div className="relative bg-black rounded-lg overflow-hidden aspect-[4/3]">
-        <video
-          ref={videoRef}
-          className="w-full h-full object-cover"
-          playsInline
-          muted
+        {/* html5-qrcode container */}
+        <div 
+          id="qr-reader" 
+          ref={containerRef}
+          className="w-full h-full"
         />
         
-        {/* Scanning Overlay */}
-        {isReady && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative w-64 h-64 border-2 border-[#FF6B35] rounded-lg">
-              {/* Corner markers */}
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#FF6B35] rounded-tl-lg" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#FF6B35] rounded-tr-lg" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#FF6B35] rounded-bl-lg" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#FF6B35] rounded-br-lg" />
-              
-              {/* Scanning line animation */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="w-full h-1 bg-gradient-to-r from-transparent via-[#FF6B35] to-transparent animate-scan-line" />
-              </div>
-            </div>
-          </div>
+        {/* Torch/Flashlight Button */}
+        {isReady && hasTorch && (
+          <button
+            onClick={toggleTorch}
+            className="absolute top-4 right-4 p-3 bg-black/50 rounded-full hover:bg-black/70 transition-colors z-10"
+            aria-label="Toggle flashlight"
+          >
+            <Flashlight 
+              className={`w-6 h-6 ${torchEnabled ? 'text-yellow-400' : 'text-white'}`}
+            />
+          </button>
         )}
 
         {/* Loading State */}
