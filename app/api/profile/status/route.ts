@@ -57,9 +57,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const hasCompletedOnboarding = !!(latestProfile?.displayName || latestProfile?.bio)
+    // Check if profile has meaningful content (not just empty strings)
+    const hasDisplayName = latestProfile?.displayName && latestProfile.displayName.trim().length > 0
+    const hasBio = latestProfile?.bio && latestProfile.bio.trim().length > 0
+    const hasCompletedOnboarding = !!(hasDisplayName || hasBio)
 
-    console.log(`[API /profile/status] Result for ${accountId}: hasCompletedOnboarding=${hasCompletedOnboarding}`)
+    console.log(`[API /profile/status] Result for ${accountId}: hasCompletedOnboarding=${hasCompletedOnboarding}`, {
+      displayName: latestProfile?.displayName,
+      bio: latestProfile?.bio,
+      hasDisplayName,
+      hasBio
+    })
 
     return NextResponse.json({ 
       accountId,

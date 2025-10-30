@@ -165,8 +165,10 @@ function extractActor(payload: any): string | undefined {
   // Recognition-specific
   if (payload.issuer) return String(payload.issuer)
   
-  // Profile-specific (self-updates)
-  if (payload.owner && payload.type === 'PROFILE_UPDATE') return String(payload.owner)
+  // Profile-specific (self-updates) - use accountId or sessionId
+  if (payload.accountId) return String(payload.accountId)
+  if (payload.sessionId) return String(payload.sessionId)
+  if (payload.owner) return String(payload.owner)
   
   return undefined
 }
