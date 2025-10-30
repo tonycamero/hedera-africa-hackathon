@@ -13,14 +13,17 @@ interface CameraScannerProps {
 
 export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
   const [error, setError] = useState<string | null>(null)
   const [isReady, setIsReady] = useState(false)
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const scanningRef = useRef(false)
 
   useEffect(() => {
     if (!isScanning) {
       // Stop scanning and clean up
+      scanningRef.current = false
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
         streamRef.current = null
@@ -32,6 +35,10 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
       setIsReady(false)
       return
     }
+
+    // Prevent double initialization in React dev mode
+    if (scanningRef.current) return
+    scanningRef.current = true
 
     // Start scanning
     const startScanner = async () => {
@@ -71,10 +78,17 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
         const stream = await navigator.mediaDevices.getUserMedia(constraints)
         streamRef.current = stream
         
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
-        }
+        if (!videoRef.current) return
+        
+        videoRef.current.srcObject = stream
+        
+        // Wait for video to be ready
+        await new Promise<void>((resolve) => {
+          if (!videoRef.current) return
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play().then(resolve).catch(() => resolve())
+          }
+        })
 
         // Apply additional constraints if supported
         const track = stream.getVideoTracks()[0]
@@ -88,12 +102,29 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
 
         setIsReady(true)
 
-        // Start continuous decoding
-        const decode = async () => {
-          if (!videoRef.current || !isScanning) return
+        // Start continuous decoding using canvas
+        const canvas = canvasRef.current
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        if (!ctx) throw new Error('Could not get canvas context')
+
+        const decode = () => {
+          if (!scanningRef.current || !videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
+            if (scanningRef.current) {
+              requestAnimationFrame(decode)
+            }
+            return
+          }
           
           try {
-            const result = await codeReader.decodeFromVideoElement(videoRef.current)
+            // Draw video frame to canvas
+            canvas.width = videoRef.current.videoWidth
+            canvas.height = videoRef.current.videoHeight
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+            
+            // Get image data and decode
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+            const result = codeReader.decodeFromImageData(imageData)
+            
             if (result) {
               onScan(result.getText())
             }
@@ -102,7 +133,7 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
           }
           
           // Continue scanning
-          if (isScanning) {
+          if (scanningRef.current) {
             requestAnimationFrame(decode)
           }
         }
@@ -113,12 +144,14 @@ export function CameraScanner({ onScan, isScanning, onClose }: CameraScannerProp
         console.error('[CameraScanner] Error:', err)
         setError(err.message || 'Failed to start camera')
         setIsReady(false)
+        scanningRef.current = false
       }
     }
 
     startScanner()
 
     return () => {
+      scanningRef.current = false
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
