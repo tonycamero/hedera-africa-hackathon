@@ -87,9 +87,15 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
     throw new Error('Magic returned an invalid token format; aborting before API calls.');
   }
   
+  // Get Magic user metadata to extract the real issuer (DID)
+  const metadata = await magic.user.getInfo();
+  const magicDID = metadata.issuer || '';
   const userEmail = email;
-  const magicDID = `did:ethr:${email}`;
   const token = didToken; // verified JWT
+  
+  if (!magicDID || !magicDID.startsWith('did:ethr:')) {
+    throw new Error(`Invalid Magic issuer format: ${magicDID}`);
+  }
   
   console.log('[Magic] Using email-based auth:', userEmail);
   console.log('[Magic] Got verified JWT from Magic');
