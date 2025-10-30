@@ -41,16 +41,18 @@ export async function GET(request: NextRequest) {
     const registry = await getRegistryTopics()
     const trustTopicId = registry.trust
     const contactTopicId = registry.contacts
+    const profileTopicId = registry.profile
     
-    console.log('[API /circle] Using registry topics:', { trust: trustTopicId, contacts: contactTopicId })
+    console.log('[API /circle] Using registry topics:', { trust: trustTopicId, contacts: contactTopicId, profile: profileTopicId })
     
-    if (!trustTopicId || !contactTopicId) {
+    if (!trustTopicId || !contactTopicId || !profileTopicId) {
       throw new Error('Missing required topic IDs from registry')
     }
     
-    const [trustResult, contactResult] = await Promise.all([
+    const [trustResult, contactResult, profileResult] = await Promise.all([
       listSince(trustTopicId, undefined, 200),
-      listSince(contactTopicId, undefined, 200)
+      listSince(contactTopicId, undefined, 200),
+      listSince(profileTopicId, undefined, 200)
     ])
     
     const trustEvents = trustResult.messages
@@ -87,17 +89,35 @@ export async function GET(request: NextRequest) {
       })
       .filter((m: any) => m !== null)
     
+    const profileEvents = profileResult.messages
+      .filter((m: any) => m && m.message && m.consensus_timestamp)
+      .map((m: any) => {
+        const json = decodeBase64Json(m.message)
+        if (!json) {
+          console.warn('[API /circle] Failed to decode profile message:', m.consensus_timestamp)
+          return null
+        }
+        return {
+          consensus_timestamp: m.consensus_timestamp,
+          sequence_number: m.sequence_number,
+          topic_id: m.topic_id,
+          json,
+        }
+      })
+      .filter((m: any) => m !== null)
+    
     // Filter events by type/version whitelist (v2 schema)
-    const filteredEvents = [...trustEvents, ...contactEvents].filter((event: any) => {
+    const filteredEvents = [...trustEvents, ...contactEvents, ...profileEvents].filter((event: any) => {
       const payload = event.json?.payload || event.json
       
-      // Type whitelist - only allow real contact/trust operations
+      // Type whitelist - only allow real contact/trust/profile operations
       const allowedTypes = [
         'CONTACT_REQUEST',
         'CONTACT_ACCEPT', 
         'CONTACT_MIRROR',
         'TRUST_ALLOCATE',
         'TRUST_REVOKE',
+        'PROFILE_UPDATE',
         'RECOGNITION_DEFINITION',
         'RECOGNITION_MINT'
       ]

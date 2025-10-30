@@ -182,9 +182,32 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   console.log('🔍 [HCSDataUtils] 🔄 Computing bonded contacts for session ID:', me)
   
   const pairs = new Map<string, any>()  // Store full event data, not just IDs
-  const contactData = new Map<string, { name?: string, handle?: string }>() // Store contact info by ID
+  const contactData = new Map<string, { name?: string, handle?: string, displayName?: string }>() // Store contact info by ID
   
-  // First pass: collect contact data from all contact events
+  // First pass: collect profile data from PROFILE_UPDATE events (highest priority)
+  for (const ev of events) {
+    const t = U(ev?.type)
+    if (t === 'PROFILE_UPDATE') {
+      const payload = ev?.payload || ev?.metadata || {}
+      const accountId = payload?.sessionId || payload?.accountId || A(ev)
+      
+      if (accountId) {
+        const displayName = payload?.displayName || payload?.handle || payload?.name
+        const handle = payload?.handle || payload?.username || displayName
+        
+        if (displayName || handle) {
+          contactData.set(accountId, { 
+            name: displayName, 
+            handle: handle,
+            displayName: displayName 
+          })
+          console.log('[HCSDataUtils] Loaded profile for', accountId, '→', displayName || handle)
+        }
+      }
+    }
+  }
+  
+  // Second pass: collect contact data from contact events (fallback)
   for (const ev of events) {
     const t = U(ev?.type)
     if (t === 'CONTACT_REQUEST' || t === 'CONTACT_ACCEPT' || t === 'CONTACT_ACCEPTED' || t === 'CONTACT_BONDED' || t === 'CONTACT_MIRROR') {
@@ -201,11 +224,11 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
       const toName = toData?.name || toData?.displayName || toData?.handle  
       const toHandle = toData?.handle || toData?.username || toData?.nickname
       
-      // Store contact data for both actors
-      if (a && (fromName || fromHandle)) {
+      // Store contact data only if not already loaded from profile
+      if (a && (fromName || fromHandle) && !contactData.has(a)) {
         contactData.set(a, { name: fromName, handle: fromHandle })
       }
-      if (b && (toName || toHandle)) {
+      if (b && (toName || toHandle) && !contactData.has(b)) {
         contactData.set(b, { name: toName, handle: toHandle })
       }
     }
@@ -239,7 +262,7 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
   console.log('🔍 [HCSDataUtils] Filtering contacts for session ID:', me)
   console.log('🔍 [HCSDataUtils] Total contacts found:', contacts.size)
   console.log('🔍 [HCSDataUtils] Total bonded pairs found:', bondedPairs.size)
-  
+  console.log('🔍 [HCSDataUtils] Profile data loaded for:', contactData.size, 'accounts')
   console.log('🔍 [HCSDataUtils] Final contacts:', [...contacts])
   
   // Filter out any invalid IDs (null, undefined, or non-strings)
