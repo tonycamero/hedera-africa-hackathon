@@ -122,17 +122,43 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
         
         setSecurePayload(payload)
         
-        // Create web URL for QR code
-        const url = encodeToWebUrl(payload)
-        setInviteCode(url)
+        // Create full URL for copying/sharing
+        const fullUrl = encodeToWebUrl(payload)
+        setInviteCode(fullUrl)
         
-        // Generate QR code with improved settings for screen-to-screen scanning
-        await QRCode.toDataURL(url, { 
-          errorCorrectionLevel: 'L',  // Lower EC = less dense, easier to scan
-          margin: 2,                   // Larger quiet zone
-          width: 560,                  // Bigger for better legibility
-          color: { dark: '#000000', light: '#FFFFFF' }
-        }).then(setQrDataUrl)
+        // Create short code for QR (much simpler, easier to scan)
+        try {
+          const shortResponse = await fetch('/api/qr/shorten', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              d: JSON.stringify(payload), 
+              ttl: 300 // 5 minutes
+            })
+          })
+          
+          const { code } = await shortResponse.json()
+          const shortUrl = `${window.location.origin}/c/${code}`
+          
+          console.log('[QR] Generated short code:', code, '→', shortUrl)
+          
+          // Generate QR with SHORT code (much less dense, easier to scan)
+          await QRCode.toDataURL(shortUrl, { 
+            errorCorrectionLevel: 'L',  // Lower EC = less dense
+            margin: 4,                   // Larger quiet zone
+            width: 560,                  // Big for legibility
+            color: { dark: '#000000', light: '#FFFFFF' }
+          }).then(setQrDataUrl)
+        } catch (err) {
+          console.error('[QR] Short code failed, using full URL:', err)
+          // Fallback to full URL if short code fails
+          await QRCode.toDataURL(fullUrl, { 
+            errorCorrectionLevel: 'L',
+            margin: 2,
+            width: 560,
+            color: { dark: '#000000', light: '#FFFFFF' }
+          }).then(setQrDataUrl)
+        }
         
         // Start countdown timer
         setExpiresIn(120)
@@ -189,15 +215,39 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
     try {
       let payload = null
       
-      // 1. Try web/deeplink URL format first
-      payload = decodeFromUrl(raw)
+      // 1. Check if it's a short code URL (e.g., https://app.com/c/ABC123)
+      const shortCodeMatch = raw.match(/\/c\/([A-Za-z0-9]{6,8})$/)
+      if (shortCodeMatch) {
+        const code = shortCodeMatch[1]
+        console.log('[QR] Resolving short code:', code)
+        
+        try {
+          const response = await fetch(`/api/qr/resolve?c=${code}`)
+          const data = await response.json()
+          
+          if (data.error) {
+            throw new Error(`Short code ${data.error}: ${code}`)
+          }
+          
+          payload = JSON.parse(data.d)
+          console.log('[QR] Resolved payload:', payload)
+        } catch (err) {
+          console.error('[QR] Short code resolution failed:', err)
+          throw new Error('Invalid or expired QR code')
+        }
+      }
       
-      // 2. Fallback to direct JSON
+      // 2. Try web/deeplink URL format
+      if (!payload) {
+        payload = decodeFromUrl(raw)
+      }
+      
+      // 3. Fallback to direct JSON
       if (!payload && raw.trim().startsWith("{")) {
         payload = JSON.parse(raw.trim())
       }
       
-      // 3. Fallback to base64-encoded JSON
+      // 4. Fallback to base64-encoded JSON
       if (!payload) {
         try {
           const decoded = atob(raw.trim())
