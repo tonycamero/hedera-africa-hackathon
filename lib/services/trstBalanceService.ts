@@ -135,3 +135,27 @@ export function getTotalDebits(accountId: string): number {
     .filter(record => record.accountId === accountId)
     .reduce((sum, record) => sum + record.amount, 0)
 }
+
+/**
+ * Get adjusted TRST balance (on-chain balance minus in-memory debits)
+ * 
+ * This provides accurate balance display in DEMO/HACKATHON mode where
+ * debits are recorded in-memory but not yet executed on-chain.
+ * 
+ * In production, once debits trigger actual token transfers, this function
+ * can be simplified to just call getTRSTBalance().
+ */
+export async function getAdjustedTRSTBalance(accountId: string): Promise<TRSTBalance> {
+  const onChainBalance = await getTRSTBalance(accountId)
+  const totalDebits = getTotalDebits(accountId)
+  
+  const adjustedBalance = Math.max(0, onChainBalance.balance - totalDebits)
+  
+  console.log(`[TRST Balance] Adjusted balance for ${accountId}: ${onChainBalance.balance} - ${totalDebits} = ${adjustedBalance}`)
+  
+  return {
+    ...onChainBalance,
+    balance: adjustedBalance,
+    isDemo: totalDebits > 0 // Flag to indicate this includes in-memory adjustments
+  }
+}

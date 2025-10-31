@@ -39,10 +39,11 @@ export function normalizeProfile(data: any): NormalizedProfile | null {
 
   return {
     accountId,
-    // Prefer displayName, fall back to handle, then email
-    displayName: source.displayName || source.handle || source.email || 'Unnamed',
-    bio: source.bio || '',
-    avatar: source.avatar,
+    // Prefer root displayName (new format), then nested displayName, then handle, then email
+    // Empty string if none exist (don't default to 'Unnamed' in data layer)
+    displayName: profileData.displayName || source.displayName || source.handle || source.email || '',
+    bio: profileData.bio || source.bio || '',
+    avatar: profileData.avatar || source.avatar || '',
     timestamp: source.timestamp || profileData.timestamp
   }
 }
@@ -53,10 +54,8 @@ export function normalizeProfile(data: any): NormalizedProfile | null {
 export function hasValidProfile(profile: NormalizedProfile | null): boolean {
   if (!profile) return false
   
-  const hasRealDisplayName = profile.displayName && 
-                            profile.displayName !== 'Unnamed' &&
-                            profile.displayName.trim().length > 0
-  
+  // Profile is valid if it has any non-empty displayName OR bio
+  const hasRealDisplayName = profile.displayName && profile.displayName.trim().length > 0
   const hasBio = profile.bio && profile.bio.trim().length > 0
   
   return !!(hasRealDisplayName || hasBio)
@@ -64,9 +63,18 @@ export function hasValidProfile(profile: NormalizedProfile | null): boolean {
 
 /**
  * Get display text for a profile (for UI rendering)
+ * Falls back to truncated account ID if no displayName set
  */
 export function getProfileDisplayText(profile: NormalizedProfile | null): string {
   if (!profile) return 'Unknown User'
+  
+  // If no displayName, show truncated account ID
+  if (!profile.displayName || profile.displayName.trim().length === 0) {
+    // Show last 6 digits of account ID (e.g., "0.0.7168693" -> "...8693")
+    const parts = profile.accountId.split('.')
+    const lastPart = parts[parts.length - 1]
+    return lastPart.length > 4 ? `...${lastPart.slice(-4)}` : profile.accountId
+  }
   
   // If displayName looks like an email, try to extract a friendly name
   if (profile.displayName.includes('@')) {

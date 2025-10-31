@@ -13,7 +13,12 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const user = await requireMagic(req)
-    const accountId = getAccountId(user)
+    
+    // Use HCS-22 resolution to get the authoritative Hedera account ID
+    const { resolveOrProvision } = await import('@/lib/server/hcs22/resolveOrProvision')
+    const resolution = await resolveOrProvision(user.issuer)
+    const accountId = resolution.hederaAccountId
+    
     const { lens }: { lens?: LensKey } = await req.json()
 
     const firstLens = lens && LENSES[lens] ? lens : DEFAULT_LENS

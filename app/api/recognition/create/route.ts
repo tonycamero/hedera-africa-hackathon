@@ -28,7 +28,13 @@ type RequestBody = {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireMagic(req)
-    const fromAccount = getAccountId(user)
+    
+    // Use HCS-22 resolution to get the authoritative Hedera account ID
+    const { resolveOrProvision } = await import('@/lib/server/hcs22/resolveOrProvision')
+    const resolution = await resolveOrProvision(user.issuer)
+    const fromAccount = resolution.hederaAccountId
+    
+    console.log(`[API /recognition/create] Resolved ${user.issuer} → ${fromAccount}`)
 
     const { label, emoji, description, lens, to, note, mintAsNFT } = (await req.json()) as RequestBody
 

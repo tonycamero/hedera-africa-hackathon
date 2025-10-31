@@ -153,16 +153,24 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
       
       const { publicKeyDer, accountId } = await magic.hedera.getPublicKey()
       
-      // Fetch sender's display name from profile API
+      // Fetch sender's display name from user's localStorage profile
       let senderName = sessionId
       try {
-        const profileRes = await fetch('/api/profile/status')
-        if (profileRes.ok) {
-          const profileData = await profileRes.json()
-          senderName = profileData.profile?.displayName || sessionId
+        // Try to get display name from Magic user info
+        const usersData = localStorage.getItem('tm:users')
+        if (usersData) {
+          const allUsers = JSON.parse(usersData)
+          const currentUser = allUsers.find((u: any) => u.hederaAccountId === sessionId)
+          if (currentUser?.displayName) {
+            senderName = currentUser.displayName
+          } else if (currentUser?.email) {
+            // Fallback to email name
+            const emailName = currentUser.email.split('@')[0]
+            senderName = emailName || currentUser.email
+          }
         }
       } catch (error) {
-        console.warn('[SendSignals] Could not fetch sender profile:', error)
+        console.warn('[SendSignals] Could not resolve sender profile:', error)
       }
       
       // Use contact's handle as recipient name

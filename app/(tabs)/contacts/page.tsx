@@ -99,6 +99,21 @@ export default function ContactsPage() {
           }
         })
         
+        // Merge recent PROFILE_UPDATE events from SignalsStore to show latest display names
+        const recentProfiles = signalsStore.getAll().filter(e => 
+          e.type === 'PROFILE_UPDATE' &&
+          e.ts > Date.now() - 120000 // Consider profiles from last 2 minutes
+        )
+        
+        // Update contact handles with latest profile displayNames
+        allContacts.forEach(contact => {
+          const profileUpdate = recentProfiles.find(p => p.actor === contact.peerId)
+          if (profileUpdate && profileUpdate.metadata?.displayName) {
+            contact.handle = profileUpdate.metadata.displayName
+            console.log(`[ContactsPage] Updated ${contact.peerId} handle to ${profileUpdate.metadata.displayName} from SignalsStore`)
+          }
+        })
+        
         setBondedContacts(allContacts)
         
         // Convert trust levels object back to Map

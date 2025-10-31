@@ -132,10 +132,8 @@ async function backfillAllTopics(): Promise<void> {
   
   const backfillPromises = validTopics.map(async ([key, topicId]) => {
     const topicKey = key as TopicKey
-    // Limit backfill to last 48 hours to avoid loading irrelevant historical data
-    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000)
-    const sinceTimestamp = (fortyEightHoursAgo * 1_000_000).toString() // Convert to nanoseconds
-    const since = sinceTimestamp
+    // Skip backfill cursor for demo - always fetch recent messages only
+    const since = null
     
     try {
       const { count, last } = await backfillTopic({

@@ -1,5 +1,5 @@
 // SERVER-ONLY Hedera client (no browser imports)
-import { Client, PrivateKey, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
+import { Client, PrivateKey, TopicMessageSubmitTransaction, TransferTransaction, AccountId, TokenId } from '@hashgraph/sdk'
 import { assertOperatorMatchesKey } from './assertOperator'
 
 function mustGet(name: string) {
@@ -62,5 +62,48 @@ export async function submitToTopic(topicId: string, message: string) {
     transactionId: tx.transactionId.toString(),
     consensusTimestamp: rcpt.consensusTimestamp?.toString(),
     sequenceNumber: rcpt.topicSequenceNumber?.toNumber(),
+  }
+}
+
+/**
+ * Transfer TRST tokens from one account to another
+ * @param fromAccountId - Sender account (user paying TRST)
+ * @param toAccountId - Receiver account (treasury)
+ * @param amount - Amount of TRST tokens to transfer (in whole units, not smallest unit)
+ * @param tokenId - TRST token ID
+ * @returns Transaction details
+ */
+export async function transferTRST(
+  fromAccountId: string,
+  toAccountId: string,
+  amount: number,
+  tokenId: string = process.env.NEXT_PUBLIC_TRST_TOKEN_ID || "0.0.5361653"
+) {
+  const client = await getHederaClient()
+  
+  // Convert amount to smallest unit (assuming 0 decimals for TRST)
+  // If TRST has decimals, adjust this calculation
+  const amountInSmallestUnit = amount
+  
+  console.log(`[TRST Transfer] ${fromAccountId} -> ${toAccountId}: ${amount} TRST (token: ${tokenId})`)
+  
+  const tx = await new TransferTransaction()
+    .addTokenTransfer(tokenId, fromAccountId, -amountInSmallestUnit)
+    .addTokenTransfer(tokenId, toAccountId, amountInSmallestUnit)
+    .freezeWith(client)
+  
+  // Sign with operator (treasury) key
+  const signedTx = await tx.sign(PrivateKey.fromString(mustGet('HEDERA_OPERATOR_KEY')))
+  
+  // Execute
+  const response = await signedTx.execute(client)
+  const receipt = await response.getReceipt(client)
+  
+  console.log(`[TRST Transfer] Success: ${response.transactionId.toString()}`)
+  
+  return {
+    transactionId: response.transactionId.toString(),
+    status: receipt.status.toString(),
+    consensusTimestamp: receipt.consensusTimestamp?.toString()
   }
 }

@@ -14,38 +14,37 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireMagic(req)
     
-    // Client can send either EVM (0x...) or Hedera (0.0.x) account ID
-    const reqUrl = new URL(req.url)
-    const rawId = reqUrl.searchParams.get('accountId') || getAccountId(user)
     const userEmail = user.email
-    const isEvm = rawId?.startsWith('0x')
+    console.log(`[API /profile/status] Checking profile for user ${userEmail}`)
 
-    console.log(`[API /profile/status] Checking profile for ${rawId} (${userEmail})`, {
-      type: isEvm ? 'EVM' : 'Hedera',
-      willResolve: isEvm
-    })
+    // Use HCS-22 resolution to get the authoritative Hedera account ID
+    // This handles EVM→Hedera mapping via the identity binding system
+    const { resolveOrProvision } = await import('@/lib/server/hcs22/resolveOrProvision')
+    const resolution = await resolveOrProvision(user.issuer)
+    const hederaAccountId = resolution.hederaAccountId
+    
+    console.log(`[API /profile/status] Resolved ${user.issuer} → ${hederaAccountId} (source: ${resolution.source})`)
 
-    // Normalizer handles EVM→Hedera resolution via mirror node (read-only, no provisioning)
-    const profile = await getLatestProfileFor(rawId, userEmail)
+    // Fetch profile using the resolved Hedera account ID
+    const profile = await getLatestProfileFor(hederaAccountId, userEmail)
 
     // Check if profile has meaningful content (not just empty strings)
     const hasDisplayName = profile?.displayName && 
-                          profile.displayName.trim().length > 0 && 
-                          profile.displayName !== 'Unnamed'
+                          profile.displayName.trim().length > 0
     const hasBio = profile?.bio && profile.bio.trim().length > 0
     const hasCompletedOnboarding = !!(hasDisplayName || hasBio)
 
     console.log(`[API /profile/status] Result: hasCompletedOnboarding=${hasCompletedOnboarding}`, {
       displayName: profile?.displayName,
       bio: profile?.bio?.slice(0, 50),
-      resolvedFrom: isEvm ? 'EVM address' : 'Hedera account ID'
+      hederaAccountId
     })
 
     return NextResponse.json({ 
-      accountId: rawId,
+      accountId: hederaAccountId,
       hasCompletedOnboarding,
       profile,
-      source: isEvm ? 'hcs-normalized(evmalias)' : 'hcs-normalized'
+      source: 'hcs-normalized(identity-resolved)'
     }, { status: 200 })
   } catch (error: any) {
     console.error('[API /profile/status] Error:', error)

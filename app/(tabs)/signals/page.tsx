@@ -81,6 +81,39 @@ export default function SignalsPage() {
   const contactFeed = useHcsEvents('contact', 2500)
   const profileFeed = useHcsEvents('profile', 2500)
   
+  // Helper to resolve account ID to display name
+  const getDisplayName = (accountId: string): string => {
+    if (!accountId) return 'Unknown'
+    
+    // Try to find profile data from profileFeed events
+    const profileEvents = profileFeed.events || []
+    const profileUpdate = profileEvents
+      .filter(event => event.type === 'PROFILE_UPDATE')
+      .find(event => event.actor === accountId)
+    
+    if (profileUpdate?.metadata?.displayName) {
+      return profileUpdate.metadata.displayName
+    }
+    
+    // Try to find from contact mirror events
+    const contactEvents = contactFeed.events || []
+    const contactMirror = contactEvents
+      .filter(event => event.type === 'CONTACT_MIRROR')
+      .find(event => event.actor === accountId || event.target === accountId)
+    
+    if (contactMirror?.metadata?.displayName) {
+      return contactMirror.metadata.displayName
+    }
+    
+    // Fallback to formatted account ID
+    if (accountId.startsWith('0.0.')) {
+      const parts = accountId.split('.')
+      return `...${parts[2]?.slice(-4) || accountId.slice(-4)}`
+    }
+    
+    return accountId.length > 10 ? accountId.slice(0, 6) : accountId
+  }
+  
   const [signals, setSignals] = useState<EnhancedSignal[]>([])
   const [selectedTab, setSelectedTab] = useState<'feed' | 'tokens'>('feed')
   const [searchQuery, setSearchQuery] = useState('')
@@ -114,16 +147,16 @@ export default function SignalsPage() {
   }
 
   const getEventDescription = (signal: SignalEvent): string => {
-    // For SIGNAL_MINT/RECOGNITION_MINT, show the rich token metadata from payload
+    // For SIGNAL_MINT/RECOGNITION_MINT, show the rich token metadata (flat structure)
     if ((signal.type === 'SIGNAL_MINT' || signal.type === 'RECOGNITION_MINT') && signal.metadata) {
-      const payload = signal.metadata.payload || {}
-      const tokenName = payload.name || payload.recognition || signal.metadata.recognitionType || 'Recognition Token'
-      const description = payload.description
-      const category = payload.category
-      const rarity = payload.rarity
+      const tokenName = signal.metadata.name || signal.metadata.recognition || signal.metadata.recognitionType || 'Recognition Token'
+      const description = signal.metadata.description || signal.metadata.subtitle
+      const category = signal.metadata.category
+      const rarity = signal.metadata.rarity
+      const emoji = signal.metadata.emoji
       
       // Build rich description with token name + description
-      let displayText = `${payload.icon || '🏆'} ${tokenName}`
+      let displayText = `${emoji || '🏆'} ${tokenName}`
       if (description) displayText += ` - ${description}`
       if (rarity && rarity !== 'Common') displayText += ` (⭐ ${rarity})`
       
@@ -165,8 +198,8 @@ export default function SignalsPage() {
         const isRecognition = signal.type === 'SIGNAL_MINT' || signal.type === 'RECOGNITION_MINT'
         const hasMetadata = signal.metadata && Object.keys(signal.metadata).length > 0
         
-        // Check if this is a NEW signal with rich metadata structure (has payload.description)
-        const hasRichMetadata = signal.metadata?.payload?.description || signal.metadata?.payload?.labels
+        // Check if this is a NEW signal with rich metadata (flat structure now)
+        const hasRichMetadata = signal.metadata?.name || signal.metadata?.subtitle || signal.metadata?.senderName
         
         // Accept:
         // 1. Hedera account IDs (0.0.xxxxx) OR
@@ -188,12 +221,17 @@ export default function SignalsPage() {
       // Sort by timestamp (most recent first)
       const sortedEvents = recognitionEvents.sort((a, b) => b.ts - a.ts)
       
-      const enhancedSignals: EnhancedSignal[] = sortedEvents.map((signal) => ({
-        ...signal,
-        firstName: getFirstName(signal.actor),
-        onlineStatus: getOnlineStatus(signal.id || ''),
-        eventDescription: getEventDescription(signal)
-      }))
+      const enhancedSignals: EnhancedSignal[] = sortedEvents.map((signal) => {
+        // Try to get sender display name from metadata (flat structure)
+        const displayName = signal.metadata?.senderName || getFirstName(signal.actor)
+        
+        return {
+          ...signal,
+          firstName: displayName,
+          onlineStatus: getOnlineStatus(signal.id || ''),
+          eventDescription: getEventDescription(signal)
+        }
+      })
       
       if (myLoadId === loadIdRef.current) {
         setSignals(enhancedSignals)
@@ -527,51 +565,32 @@ export default function SignalsPage() {
               {/* Token Name */}
               <div className="text-center space-y-1">
                 <h4 className="text-2xl font-bold text-white">
-                  {(() => {
-                    // Try new structure first (payload.name), then old structure
-                    const payload = selectedSignal.metadata?.payload || {}
-                    return payload.name || payload.recognition || selectedSignal.metadata?.name || 'Recognition Token'
-                  })()}
+                  {selectedSignal.metadata?.name || selectedSignal.metadata?.recognition || 'Recognition Token'}
                 </h4>
                 <div className="flex items-center justify-center gap-2">
                   <Badge className="bg-[#FF6B35]/20 text-[#FF6B35] border-[#FF6B35]/30">
-                    {(() => {
-                      const payload = selectedSignal.metadata?.payload || {}
-                      const category = payload.category || selectedSignal.metadata?.category
-                      return category?.toUpperCase() || 'RECOGNITION'
-                    })()}
+                    {selectedSignal.metadata?.category?.toUpperCase() || 'RECOGNITION'}
                   </Badge>
-                  {(() => {
-                    const payload = selectedSignal.metadata?.payload || {}
-                    const rarity = payload.rarity || selectedSignal.metadata?.rarity
-                    return rarity && (
-                      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                        {rarity.toUpperCase()}
-                      </Badge>
-                    )
-                  })()}
+                  {selectedSignal.metadata?.rarity && (
+                    <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                      {selectedSignal.metadata.rarity.toUpperCase()}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
               {/* Description */}
               <p className="text-white/70 text-center leading-relaxed text-lg">
-                {(() => {
-                  const payload = selectedSignal.metadata?.payload || {}
-                  return payload.description || selectedSignal.metadata?.description || 'A professional recognition token minted on Hedera for outstanding contribution.'
-                })()}
+                {selectedSignal.metadata?.description || selectedSignal.metadata?.subtitle || 'A professional recognition token minted on Hedera for outstanding contribution.'}
               </p>
               
               {/* Message if present */}
-              {(() => {
-                const payload = selectedSignal.metadata?.payload || {}
-                const message = payload.message || selectedSignal.metadata?.message
-                return message && (
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-white/60 text-xs mb-1">Message</p>
-                    <p className="text-white text-sm italic">"{message}"</p>
-                  </div>
-                )
-              })()}
+              {selectedSignal.metadata?.message && (
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <p className="text-white/60 text-xs mb-1">Message</p>
+                  <p className="text-white text-sm italic">"{selectedSignal.metadata.message}"</p>
+                </div>
+              )}
 
               {/* Metadata Grid */}
               <div className="space-y-3 bg-white/5 rounded-xl p-4 border border-white/10">
@@ -584,10 +603,11 @@ export default function SignalsPage() {
                     <p className="text-white/50 text-xs">From</p>
                     <p className="text-white font-medium">
                       {(() => {
-                        const payload = selectedSignal.metadata?.payload || {}
-                        return payload.senderName || selectedSignal.metadata?.senderName || selectedSignal.metadata?.from || getFirstName(selectedSignal.actor)
-                      })()}
-                    </p>
+                        const senderAccountId = selectedSignal.metadata?.from || selectedSignal.actor
+                        const senderName = selectedSignal.metadata?.senderName || getDisplayName(senderAccountId)
+                        return senderName
+                      })()
+                    }</p>
                   </div>
                 </div>
 
@@ -599,10 +619,7 @@ export default function SignalsPage() {
                   <div className="flex-1">
                     <p className="text-white/50 text-xs">To</p>
                     <p className="text-white font-medium">
-                      {(() => {
-                        const payload = selectedSignal.metadata?.payload || {}
-                        return payload.recipientName || payload.to || selectedSignal.metadata?.recipientName || getFirstName(selectedSignal.target || '')
-                      })()}
+                      {selectedSignal.metadata?.recipientName || selectedSignal.metadata?.to || getFirstName(selectedSignal.target || '')}
                     </p>
                   </div>
                 </div>
@@ -627,38 +644,30 @@ export default function SignalsPage() {
                 </div>
 
                 {/* Trust Value */}
-                {(() => {
-                  const payload = selectedSignal.metadata?.payload || {}
-                  const trustValue = payload.trustValue || selectedSignal.metadata?.trustValue
-                  return trustValue && (
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
-                        <Trophy className="w-4 h-4 text-yellow-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-white/50 text-xs">Trust Value</p>
-                        <p className="text-[#FF6B35] font-bold text-lg">
-                          {trustValue} 🔥
-                        </p>
-                      </div>
+                {selectedSignal.metadata?.trustAmount && (
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
+                      <Trophy className="w-4 h-4 text-yellow-400" />
                     </div>
-                  )
-                })()}
+                    <div className="flex-1">
+                      <p className="text-white/50 text-xs">Trust Value</p>
+                      <p className="text-[#FF6B35] font-bold text-lg">
+                        {selectedSignal.metadata.trustAmount} 🔥
+                      </p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Labels/Tags */}
-                {(() => {
-                  const payload = selectedSignal.metadata?.payload || {}
-                  const labels = payload.labels || selectedSignal.metadata?.labels || []
-                  return labels.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-2">
-                      {labels.map((label: string) => (
-                        <span key={label} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs">
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )
-                })()}
+                {selectedSignal.metadata?.labels && selectedSignal.metadata.labels.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {selectedSignal.metadata.labels.map((label: string) => (
+                      <span key={label} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* HCS Info */}

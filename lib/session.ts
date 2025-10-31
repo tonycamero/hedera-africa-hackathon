@@ -14,6 +14,72 @@ export interface SessionProfile {
 let _sessionId: string | null = null
 let _sessionProfile: SessionProfile | null = null
 
+/**
+ * Get the authoritative Hedera account ID via HCS-22 resolution
+ * This is the CORRECT way to get the user's account ID
+ * 
+ * WARNING: Returns null if not authenticated or resolution fails
+ */
+export async function getResolvedAccountId(): Promise<string | null> {
+  if (typeof window === 'undefined') return null
+  
+  try {
+    const { magic } = await import('@/lib/magic')
+    const isLoggedIn = await magic.user.isLoggedIn()
+    
+    if (!isLoggedIn) return null
+    
+    const token = await magic.user.getIdToken()
+    if (!token) return null
+    
+    // Query HCS-22 resolver via server API
+    const response = await fetch('/api/hcs22/resolve?mode=lookup', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      console.warn('[Session] HCS-22 resolution failed:', response.status)
+      return null
+    }
+    
+    const data = await response.json()
+    const accountId = data.hederaAccountId
+    
+    if (accountId) {
+      console.log('[Session] Resolved account ID via HCS-22:', accountId)
+      
+      // Update localStorage cache for faster subsequent access
+      const usersData = localStorage.getItem('tm:users')
+      if (usersData) {
+        const allUsers = JSON.parse(usersData)
+        if (allUsers[0]) {
+          allUsers[0].hederaAccountId = accountId
+          localStorage.setItem('tm:users', JSON.stringify(allUsers))
+        }
+      }
+      
+      return accountId
+    }
+    
+    return null
+  } catch (error) {
+    console.error('[Session] Failed to resolve account ID:', error)
+    return null
+  }
+}
+
+/**
+ * DEPRECATED: Get session ID from localStorage cache
+ * 
+ * WARNING: This reads from localStorage which can be stale/cleared.
+ * Use getResolvedAccountId() instead for authoritative account ID.
+ * 
+ * This function remains for backward compatibility with synchronous code,
+ * but all new code should use the async getResolvedAccountId().
+ */
 export function getSessionId(ephemeralStrict?: boolean): string {
   // REMOVED: Demo session override - use real authenticated sessions only
   // const envSession = process.env.NEXT_PUBLIC_SESSION_ID?.trim()
@@ -25,7 +91,8 @@ export function getSessionId(ephemeralStrict?: boolean): string {
   //   return envSession
   // }
 
-  // Use Hedera Account ID from Magic auth if available
+  // DEPRECATED: Read from localStorage cache (may be stale)
+  // Use getResolvedAccountId() for authoritative account ID
   if (typeof window !== 'undefined') {
     try {
       const usersData = localStorage.getItem('tm:users')

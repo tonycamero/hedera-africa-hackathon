@@ -129,6 +129,8 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/hcs22/resolve?did=<identityDid>
+ * GET /api/hcs22/resolve?mode=lookup (authenticated - resolves current user)
+ * 
  * Query resolver for DID → Hedera account ID lookup
  * 
  * Flow: cache → reducer → mirror → null
@@ -141,11 +143,38 @@ export async function GET(req: NextRequest) {
   }
   
   try {
-    const did = req.nextUrl.searchParams.get('did');
+    const mode = req.nextUrl.searchParams.get('mode');
+    let did = req.nextUrl.searchParams.get('did');
     
+    // Authenticated lookup mode - resolve current user's DID
+    if (mode === 'lookup') {
+      const auth = await requireMagicAuth(req);
+      did = getCanonicalDid(auth.issuer);
+      console.log(`[HCS22 GET] Authenticated lookup for ${did}`);
+      
+      // Use full resolver (cache → reducer → mirror)
+      const { resolveHederaAccountId } = await import('@/lib/server/hcs22/resolver');
+      const accountId = await resolveHederaAccountId(did);
+      
+      if (accountId) {
+        return NextResponse.json({
+          hederaAccountId: accountId,
+          source: 'resolved',
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        return NextResponse.json({
+          hederaAccountId: null,
+          source: 'not-found',
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Public DID lookup mode (requires did parameter)
     if (!did) {
       return NextResponse.json(
-        { success: false, error: 'did query parameter required' },
+        { success: false, error: 'did query parameter required (or use mode=lookup with auth)' },
         { status: 400 }
       );
     }
@@ -171,8 +200,19 @@ export async function GET(req: NextRequest) {
       });
     }
     
-    // TODO: Query HCS reducer + Mirror Node (without provisioning)
-    // For now, return null
+    // Use full resolver
+    const { resolveHederaAccountId } = await import('@/lib/server/hcs22/resolver');
+    const accountId = await resolveHederaAccountId(did);
+    
+    if (accountId) {
+      console.log(`[HCS22 GET] Resolved: ${did} → ${accountId}`);
+      return NextResponse.json({
+        accountId,
+        source: 'resolved',
+        updatedAt: new Date().toISOString()
+      });
+    }
+    
     console.log(`[HCS22 GET] No resolution found for ${did}`);
     
     return NextResponse.json({

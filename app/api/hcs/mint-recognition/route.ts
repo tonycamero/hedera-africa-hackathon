@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { submitToTopic } from "@/lib/hedera/serverClient"
+import { submitToTopic, transferTRST } from "@/lib/hedera/serverClient"
 import { hasSufficientTRST, recordTRSTDebit } from "@/lib/services/trstBalanceService"
 import { getTRSTCost } from "@/lib/config/pricing"
 import { verifyRecognitionSignature, type SignedRecognitionPayload } from "@/lib/hedera/signRecognition"
@@ -62,18 +62,26 @@ export async function POST(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // Check TRST balance
+    // TRST payment will happen AFTER successful mint (post-paid)
+    // First, verify user has sufficient balance for future payment
     const trstCost = getTRSTCost("RECOGNITION_MINT")
     const balanceCheck = await hasSufficientTRST(issuerId, trstCost)
     
     if (!balanceCheck.sufficient) {
       return NextResponse.json({
         ok: false,
-        error: `Insufficient TRST balance. Required: ${balanceCheck.required}, Current: ${balanceCheck.current}`
+        error: `Insufficient TRST balance. Required: ${balanceCheck.required}, Current: ${balanceCheck.current}`,
+        message: 'You need TRST to mint recognitions. Please top up your account.'
       }, { status: 402 }) // 402 Payment Required
     }
 
-    console.log(`[HCS Mint] User ${issuerId} has sufficient TRST (${balanceCheck.current} >= ${trstCost})`)
+    console.log(`[HCS Mint] User ${issuerId} has sufficient TRST for post-payment (${balanceCheck.current} >= ${trstCost})`)
+
+    // Use display names passed from client (already resolved from client-side profile store)
+    const resolvedSenderName = senderName || issuerId
+    const resolvedRecipientName = recipientName || recipientId
+    
+    console.log(`[HCS Mint] Display names: sender=${resolvedSenderName}, recipient=${resolvedRecipientName}`)
 
     // Get signal topic from registry
     const SIGNAL_TOPIC = topics().signal
@@ -82,27 +90,22 @@ export async function POST(req: NextRequest) {
     const envelope = {
       type: "SIGNAL_MINT",
       from: issuerId,
+      to: recipientId,
+      tokenId,
+      name,
+      category, // social, academic, professional  
+      subtitle,
+      emoji,
+      senderName: resolvedSenderName, // Display name of sender (resolved from on-chain profile)
+      recipientName: resolvedRecipientName, // Display name of recipient (resolved from on-chain profile)
+      message, // User's recognition message
+      trustAmount, // Trust allocation amount
+      uri: `hcs://11/${SIGNAL_TOPIC}/${Date.now()}`, // Will be updated with actual seq
+      minted_at: timestamp,
+      issuer: issuerId,
+      trstCost, // Track cost for transparency
       nonce: Date.now(),
       ts: Math.floor(Date.now() / 1000),
-      payload: {
-        tokenId,
-        name,
-        kind: category, // social, academic, professional  
-        subtitle,
-        emoji,
-        to: recipientId,
-        senderName, // Display name of sender
-        recipientName, // Display name of recipient
-        message, // User's recognition message
-        trustAmount, // Trust allocation amount
-        uri: `hcs://11/${SIGNAL_TOPIC}/${Date.now()}`, // Will be updated with actual seq
-        metadata: {
-          category,
-          minted_at: timestamp,
-          issuer: issuerId,
-          trstCost // Track cost for transparency
-        }
-      },
       // User's signature proves authorization
       signature,
       publicKey
@@ -122,16 +125,12 @@ export async function POST(req: NextRequest) {
     
     const result = await submitToTopic(SIGNAL_TOPIC, JSON.stringify(envelope))
     
-    // Record TRST debit after successful HCS submission
-    const debitRecord = recordTRSTDebit(
-      issuerId,
-      trstCost,
-      `RECOGNITION_MINT:${tokenId}`,
-      result.transactionId
-    )
-    
     console.log(`[HCS Mint] Successfully minted hashinal: ${tokenId}`)
-    console.log(`[HCS Mint] Debited ${trstCost} TRST from ${issuerId}`)
+    console.log(`[HCS Mint] HCS transaction: ${result.transactionId}`)
+    
+    // Record TRST debit (in-memory for now)
+    // In production, user will sign TRST transfer client-side
+    recordTRSTDebit(issuerId, trstCost, 'RECOGNITION_MINT', result.transactionId)
     
     return NextResponse.json({
       ok: true,
@@ -139,11 +138,11 @@ export async function POST(req: NextRequest) {
       name,
       category,
       status: "onchain",
-      hrl: `hcs://11/${SIGNAL_TOPIC}/pending`, // Real seq would be returned from HCS
-      message: "Recognition signal minted successfully on HCS",
-      trstCharged: trstCost,
-      trstBalance: balanceCheck.current - trstCost,
-      transactionId: result.transactionId
+      hrl: `hcs://11/${SIGNAL_TOPIC}/${result.sequenceNumber || 'pending'}`,
+      message: "Recognition minted successfully",
+      mintTransactionId: result.transactionId,
+      trstCost: trstCost,
+      trstBalance: balanceCheck.current - trstCost
     })
 
   } catch (error: any) {

@@ -132,18 +132,10 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
     .catch(err => console.warn('[HCS22] Resolution failed (non-blocking):', err.message));
   }
 
-  // Check if user already exists in localStorage
-  const existingUsers = getStoredUsers();
-  const existingUser = existingUsers.find((u) => u.email === userEmail);
-
-  if (existingUser) {
-    console.log('[Magic] User already exists in localStorage:', existingUser.hederaAccountId);
-    return existingUser;
-  }
-
-  // CRITICAL: Check backend for existing account (in case localStorage was cleared)
+  // ALWAYS check HCS-22 for authoritative account binding (localStorage is just a cache)
+  // This ensures we recover from cleared browser data or device switches
+  console.log('[Magic] Checking HCS-22 for authoritative account binding...');
   try {
-    console.log('[Magic] Checking backend for existing Hedera account...');
     const checkResponse = await fetch('/api/hedera/account/lookup', {
       method: 'POST',
       headers: { 

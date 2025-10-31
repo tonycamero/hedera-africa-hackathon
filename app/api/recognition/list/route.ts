@@ -13,7 +13,13 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const user = await requireMagic(req)
-    const accountId = getAccountId(user)
+    
+    // Use HCS-22 resolution to get the authoritative Hedera account ID
+    const { resolveOrProvision } = await import('@/lib/server/hcs22/resolveOrProvision')
+    const resolution = await resolveOrProvision(user.issuer)
+    const accountId = resolution.hederaAccountId
+    
+    console.log(`[API /recognition/list] Resolved ${user.issuer} → ${accountId}`)
 
     // Fetch ALL signals for user with frozen metadata
     const signals = await recognitionStore.listForUser(accountId)

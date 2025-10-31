@@ -29,50 +29,12 @@ function validateProfileUpdate(req: ProfileUpdateRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  console.warn('[DEPRECATED] /api/profile/update is deprecated. Use /api/hcs/profile instead.')
+  console.warn('[DEPRECATED] /api/profile/update is deprecated and DISABLED. Use /api/hcs/profile instead.')
   
-  try {
-    const body: ProfileUpdateRequest = await req.json()
-    validateProfileUpdate(body)
-
-    const topics = await getRegistryTopics()
-    const topicId = topics.profile
-    if (!topicId) throw new Error('No profile topic configured')
-
-    // Use server account for signing
-    const serverAccount = process.env.HEDERA_OPERATOR_ID
-    if (!serverAccount) throw new Error('HEDERA_OPERATOR_ID not configured')
-    
-    // Create HCS-11 compliant envelope
-    const nonce = Math.floor(Date.now() / 1000)
-    const envelope = {
-      type: "PROFILE_UPDATE",
-      from: serverAccount,
-      nonce,
-      ts: nonce,
-      payload: {
-        sessionId: body.sessionId,
-        handle: body.handle,
-        bio: body.bio || "",
-        visibility: body.visibility,
-        location: body.location || "",
-        avatar: body.avatar || ""
-      }
-    }
-
-    const message = JSON.stringify(envelope)
-    const result = await submitToTopic(topicId, message)
-
-    console.log(`[Profile Update] Success: sessionId=${body.sessionId}, handle=${body.handle}, seq=${result.sequenceNumber}`)
-
-    return NextResponse.json({ 
-      ok: true, 
-      topicId,
-      profileHrl: `hcs://11/${topicId}/${result.sequenceNumber}`,
-      ...result 
-    })
-  } catch (e: any) {
-    console.error(`[Profile Update] Error: ${e.message}`)
-    return NextResponse.json({ ok: false, error: e.message || 'Profile update failed' }, { status: 400 })
-  }
+  // DISABLED: This endpoint writes old nested payload format and conflicts with user-signed profiles
+  // All profile updates should go through /api/hcs/profile which uses flat structure with signatures
+  return NextResponse.json({ 
+    ok: false, 
+    error: 'This endpoint is deprecated. Use /api/hcs/profile for user-signed profile updates.' 
+  }, { status: 410 }) // 410 Gone
 }
