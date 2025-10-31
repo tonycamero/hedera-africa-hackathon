@@ -25,6 +25,7 @@ import { getSessionId } from '@/lib/session'
 import { recognitionSignals, type RecognitionSignal, type SignalCategory } from '@/lib/data/recognitionSignals'
 import { SignalDetailModal } from './SignalDetailModal'
 import { magic } from '@/lib/magic'
+import { payTRSTToTreasury } from '@/lib/hedera/transferTRST'
 
 interface BondedContact {
   peerId: string
@@ -152,22 +153,16 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
       
       const { publicKeyDer, accountId } = await magic.hedera.getPublicKey()
       
-      // Fetch sender's display name
+      // Fetch sender's display name from profile API
       let senderName = sessionId
       try {
-        console.log('[SendSignals] Fetching sender profile for:', sessionId)
-        const senderResponse = await fetch(`/api/profile/status?accountId=${encodeURIComponent(sessionId)}`)
-        const senderData = await senderResponse.json()
-        console.log('[SendSignals] Sender profile response:', senderData)
-        
-        if (senderData.profile?.displayName && senderData.profile.displayName !== 'Unnamed') {
-          senderName = senderData.profile.displayName
-          console.log('[SendSignals] Using sender name:', senderName)
-        } else {
-          console.warn('[SendSignals] No valid sender profile found, using account ID')
+        const profileRes = await fetch('/api/profile/status')
+        if (profileRes.ok) {
+          const profileData = await profileRes.json()
+          senderName = profileData.profile?.displayName || sessionId
         }
-      } catch (err) {
-        console.warn('[SendSignals] Could not fetch sender name:', err)
+      } catch (error) {
+        console.warn('[SendSignals] Could not fetch sender profile:', error)
       }
       
       // Use contact's handle as recipient name
@@ -230,10 +225,24 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
         throw new Error(result.error || 'Failed to send signal')
       }
       
-      toast.success('🎉 Signal sent on-chain!', {
-        description: `${selectedSignal.icon} ${selectedSignal.name} → ${selectedContact?.handle || selectedContactId}`,
-        duration: 4000,
-      })
+      // Execute TRST payment to treasury
+      console.log(`[SendSignals] Mint successful, now paying ${result.trstCost} TRST to treasury`)
+      try {
+        const paymentTxId = await payTRSTToTreasury(result.trstCost)
+        console.log(`[SendSignals] TRST payment successful: ${paymentTxId}`)
+        
+        toast.success('🎉 Signal sent on-chain!', {
+          description: `${selectedSignal.icon} ${selectedSignal.name} → ${selectedContact?.handle || selectedContactId} (${result.trstCost} TRST)`,
+          duration: 4000,
+        })
+      } catch (paymentError: any) {
+        console.error('[SendSignals] TRST payment failed:', paymentError)
+        toast.error('Signal minted but payment failed', {
+          description: paymentError.message || 'TRST transfer failed',
+          duration: 6000,
+        })
+        // Don't throw - mint succeeded even if payment failed
+      }
       
       // Reset form
       setSelectedSignalId('')
