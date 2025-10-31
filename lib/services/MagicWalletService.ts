@@ -37,9 +37,7 @@ export interface MagicHederaUser {
   magicDID: string;
   hederaAccountId: string;
   publicKey: string;
-  freeMints: number;
   trstBalance: number;
-  totalMintsSent: number;
 }
 
 const isJwt = (t: string | null | undefined): t is string => {
@@ -167,9 +165,7 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
           magicDID,
           hederaAccountId: existing.accountId,
           publicKey: existing.publicKey || '',
-          freeMints: 27,
           trstBalance: 1.35,
-          totalMintsSent: 0,
         };
         storeUser(restoredUser);
         return restoredUser;
@@ -260,9 +256,7 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
     magicDID,
     hederaAccountId,
     publicKey: publicKeyDer,
-    freeMints: 27,
     trstBalance: 1.35,
-    totalMintsSent: 0,
   };
 
   // Step 7: Store user
