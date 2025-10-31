@@ -68,18 +68,10 @@ class ProfileService {
         try {
           console.log('[ProfileService] Publishing profile via server-side API...')
           
-          const response = await fetch('/api/profile/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId,
-              handle: profile.handle,
-              bio: profile.bio || '',
-              visibility: profile.visibility,
-              location: profile.location || '',
-              avatar: profile.avatar || ''
-            })
-          })
+          // Skip HCS profile write during initialization
+          // User will need to explicitly update profile via Settings which uses signed payloads
+          console.log('[ProfileService] Skipping HCS profile write during init (requires user signature)')
+          throw new Error('Profile init skipped - will use local profile')
           
           const result = await response.json()
           
