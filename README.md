@@ -234,4 +234,4 @@ Together, these create a complete stack: **Play the Game → Build Context → U
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - see LICENSE file for details# Trigger Vercel deployment
