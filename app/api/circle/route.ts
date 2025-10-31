@@ -49,10 +49,24 @@ export async function GET(request: NextRequest) {
       throw new Error('Missing required topic IDs from registry')
     }
     
+    // Fetch messages with error handling for empty topics
+    const fetchWithFallback = async (topicId: string) => {
+      try {
+        return await listSince(topicId, undefined, 200)
+      } catch (error) {
+        // If topic is empty or doesn't exist yet, return empty result
+        if (error instanceof Error && error.message.includes('404')) {
+          console.warn(`[API /circle] Topic ${topicId} returned 404, treating as empty`)
+          return { messages: [], watermark: '0.0' }
+        }
+        throw error
+      }
+    }
+    
     const [trustResult, contactResult, profileResult] = await Promise.all([
-      listSince(trustTopicId, undefined, 200),
-      listSince(contactTopicId, undefined, 200),
-      listSince(profileTopicId, undefined, 200)
+      fetchWithFallback(trustTopicId),
+      fetchWithFallback(contactTopicId),
+      fetchWithFallback(profileTopicId)
     ])
     
     const trustEvents = trustResult.messages
