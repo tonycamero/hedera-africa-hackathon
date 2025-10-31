@@ -244,6 +244,33 @@ export default function OnboardingPage() {
       const result = await response.json()
       console.log('[Onboarding] Profile created:', result)
       
+      // Immediately add the published profile signal to the local store
+      // so HeaderMenu and /me can pick it up without waiting for HCS backfill
+      if (result.ok && typeof window !== 'undefined') {
+        try {
+          const { signalsStore } = await import('@/lib/stores/signalsStore')
+          const profileSignal = {
+            id: `profile_${accountId}_${Date.now()}`,
+            type: 'PROFILE_UPDATE',
+            actor: accountId,
+            ts: Date.now(),
+            topicId: result.profile?.topicId || process.env.NEXT_PUBLIC_PROFILE_TOPIC_ID || '',
+            metadata: {
+              displayName: desiredName,
+              bio: bio || `TrustMesh user - ${magicUser.email}`,
+              avatar: '',
+              handle: magicUser.email?.split('@')[0] || desiredName,
+              sequenceNumber: result.sequenceNumber
+            },
+            source: 'hcs' as const
+          }
+          signalsStore.add(profileSignal)
+          console.log('[Onboarding] Added profile signal to store:', profileSignal)
+        } catch (err) {
+          console.warn('[Onboarding] Failed to add profile to store (non-critical):', err)
+        }
+      }
+      
       toast.success('Profile created', {
         description: 'You can now exchange recognitions with others'
       })

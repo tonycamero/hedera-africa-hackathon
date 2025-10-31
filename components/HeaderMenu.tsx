@@ -41,8 +41,9 @@ export function HeaderMenu() {
           
           if (profile) {
             setAccountId(profile.accountId)
-            // Use helper to get clean display text
-            setDisplayName(getProfileDisplayText(profile))
+            const displayText = getProfileDisplayText(profile)
+            // If profile has no name/handle and returns "Unnamed", fall back to email
+            setDisplayName(displayText === 'Unnamed' ? email : displayText)
           } else {
             // Fallback to email if no profile yet
             setDisplayName(email)
