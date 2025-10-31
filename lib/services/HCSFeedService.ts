@@ -741,11 +741,14 @@ export class HCSFeedService {
                   id: eventId,
                   type: 'profile_update',
                   timestamp,
-                  actor: obj.sessionId || obj.actor || 'unknown',
-                  target: obj.sessionId || obj.target || obj.actor || 'unknown',
+                  actor: obj.accountId || obj.sessionId || obj.actor || 'unknown',
+                  target: obj.accountId || obj.sessionId || obj.target || obj.actor || 'unknown',
                   metadata: {
-                    handle: obj.handle,
+                    accountId: obj.accountId,
+                    displayName: obj.displayName,
+                    handle: obj.handle || obj.displayName,
                     bio: obj.bio,
+                    avatar: obj.avatar,
                     visibility: obj.visibility,
                     topicId: m.topicId
                   },

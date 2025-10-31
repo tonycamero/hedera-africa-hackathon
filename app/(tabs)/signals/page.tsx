@@ -114,8 +114,8 @@ export default function SignalsPage() {
   }
 
   const getEventDescription = (signal: SignalEvent): string => {
-    // For RECOGNITION_MINT, show the rich token metadata from payload
-    if (signal.type === 'RECOGNITION_MINT' && signal.metadata) {
+    // For SIGNAL_MINT/RECOGNITION_MINT, show the rich token metadata from payload
+    if ((signal.type === 'SIGNAL_MINT' || signal.type === 'RECOGNITION_MINT') && signal.metadata) {
       const payload = signal.metadata.payload || {}
       const tokenName = payload.name || payload.recognition || signal.metadata.recognitionType || 'Recognition Token'
       const description = payload.description
@@ -153,16 +153,16 @@ export default function SignalsPage() {
       console.log('[SignalsPage] Signal types in store:', signalTypes)
       
       // Debug: inspect recognition signal metadata structure
-      const sampleRecognition = allSignals.find(s => s.type === 'RECOGNITION_MINT')
+      const sampleRecognition = allSignals.find(s => s.type === 'SIGNAL_MINT' || s.type === 'RECOGNITION_MINT')
       if (sampleRecognition) {
-        console.log('[SignalsPage] Sample RECOGNITION_MINT:', JSON.stringify(sampleRecognition, null, 2))
+        console.log('[SignalsPage] Sample recognition signal:', JSON.stringify(sampleRecognition, null, 2))
       } else {
-        console.log('[SignalsPage] No RECOGNITION_MINT signals found in storage')
+        console.log('[SignalsPage] No SIGNAL_MINT or RECOGNITION_MINT signals found in storage')
       }
       
-      // Filter to only RECOGNITION_MINT events (accept both Hedera IDs and new tm- signals with rich data)
+      // Filter to recognition events (SIGNAL_MINT or legacy RECOGNITION_MINT)
       const recognitionEvents = allSignals.filter(signal => {
-        const isRecognition = signal.type === 'RECOGNITION_MINT'
+        const isRecognition = signal.type === 'SIGNAL_MINT' || signal.type === 'RECOGNITION_MINT'
         const hasMetadata = signal.metadata && Object.keys(signal.metadata).length > 0
         
         // Check if this is a NEW signal with rich metadata structure (has payload.description)
@@ -221,17 +221,18 @@ export default function SignalsPage() {
         // Add all items to signalsStore (accept both tm- and 0.0. Hedera IDs)
         let newCount = 0
         data.items.forEach((item: any) => {
-          if (item.json?.type === 'RECOGNITION_MINT') {
+          const itemType = item.json?.type
+          if (itemType === 'SIGNAL_MINT' || itemType === 'RECOGNITION_MINT') {
             const actorId = item.json.from
             // Accept Hedera accounts (0.0.xxxxx) or tm- format
             if (actorId?.startsWith('0.0.') || actorId?.startsWith('tm-')) {
               const event = {
                 id: item.consensus_timestamp || item.sequence_number?.toString(),
-                type: 'RECOGNITION_MINT' as const,
+                type: itemType as 'SIGNAL_MINT' | 'RECOGNITION_MINT',
                 actor: actorId,
                 target: item.json.payload?.recipientId || item.json.payload?.to,
                 ts: Date.now(),
-                topicId: '0.0.6895261',
+                topicId: item.topic_id || item.topicId || '',
                 metadata: item.json,
                 source: 'hcs' as const
               }
@@ -280,6 +281,7 @@ export default function SignalsPage() {
         return <Users className="w-4 h-4" />
       case 'TRUST_ALLOCATE':
         return <Shield className="w-4 h-4" />
+      case 'SIGNAL_MINT':
       case 'RECOGNITION_MINT':
         return <Trophy className="w-4 h-4" />
       default:
@@ -294,6 +296,7 @@ export default function SignalsPage() {
         return 'from-blue-500 to-yellow-500'
       case 'TRUST_ALLOCATE':
         return 'from-purple-500 to-pink-500'
+      case 'SIGNAL_MINT':
       case 'RECOGNITION_MINT':
         return 'from-yellow-500 to-orange-500'
       default:

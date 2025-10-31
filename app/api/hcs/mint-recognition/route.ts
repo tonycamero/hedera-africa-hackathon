@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
       emoji, 
       issuerId, 
       recipientId,
+      senderName,
+      recipientName,
       trustAmount = 0,
       message = "",
       signature,
@@ -89,6 +91,8 @@ export async function POST(req: NextRequest) {
         subtitle,
         emoji,
         to: recipientId,
+        senderName, // Display name of sender
+        recipientName, // Display name of recipient
         message, // User's recognition message
         trustAmount, // Trust allocation amount
         uri: `hcs://11/${SIGNAL_TOPIC}/${Date.now()}`, // Will be updated with actual seq

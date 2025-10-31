@@ -16,9 +16,11 @@ interface SignalDetailModalProps {
   isOpen: boolean
   onClose: () => void
   signal: RecognitionSignal | HCSRecognitionDefinition | null
+  onSelect?: () => void
+  showSelectButton?: boolean
 }
 
-export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModalProps) {
+export function SignalDetailModal({ isOpen, onClose, signal, onSelect, showSelectButton = false }: SignalDetailModalProps) {
   if (!signal) return null
 
   // Get recognition topic from environment or use fallback
@@ -268,8 +270,25 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
         </div>
 
         {/* Actions - Sticky at bottom */}
-        <div className="flex gap-2 mt-4 pt-4 border-t border-[hsl(var(--border))] shrink-0">
-          <Button
+        <div className="space-y-2 mt-4 pt-4 border-t border-[hsl(var(--border))] shrink-0">
+          {/* Select Button (if enabled) */}
+          {showSelectButton && onSelect && (
+            <Button
+              onClick={() => {
+                onSelect()
+                onClose()
+              }}
+              className="w-full bg-gradient-to-r from-orange-500 to-yellow-400 hover:from-orange-600 hover:to-yellow-500 text-black font-semibold"
+              size="sm"
+            >
+              <Star className="w-4 h-4 mr-2" />
+              Select This Signal
+            </Button>
+          )}
+          
+          {/* Action buttons row */}
+          <div className="flex gap-2">
+            <Button
               variant="outline"
               size="sm"
               onClick={handleCopyId}
@@ -308,6 +327,7 @@ export function SignalDetailModal({ isOpen, onClose, signal }: SignalDetailModal
               <ExternalLink className="w-3 h-3 mr-2" />
               {hasEnhancedMetadata || isHCSSignal ? "View on HCS" : "View on Chain"}
             </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

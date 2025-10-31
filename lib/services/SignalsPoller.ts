@@ -160,15 +160,20 @@ class SignalsPollerService {
     
     const json = message.json
     
+    // For PROFILE_UPDATE, fields are at top level (flat structure)
+    // For other events, they may be nested in payload
+    const isProfileUpdate = json.type === 'PROFILE_UPDATE'
+    const metadataSource = isProfileUpdate ? json : (json.payload || {})
+    
     return {
       id: `${topicId}:${message.consensus_timestamp}`,
       type: json.type,
-      actor: json.from || json.actor || 'unknown',
-      target: json.payload?.recipientId || json.payload?.to || json.target,
+      actor: json.accountId || json.from || json.actor || 'unknown',
+      target: json.target || json.payload?.recipientId || json.payload?.to,
       ts: Math.floor(parseFloat(message.consensus_timestamp) * 1000), // Convert to millis
       topicId: topicId,
       metadata: {
-        ...json.payload,
+        ...metadataSource,
         consensusTimestamp: message.consensus_timestamp,
         sequenceNumber: message.sequence_number,
         topicKey: topicKey

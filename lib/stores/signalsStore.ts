@@ -46,7 +46,7 @@ function deriveId(ev: any): string | null {
 // Normalized SignalEvent shape - single source of truth for UI
 export interface SignalEvent {
   id?: string
-  type: 'CONTACT_REQUEST' | 'CONTACT_ACCEPT' | 'TRUST_ALLOCATE' | 'RECOGNITION_MINT' | 'PROFILE_UPDATE' | string
+  type: 'CONTACT_REQUEST' | 'CONTACT_ACCEPT' | 'TRUST_ALLOCATE' | 'RECOGNITION_MINT' | 'SIGNAL_MINT' | 'PROFILE_UPDATE' | string
   actor: string                  // who performed the action
   target?: string                // optional counterparty
   ts: number                     // epoch millis
@@ -108,8 +108,31 @@ class SignalsStore {
       event.id = `sig_${Date.now()}_${Math.random().toString(36).slice(2)}`
     }
     
-    // Remove existing signal with same ID if exists
-    this.signals = this.signals.filter(s => s.id !== event.id)
+    // Special handling for PROFILE_UPDATE: don't overwrite optimistic updates with older HCS data
+    if (event.type === 'PROFILE_UPDATE') {
+      const existingProfile = this.signals.find(s => 
+        s.type === 'PROFILE_UPDATE' && s.actor === event.actor
+      )
+      
+      if (existingProfile) {
+        // If existing is optimistic (_optimistic flag) and newer, keep it
+        const existingIsOptimistic = existingProfile.metadata?._optimistic === true
+        const incomingIsFromHCS = !event.metadata?._optimistic
+        
+        if (existingIsOptimistic && incomingIsFromHCS && existingProfile.ts > event.ts) {
+          console.log('[SignalsStore] Skipping older HCS profile update for:', event.actor, '(keeping optimistic)')
+          return // Don't add, keep the optimistic one
+        }
+        
+        // Otherwise, remove the old one
+        this.signals = this.signals.filter(s => 
+          !(s.type === 'PROFILE_UPDATE' && s.actor === event.actor)
+        )
+      }
+    } else {
+      // For non-profile events, remove existing signal with same ID
+      this.signals = this.signals.filter(s => s.id !== event.id)
+    }
     
     // Add new signal (most recent first)
     this.signals.unshift(event)
@@ -165,6 +188,36 @@ class SignalsStore {
     }
 
     return filtered
+  }
+
+  // --- Profile Update Helper ---
+  updateProfile(accountId: string, profile: { displayName?: string; bio?: string; avatar?: string }): void {
+    // Remove ALL existing profile updates for this account (optimistic + HCS)
+    this.signals = this.signals.filter(s => 
+      !(s.type === 'PROFILE_UPDATE' && s.actor === accountId)
+    )
+
+    const profileEvent: SignalEvent = {
+      id: `profile:${accountId}`, // Consistent ID format
+      type: 'PROFILE_UPDATE',
+      actor: accountId,
+      ts: Date.now(),
+      topicId: 'local', // will be replaced by HCS
+      source: 'hcs-cached',
+      metadata: {
+        ...profile,
+        accountId,
+        displayName: profile.displayName, // Explicitly set for extraction
+        _optimistic: true // Mark as optimistic update
+      }
+    }
+
+    // Add at the beginning (most recent)
+    this.signals.unshift(profileEvent)
+
+    console.log('[SignalsStore] Updated profile for:', accountId, profile.displayName)
+    this.persistToStorage()
+    this.notifyListeners()
   }
 
   // --- Recognition Helpers ---

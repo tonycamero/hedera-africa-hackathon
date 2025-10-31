@@ -1,9 +1,10 @@
 /**
  * Server-side auth helpers for Magic token validation
- * 
- * TODO: Implement full Magic DID token validation
- * when Magic backend SDK is integrated
  */
+
+import { Magic } from '@magic-sdk/admin'
+
+const magic = new Magic(process.env.MAGIC_SECRET_KEY!)
 
 export async function requireMagic(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -16,20 +17,27 @@ export async function requireMagic(req: Request) {
 
   const token = authHeader.substring(7)
   
-  // TODO: Validate Magic DID token
-  // const magic = new Magic(process.env.MAGIC_SECRET_KEY)
-  // const metadata = await magic.users.getMetadataByToken(token)
-  
-  // Mock user for now
-  return {
-    issuer: 'mock-issuer',
-    email: 'mock@example.com',
-    publicAddress: '0x1234...5678'
+  // Validate Magic DID token and get user metadata
+  try {
+    await magic.token.validate(token)
+    const metadata = await magic.users.getMetadataByToken(token)
+    
+    return {
+      issuer: metadata.issuer,
+      email: metadata.email,
+      publicAddress: metadata.publicAddress,
+      // Extract Hedera account ID from metadata if available
+      hederaAccountId: (metadata as any).hederaAccountId
+    }
+  } catch (error) {
+    console.error('[Auth] Magic token validation failed:', error)
+    const err = new Error('Invalid or expired token')
+    ;(err as any).status = 401
+    throw err
   }
 }
 
 export function getAccountId(user: any): string {
-  // TODO: Extract Hedera account ID from Magic user metadata
-  // For now, use mock or extract from localStorage pattern
-  return user.publicAddress || 'tm-mock-account'
+  // First try Hedera account ID, then fall back to public address
+  return user.hederaAccountId || user.publicAddress || 'unknown'
 }

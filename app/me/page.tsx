@@ -10,6 +10,8 @@ import { magic } from '@/lib/magic'
 import { hashScanAccountUrl } from '@/lib/util/hashscan'
 import { Loader2, RefreshCcw, Wallet, Link as LinkIcon, Save, User } from 'lucide-react'
 import { toast } from 'sonner'
+import { normalizeProfile } from '@/lib/client/normalizeProfile'
+import { signalsStore } from '@/lib/stores/signalsStore'
 
 function ProfileEditor({ accountId }: { accountId: string | null }) {
   const [handle, setHandle] = useState('')
@@ -19,51 +21,40 @@ function ProfileEditor({ accountId }: { accountId: string | null }) {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Load existing profile from backend (profileStore)
+  // Load existing profile from HCS (via backend API)
   useEffect(() => {
     async function loadProfile() {
       setLoading(true)
-      let loadedHandle = ''
-      let loadedBio = ''
       
       try {
-        // First try to fetch from backend
         const token = await magic?.user.getIdToken()
         if (token) {
           const res = await fetch('/api/profile/status', {
             headers: { Authorization: `Bearer ${token}` }
           })
+          console.log('[ProfileEditor] API response status:', res.status)
+          
           if (res.ok) {
             const data = await res.json()
-            if (data?.profile) {
-              // Backend profile is source of truth
-              if (data.profile.displayName) {
-                loadedHandle = data.profile.displayName
-                setHandle(data.profile.displayName)
-              }
-              if (data.profile.bio) {
-                loadedBio = data.profile.bio
-                setBio(data.profile.bio)
-              }
-              console.log('[ProfileEditor] Loaded profile from backend:', data.profile.displayName)
+            console.log('[ProfileEditor] Raw API data:', data)
+            
+            // Use client normalizer for consistent shape
+            const profile = normalizeProfile(data)
+            console.log('[ProfileEditor] Normalized profile:', profile)
+            
+            if (profile) {
+              setHandle(profile.displayName)
+              setBio(profile.bio)
+              console.log('[ProfileEditor] Set handle:', profile.displayName, 'bio:', profile.bio?.slice(0, 30))
+            } else {
+              console.warn('[ProfileEditor] Profile normalization returned null')
             }
+          } else {
+            console.error('[ProfileEditor] API returned non-OK status:', res.status)
           }
         }
       } catch (err) {
-        console.error('[ProfileEditor] Failed to load profile from backend:', err)
-      }
-      
-      // Also check localStorage for fields not in profileStore (fallback only)
-      const users = localStorage.getItem('tm:users')
-      if (users) {
-        try {
-          const [u] = JSON.parse(users)
-          // Only use localStorage if backend didn't have the data
-          if (!loadedHandle && u?.handle) setHandle(u.handle)
-          if (!loadedBio && u?.bio) setBio(u.bio)
-          if (u?.visibility) setVisibility(u.visibility)
-          if (u?.location) setLocation(u.location)
-        } catch {}
+        console.error('[ProfileEditor] Failed to load profile:', err)
       }
       
       setLoading(false)
@@ -83,23 +74,52 @@ function ProfileEditor({ accountId }: { accountId: string | null }) {
     }
 
     if (!handle || handle.trim().length === 0) {
-      toast.error('Handle is required')
+      toast.error('Display name is required')
       return
     }
 
     setSaving(true)
     try {
-      const response = await fetch('/api/profile/update', {
+      // Get user's Hedera public key from Magic
+      const publicKey = await magic?.hedera.getPublicKey()
+      
+      if (!publicKey) {
+        throw new Error('Unable to retrieve public key from Magic')
+      }
+
+      // Build profile data to sign
+      const profileData = {
+        accountId,
+        displayName: handle.trim(),
+        bio: bio.trim(),
+        avatar: '',
+        timestamp: Date.now()
+      }
+      
+      const canonicalJson = JSON.stringify(profileData, Object.keys(profileData).sort())
+      
+      // Sign the profile update with Magic (private key never leaves Magic enclave)
+      const signatureBytes = await magic?.hedera.sign(Buffer.from(canonicalJson, 'utf-8'))
+      const signature = Buffer.from(signatureBytes).toString('hex')
+      
+      // Send flat structure to match API expectations
+      const signedPayload = {
+        accountId,
+        displayName: handle.trim(),
+        bio: bio.trim(),
+        avatar: '',
+        timestamp: profileData.timestamp,
+        signature,
+        publicKey
+      }
+
+      console.log('[ProfileEditor] Signed profile payload:', signature.slice(0, 16) + '...')
+
+      // Submit to HCS via signed endpoint
+      const response = await fetch('/api/hcs/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: accountId,
-          handle: handle.trim(),
-          bio: bio.trim(),
-          visibility,
-          location: location.trim(),
-          avatar: ''
-        })
+        body: JSON.stringify(signedPayload)
       })
 
       const result = await response.json()
@@ -108,24 +128,14 @@ function ProfileEditor({ accountId }: { accountId: string | null }) {
         throw new Error(result.error || 'Failed to update profile')
       }
 
-      // Update localStorage with new profile data
-      const users = localStorage.getItem('tm:users')
-      if (users) {
-        try {
-          const parsed = JSON.parse(users)
-          const [u] = parsed
-          if (u) {
-            u.handle = handle.trim()
-            u.bio = bio.trim()
-            u.visibility = visibility
-            u.location = location.trim()
-            u.profileHrl = result.profileHrl
-            localStorage.setItem('tm:users', JSON.stringify(parsed))
-          }
-        } catch {}
-      }
+      // Immediately update signals store so UI reflects change (contacts list, etc.)
+      signalsStore.updateProfile(accountId, {
+        displayName: handle.trim(),
+        bio: bio.trim(),
+        avatar: ''
+      })
 
-      toast.success('Profile updated on HCS-11!', {
+      toast.success('Profile updated on HCS!', {
         description: `Sequence: ${result.sequenceNumber}`
       })
     } catch (error: any) {
@@ -207,18 +217,18 @@ function ProfileEditor({ accountId }: { accountId: string | null }) {
         {saving ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Updating on HCS-11...
+            Signing & Publishing...
           </>
         ) : (
           <>
             <Save className="w-4 h-4 mr-2" />
-            Save Profile to HCS-11
+            Save Profile to HCS
           </>
         )}
       </GenZButton>
 
       <div className="text-xs text-white/50 text-center">
-        Profile will be published to Hedera Consensus Service (HCS) topic 11
+        Profile will be cryptographically signed and published to Hedera Consensus Service
       </div>
     </div>
   )

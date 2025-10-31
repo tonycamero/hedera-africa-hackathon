@@ -7,11 +7,12 @@ import { ChevronDown, LogOut, Settings, User as UserIcon, ExternalLink } from 'l
 import { magic } from '@/lib/magic'
 import { hashScanAccountUrl } from '@/lib/util/hashscan'
 import { toast } from 'sonner'
+import { normalizeProfile, getProfileDisplayText } from '@/lib/client/normalizeProfile'
 
 export function HeaderMenu() {
   const router = useRouter()
   const pathname = usePathname()
-  const [email, setEmail] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
   const [accountId, setAccountId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
 
@@ -23,23 +24,34 @@ export function HeaderMenu() {
         if (!isLoggedIn) return
         
         const metadata = await magic?.user.getInfo()
-        const currentEmail = metadata?.email
+        const email = metadata?.email
+        if (!email) return
         
-        if (!currentEmail) return
+        // Get profile from API (uses normalizer with caching)
+        const token = await magic?.user.getIdToken()
+        if (!token) return
         
-        // Find the matching user in localStorage
-        const users = localStorage.getItem('tm:users')
-        if (users) {
-          const allUsers = JSON.parse(users)
-          const currentUser = allUsers.find((u: any) => u.email === currentEmail)
+        const res = await fetch('/api/profile/status', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          const profile = normalizeProfile(data)
           
-          if (currentUser) {
-            setEmail(currentUser.email)
-            setAccountId(currentUser.hederaAccountId)
+          if (profile) {
+            setAccountId(profile.accountId)
+            // Use helper to get clean display text
+            setDisplayName(getProfileDisplayText(profile))
+          } else {
+            // Fallback to email if no profile yet
+            setDisplayName(email)
           }
+        } else {
+          setDisplayName(email)
         }
       } catch (error) {
-        console.error('[HeaderMenu] Failed to load current user:', error)
+        console.error('[HeaderMenu] Failed to load profile:', error)
       }
     }
     
@@ -100,7 +112,7 @@ export function HeaderMenu() {
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#FF6B35]/30 to-white/10 border border-[#FF6B35]/30 flex items-center justify-center">
               <UserIcon className="w-4 h-4 text-[#FF6B35]" />
             </div>
-            <span className="text-xs text-white/80">{email ?? 'Account'}</span>
+            <span className="text-xs text-white/80">{displayName ?? 'Account'}</span>
             <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${open ? 'rotate-180' : ''}`} />
           </button>
 

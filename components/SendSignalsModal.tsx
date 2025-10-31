@@ -23,7 +23,8 @@ import { Award, Send, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSessionId } from '@/lib/session'
 import { recognitionSignals, type RecognitionSignal, type SignalCategory } from '@/lib/data/recognitionSignals'
-import { signRecognitionPayload } from '@/lib/hedera/signRecognition'
+import { SignalDetailModal } from './SignalDetailModal'
+import { magic } from '@/lib/magic'
 
 interface BondedContact {
   peerId: string
@@ -69,6 +70,8 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
   const [loadingContacts, setLoadingContacts] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<SignalCategory | 'all'>('all')
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [detailSignal, setDetailSignal] = useState<RecognitionSignal | null>(null)
   
   // Filter signals by category
   const filteredSignals = selectedCategory === 'all'
@@ -123,6 +126,10 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
   }
   
   const handleSendSignal = async () => {
+    console.log('[SendSignals] handleSendSignal called')
+    console.log('[SendSignals] Selected signal:', selectedSignalId)
+    console.log('[SendSignals] Selected contact:', selectedContactId)
+    
     if (!selectedSignal || !selectedContactId) {
       toast.error('Please select a signal and a contact')
       return
@@ -134,18 +141,66 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
       return
     }
     
+    console.log('[SendSignals] Starting send process...')
     setSending(true)
     
     try {
-      // Sign the recognition payload with user's Hedera key
-      const timestamp = Date.now()
-      const signedPayload = await signRecognitionPayload({
+      // Get user's Hedera credentials from Magic
+      if (!magic) {
+        throw new Error('Magic SDK not initialized')
+      }
+      
+      const { publicKeyDer, accountId } = await magic.hedera.getPublicKey()
+      
+      // Fetch sender's display name
+      let senderName = sessionId
+      try {
+        console.log('[SendSignals] Fetching sender profile for:', sessionId)
+        const senderResponse = await fetch(`/api/profile/status?accountId=${encodeURIComponent(sessionId)}`)
+        const senderData = await senderResponse.json()
+        console.log('[SendSignals] Sender profile response:', senderData)
+        
+        if (senderData.profile?.displayName && senderData.profile.displayName !== 'Unnamed') {
+          senderName = senderData.profile.displayName
+          console.log('[SendSignals] Using sender name:', senderName)
+        } else {
+          console.warn('[SendSignals] No valid sender profile found, using account ID')
+        }
+      } catch (err) {
+        console.warn('[SendSignals] Could not fetch sender name:', err)
+      }
+      
+      // Use contact's handle as recipient name
+      const recipientName = selectedContact?.handle || selectedContactId
+      
+      // Create the canonical payload
+      const payload = {
         fromAccountId: sessionId,
         toAccountId: selectedContactId,
         message: personalMessage || `Professional recognition: ${selectedSignal.name}`,
         trustAmount: selectedSignal.trustValue,
-        timestamp
-      })
+        metadata: {
+          category: selectedSignal.category,
+          tags: selectedSignal.tags,
+          signalId: selectedSignal.id,
+          rarity: selectedSignal.rarity
+        },
+        timestamp: Date.now()
+      }
+      
+      // Create canonical string for signing
+      const canonical = JSON.stringify(payload, Object.keys(payload).sort())
+      const messageBytes = new TextEncoder().encode(canonical)
+      
+      // Sign with Magic (private key never exposed)
+      const signatureBytes = await magic.hedera.sign(messageBytes)
+      const signature = Buffer.from(signatureBytes).toString('hex')
+      
+      const signedPayload = {
+        ...payload,
+        signature,
+        publicKey: publicKeyDer
+      }
       
       // Submit to HCS mint endpoint
       const response = await fetch('/api/hcs/mint-recognition', {
@@ -159,6 +214,8 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
           emoji: selectedSignal.icon,
           issuerId: sessionId,
           recipientId: selectedContactId,
+          senderName,
+          recipientName,
           trustAmount: selectedSignal.trustValue,
           message: personalMessage || `Recognition: ${selectedSignal.name}`,
           signature: signedPayload.signature,
@@ -293,7 +350,10 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
                 return (
                   <button
                     key={signal.id}
-                    onClick={() => setSelectedSignalId(signal.id)}
+                    onClick={() => {
+                      setDetailSignal(signal)
+                      setDetailModalOpen(true)
+                    }}
                     className={`p-3 rounded-lg border transition-all text-center ${
                       isSelected
                         ? 'bg-white/20 border-white shadow-lg scale-105'
@@ -369,6 +429,19 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
           </Button>
         </div>
       </DialogContent>
+      
+      {/* Signal Detail Modal */}
+      <SignalDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        signal={detailSignal}
+        onSelect={() => {
+          if (detailSignal) {
+            setSelectedSignalId(detailSignal.id)
+          }
+        }}
+        showSelectButton={true}
+      />
     </Dialog>
   )
 }

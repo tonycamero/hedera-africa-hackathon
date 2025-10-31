@@ -1,84 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMagic, getAccountId } from '@/lib/server/auth'
-import { topics } from '@/lib/registry/serverRegistry'
+import { getLatestProfileFor } from '@/lib/server/profile/normalizer'
 
 export const dynamic = 'force-dynamic'
-
-const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
 
 /**
  * GET /api/profile/status
  * 
  * Returns whether user has completed onboarding
- * Checks HCS for profile existence (not in-memory store)
+ * Uses normalized profile fetching with caching
  */
 export async function GET(req: NextRequest) {
   try {
     const user = await requireMagic(req)
-    const accountId = getAccountId(user)
-
-    console.log(`[API /profile/status] Checking HCS for profile: ${accountId}`)
-
-    // Fetch all profile messages from HCS profile topic
-    const PROFILE_TOPIC_ID = topics().profile
-    const url = `${MIRROR_BASE}/api/v1/topics/${PROFILE_TOPIC_ID}/messages?order=desc&limit=100`
     
-    const response = await fetch(url, { 
-      cache: "no-store",
-      headers: { 'Accept': 'application/json' }
+    // Client can send either EVM (0x...) or Hedera (0.0.x) account ID
+    const reqUrl = new URL(req.url)
+    const rawId = reqUrl.searchParams.get('accountId') || getAccountId(user)
+    const userEmail = user.email
+    const isEvm = rawId?.startsWith('0x')
+
+    console.log(`[API /profile/status] Checking profile for ${rawId} (${userEmail})`, {
+      type: isEvm ? 'EVM' : 'Hedera',
+      willResolve: isEvm
     })
 
-    if (!response.ok) {
-      console.warn(`[API /profile/status] Mirror node error: ${response.status}`)
-      // If mirror fails, assume no profile (safe default for onboarding)
-      return NextResponse.json({ 
-        accountId,
-        hasCompletedOnboarding: false,
-        profile: null,
-        source: 'hcs-error'
-      }, { status: 200 })
-    }
-
-    const data = await response.json()
-    const messages = data.messages || []
-
-    // Find the most recent PROFILE_UPDATE for this accountId
-    let latestProfile = null
-    for (const msg of messages) {
-      try {
-        const decoded = JSON.parse(Buffer.from(msg.message, "base64").toString("utf8"))
-        if (decoded.accountId === accountId && decoded.type === "PROFILE_UPDATE") {
-          latestProfile = decoded
-          break // messages are ordered desc, so first match is most recent
-        }
-      } catch (e) {
-        // Skip malformed messages
-        continue
-      }
-    }
+    // Normalizer handles EVM→Hedera resolution via mirror node (read-only, no provisioning)
+    const profile = await getLatestProfileFor(rawId, userEmail)
 
     // Check if profile has meaningful content (not just empty strings)
-    const hasDisplayName = latestProfile?.displayName && latestProfile.displayName.trim().length > 0
-    const hasBio = latestProfile?.bio && latestProfile.bio.trim().length > 0
+    const hasDisplayName = profile?.displayName && 
+                          profile.displayName.trim().length > 0 && 
+                          profile.displayName !== 'Unnamed'
+    const hasBio = profile?.bio && profile.bio.trim().length > 0
     const hasCompletedOnboarding = !!(hasDisplayName || hasBio)
 
-    console.log(`[API /profile/status] Result for ${accountId}: hasCompletedOnboarding=${hasCompletedOnboarding}`, {
-      displayName: latestProfile?.displayName,
-      bio: latestProfile?.bio,
-      hasDisplayName,
-      hasBio
+    console.log(`[API /profile/status] Result: hasCompletedOnboarding=${hasCompletedOnboarding}`, {
+      displayName: profile?.displayName,
+      bio: profile?.bio?.slice(0, 50),
+      resolvedFrom: isEvm ? 'EVM address' : 'Hedera account ID'
     })
 
     return NextResponse.json({ 
-      accountId,
+      accountId: rawId,
       hasCompletedOnboarding,
-      profile: latestProfile ? {
-        displayName: latestProfile.displayName,
-        bio: latestProfile.bio,
-        avatar: latestProfile.avatar,
-        timestamp: latestProfile.timestamp
-      } : null,
-      source: 'hcs'
+      profile,
+      source: isEvm ? 'hcs-normalized(evmalias)' : 'hcs-normalized'
     }, { status: 200 })
   } catch (error: any) {
     console.error('[API /profile/status] Error:', error)

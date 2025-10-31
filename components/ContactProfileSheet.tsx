@@ -171,9 +171,8 @@ export function ContactProfileSheet({
     const profileEvents = allEvents.filter(event => {
       if (event.type !== 'PROFILE_UPDATE') return false;
       
-      // Extract sessionId from payload (direct or nested)
-      const payload = event.payload || event.metadata?.payload || {};
-      const sessionId = payload.sessionId || event.metadata?.sessionId || event.actor || (event as any).from;
+      // Extract accountId from metadata (flat structure) or fall back to actor
+      const sessionId = event.metadata?.accountId || event.metadata?.sessionId || event.actor || (event as any).from;
       
       const matches = sessionId === peerId;
       
@@ -203,31 +202,30 @@ export function ContactProfileSheet({
         return getSeq(b.id) - getSeq(a.id);  // Higher sequence = more recent
       })[0];
       
-      // Profile data could be in payload or metadata (check both)
-      // HCS events have data nested in metadata.payload
-      const profilePayload = latestProfile.metadata?.payload || latestProfile.payload || {};
+      // Profile data is stored in metadata (flat structure from ingestion)
+      // metadata contains the full PROFILE_UPDATE payload
       const profileMetadata = latestProfile.metadata || {};
       
       console.log('[ContactProfileSheet] Latest profile raw data:', {
-        payload: profilePayload,
         metadata: profileMetadata,
         fullEvent: latestProfile
       });
       
-      // Extract comprehensive profile info from HCS-11 PROFILE_UPDATE
-      // Data is in metadata.payload for HCS events
-      const profileHandle = profilePayload.handle || profileMetadata.handle;
-      const profileBio = profilePayload.bio || profileMetadata.bio;
-      const profileLocation = profilePayload.location || profileMetadata.location;
-      const profileAvatar = profilePayload.avatar || profileMetadata.avatar;
-      const profileVisibility = profilePayload.visibility || profileMetadata.visibility;
+      // Extract profile info from metadata (flat structure)
+      const profileHandle = profileMetadata.displayName || profileMetadata.handle;
+      const profileBio = profileMetadata.bio;
+      const profileLocation = profileMetadata.location;
+      const profileAvatar = profileMetadata.avatar;
+      const profileVisibility = profileMetadata.visibility;
       
       console.log('[ContactProfileSheet] Extracted profile fields:', {
         profileHandle,
         profileBio,
         profileLocation,
         profileAvatar,
-        profileVisibility
+        profileVisibility,
+        rawMetadata: profileMetadata,
+        fullEventSample: JSON.stringify(latestProfile).substring(0, 500)
       });
       
       if (profileHandle || profileBio) {
@@ -639,355 +637,66 @@ export function ContactProfileSheet({
             </div>
           </div>
         ) : data ? (
-          <div className="space-y-6">
-            {/* Header */}
+          <div className="space-y-4">
+            {/* Header with Avatar and Name */}
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <Avatar className="w-14 h-14 ring-2 ring-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-slate-800 text-blue-500 text-lg font-bold border border-blue-500/30">
-                    {data.avatar || getDisplayName(data, peerId).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Online Status Indicator */}
-                {data.onlineStatus && data.onlineStatus !== 'unknown' && (
-                  <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-slate-900 ${getOnlineStatusDot(data.onlineStatus)}`} />
+              <Avatar className="w-14 h-14 ring-2 ring-blue-500/30">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-slate-800 text-blue-500 text-lg font-bold border border-blue-500/30">
+                  {getDisplayName(data, peerId).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg text-white">{getDisplayName(data, peerId)}</h3>
+                {getSecondaryName(data, peerId) && (
+                  <p className="text-sm text-white/60">{getSecondaryName(data, peerId)}</p>
                 )}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <div>
-                    <h3 className="font-semibold text-lg text-white">{getDisplayName(data, peerId)}</h3>
-                    {getSecondaryName(data, peerId) && (
-                      <p className="text-sm text-white/60">{getSecondaryName(data, peerId)}</p>
-                    )}
-                  </div>
-                  {data.verified && (
-                    <Shield className="w-4 h-4 text-blue-400" />
-                  )}
-                  {data.onlineStatus && data.onlineStatus !== 'unknown' && (
-                    <span className={`text-xs ${getOnlineStatusColor(data.onlineStatus)} font-medium`}>
-                      {data.onlineStatus}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
-                  <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
-                    {(data.visibility || "unknown").toUpperCase()}
-                  </Badge>
-                  {isInCircle && (
-                    <Badge className="text-xs bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 border border-yellow-400/30">
-                      <Crown className="w-3 h-3 mr-1" />
-                      Circle Member
-                    </Badge>
-                  )}
-                  {data.contextDomain && (
-                    <Badge variant="secondary" className="text-xs">
-                      {data.contextDomain}
-                    </Badge>
-                  )}
-                  {data.reputation && (
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-yellow-400" />
-                      <span>{data.reputation}</span>
-                    </div>
-                  )}
-                </div>
-                {/* Stats Row */}
-                <div className="flex items-center gap-4 text-xs text-white/50 mt-2">
-                  {data.connections !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      <span>{data.connections} connections</span>
-                    </div>
-                  )}
-                  {data.recognitionsReceived !== undefined && data.recognitionsReceived > 0 && (
-                    <div className="flex items-center gap-1">
-                      <Award className="w-3 h-3" />
-                      <span>{data.recognitionsReceived} recognitions</span>
-                    </div>
-                  )}
-                  {data.trustScore !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      <span>{data.trustScore} trust</span>
-                    </div>
-                  )}
-                </div>
+            </div>
+
+            {/* Email */}
+            {data.email && (
+              <div className="bg-slate-800/30 p-3 rounded-lg">
+                <p className="text-sm text-white/70">{data.email}</p>
               </div>
+            )}
+
+            {/* Visibility Badge & Connections */}
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
+                {(data.visibility || "UNKNOWN").toUpperCase()}
+              </Badge>
+              {data.connections !== undefined && (
+                <div className="flex items-center gap-1 text-sm text-white/60">
+                  <Users className="w-4 h-4" />
+                  <span>{data.connections} connections</span>
+                </div>
+              )}
             </div>
 
             {/* Bio */}
             {data.bio && (
-              <div className="bg-slate-800/30 p-4 rounded-[8px] border border-blue-500/10 backdrop-blur-sm">
+              <div className="bg-slate-800/30 p-4 rounded-lg border border-blue-500/10">
                 <p className="text-sm text-white/90 leading-relaxed">{data.bio}</p>
               </div>
             )}
 
-            {/* Organization & Categories */}
-            {(data.organization || (data.category && data.category.length > 0)) && (
-              <div className="space-y-2">
-                {data.organization && (
-                  <div className="flex items-center gap-2 text-sm text-white/80">
-                    <Building className="w-4 h-4 text-white/60" />
-                    <span>{data.organization}</span>
-                  </div>
-                )}
-                {data.category && data.category.length > 0 && (
-                  <div className="flex items-start gap-2">
-                    <Tag className="w-4 h-4 text-white/60 mt-0.5" />
-                    <div className="flex flex-wrap gap-1">
-                      {data.category.map((cat, index) => (
-                        <Badge key={index} variant="outline" className="text-xs border-white/20 text-white/70">
-                          {cat}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Contact Established */}
+            {data.joinedAt && (
+              <div className="flex items-center gap-2 text-sm text-white/60 bg-slate-800/20 p-2 rounded-lg">
+                <Calendar className="w-4 h-4" />
+                <span>Contact est. {formatDate(data.joinedAt)}</span>
               </div>
             )}
-
-            {/* Skills */}
-            {data.skills && data.skills.length > 0 && (
-              <div>
-                <h4 className="font-medium text-sm mb-2">Skills</h4>
-                <div className="flex flex-wrap gap-1">
-                  {data.skills.map((skill, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Location */}
-            {data.location && (
-              <div className="flex items-center gap-2 text-sm text-[hsl(var(--foreground))]">
-                <MapPin className="w-4 h-4" />
-                <span>{data.location}</span>
-              </div>
-            )}
-
-            {/* Links */}
-            <div className="space-y-2">
-              {data.website && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Globe className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-                    <span className="text-[hsl(var(--primary))]">{data.website}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(data.website!, "Website")}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-
-              {data.github && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Github className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-                    <span className="text-[hsl(var(--foreground))]">@{data.github}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(`https://github.com/${data.github}`, "GitHub")}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-
-              {data.twitter && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Twitter className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-                    <span className="text-[hsl(var(--foreground))]">@{data.twitter}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(`https://twitter.com/${data.twitter}`, "Twitter")}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-
-              {data.discord && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MessageCircle className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-                    <span className="text-[hsl(var(--foreground))]">{data.discord}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(data.discord!, "Discord")}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-
-              {data.email && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-                    <span className="text-[hsl(var(--foreground))]">{data.email}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(data.email!, "Email")}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Activity Timeline */}
-            <div className="space-y-1">
-              {data.joinedAt && (
-                <div className="flex items-center gap-2 text-xs text-white/50">
-                  <Calendar className="w-3 h-3" />
-                  <span>Contact established {formatDate(data.joinedAt)}</span>
-                </div>
-              )}
-              {data.lastActiveAt && data.lastActiveAt !== data.joinedAt && (
-                <div className="flex items-center gap-2 text-xs text-white/50">
-                  <Activity className="w-3 h-3" />
-                  <span>Last active {formatDate(data.lastActiveAt)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Exclusive Circle Actions */}
-            {isInCircle && (
-              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-400/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Crown className="w-4 h-4 text-yellow-400" />
-                  <h4 className="font-semibold text-yellow-300">Circle Member Actions</h4>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={handleCircleSignal}
-                    className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 text-xs h-8"
-                  >
-                    <Zap className="w-3 h-3 mr-1" />
-                    Circle Signal
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={handleTrustBoost}
-                    className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-xs h-8"
-                  >
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                    Trust Boost
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={handleGiftRecognition}
-                    className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 text-xs h-8"
-                  >
-                    <Gift className="w-3 h-3 mr-1" />
-                    Gift NFT
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={handlePrivateMessage}
-                    className="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30 text-xs h-8"
-                  >
-                    <MessageCircle className="w-3 h-3 mr-1" />
-                    Private Chat
-                  </Button>
-                </div>
-                <div className="mt-3 pt-2 border-t border-yellow-400/20">
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={handleRemoveFromCircle}
-                    className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs h-7"
-                  >
-                    <UserMinus className="w-3 h-3 mr-1" />
-                    Remove from Circle
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* HashScan Links - Minimized */}
-            <div className="border-t pt-2">
-              <details className="group">
-                <summary className="cursor-pointer text-xs text-white/50 hover:text-white/70 transition-colors flex items-center gap-1">
-                  <Link className="w-3 h-3" />
-                  <span>Blockchain Explorer</span>
-                  <svg className="w-3 h-3 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </summary>
-                <div className="mt-2 space-y-1">
-                  <button
-                    onClick={() => openHashScan(generateHashScanUrl(topics.contacts))}
-                    className="text-xs text-white/60 hover:text-blue-400 hover:underline flex items-center gap-1 w-full text-left"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Contact & Trust Topic
-                  </button>
-                  <button
-                    onClick={() => openHashScan(generateHashScanUrl(topics.recognition))}
-                    className="text-xs text-white/60 hover:text-[#FF6B35] hover:underline flex items-center gap-1 w-full text-left"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Recognition Topic
-                  </button>
-                </div>
-              </details>
-            </div>
 
             {/* Technical info */}
-            <div className="border-t pt-3 space-y-2">
-              <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                <strong>Peer ID:</strong> {peerId}
+            <div className="border-t pt-3 space-y-1">
+              <div className="text-xs text-white/50">
+                <strong className="text-white/70">Peer ID:</strong> {peerId}
               </div>
-              {hrl && (
-                <div className="text-xs text-[hsl(var(--muted-foreground))] break-all">
-                  <strong>Profile HRL:</strong> 
-                  <code className="bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] px-1 py-0.5 ml-1 rounded">
-                    {hrl}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 ml-1"
-                    onClick={() => copyToClipboard(hrl, "Profile HRL")}
-                  >
-                    <Copy className="w-2 h-2" />
-                  </Button>
-                </div>
-              )}
-              <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                Source: {source}
-                {source === "hcs-profile" && <span className="ml-1 text-green-600">✓ HCS-11 Profile</span>}
-                {source === "mirror_node" && <span className="ml-1 text-green-600">✓ HCS Profile + Mirror Node</span>}
-                {source === "hcs_signals" && <span className="ml-1 text-blue-600">✓ From HCS signals</span>}
-                {source === "hcs_signals_only" && <span className="ml-1 text-blue-600">✓ HCS Contact (No Profile)</span>}
-                {source === "hcs_contact_only" && <span className="ml-1 text-amber-600">⚠ Contact ID Only</span>}
-                {source === "hcs-cached" && <span className="ml-1 text-blue-600">✓ HCS Cached</span>}
-                {source === "fallback" && <span className="ml-1 text-amber-600">⚠ Offline fallback</span>}
-                {source === "error" && <span className="ml-1 text-red-600">⚠ HCS Fetch Failed</span>}
+              <div className="text-xs text-white/50">
+                <strong className="text-white/70">Source:</strong> {source}
+                {source === "hcs-profile" && <span className="ml-1 text-green-500">✓ HCS-11</span>}
+                {source === "hcs-cached" && <span className="ml-1 text-blue-500">✓ Cached</span>}
               </div>
             </div>
           </div>

@@ -37,24 +37,37 @@ export default function OnboardingPage() {
           
           // Check if user has existing profile (returning user)
           try {
+            console.log('[Onboarding] Checking for existing profile...')
             const token = await magic?.user.getIdToken()
-            if (token) {
-              const res = await fetch('/api/profile/status', { 
+            if (!token) {
+              console.log('[Onboarding] No Magic token available')
+            } else {
+              console.log('[Onboarding] Got Magic token, calling /api/profile/status')
+              const accountId = parsed[0].hederaAccountId
+              const res = await fetch(`/api/profile/status?accountId=${encodeURIComponent(accountId)}`, { 
                 headers: { Authorization: `Bearer ${token}` }
               })
+              console.log('[Onboarding] Profile status response:', res.status)
+              
               if (res.ok) {
                 const data = await res.json()
+                console.log('[Onboarding] Profile status data:', data)
+                
                 if (data?.hasCompletedOnboarding) {
                   // User has existing profile, redirect to app
-                  console.log('[Onboarding] Returning user detected, redirecting to contacts')
+                  console.log('[Onboarding] ✅ Returning user detected, redirecting to contacts')
                   setHasExistingProfile(true)
                   router.push('/contacts')
                   return
+                } else {
+                  console.log('[Onboarding] ❌ hasCompletedOnboarding = false, showing onboarding')
                 }
+              } else {
+                console.error('[Onboarding] Profile status API returned error:', res.status)
               }
             }
           } catch (err) {
-            console.log('[Onboarding] Profile check failed, continuing with onboarding')
+            console.error('[Onboarding] Profile check failed:', err)
           }
           
           // If stipend already accepted (from localStorage or backend response), set it

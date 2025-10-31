@@ -6,6 +6,7 @@ import { logTxServer } from "@/lib/telemetry/txLog"
 import { hasSufficientTRST, recordTRSTDebit } from "@/lib/services/trstBalanceService"
 import { TRST_PRICING } from "@/lib/config/pricing"
 import { topics } from "@/lib/registry/serverRegistry"
+import { invalidateProfileCache } from "@/lib/server/profile/normalizer"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
 
@@ -188,6 +189,10 @@ export async function POST(req: NextRequest) {
 
     // Construct HRL for the created profile
     const hrl = `hcs://${HEDERA_NETWORK}/${PROFILE_TOPIC_ID}/${receipt.topicSequenceNumber}`
+
+    // Invalidate profile cache so next fetch gets fresh data
+    invalidateProfileCache(accountId)
+    console.log(`[HCS Profile POST] Invalidated cache for ${accountId}`)
 
     client.close()
 

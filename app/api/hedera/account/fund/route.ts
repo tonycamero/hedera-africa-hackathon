@@ -34,20 +34,30 @@ export async function POST(req: NextRequest) {
 
     console.log('[API] Funding request for account:', accountId);
     
-    // Check if stipend already claimed (simple in-memory tracking for demo)
-    // In production, store this in your database
-    const stipendKey = `stipend_claimed_${accountId}`;
-    if (global[stipendKey]) {
-      console.log('[API] Stipend already claimed for this account');
-      return NextResponse.json({
-        success: false,
-        error: 'Stipend already claimed for this account'
-      }, { status: 400 });
-    }
-
     const client = await getHederaClient();
     const operatorId = client.operatorAccountId!;
     const targetAccountId = AccountId.fromString(accountId);
+    
+    // Check current balance - if account already has funds, skip stipend
+    try {
+      const accountInfo = await client.getAccountBalance(targetAccountId);
+      const hbarBalance = accountInfo.hbars.toBigNumber().toNumber();
+      
+      console.log(`[API] Current balance: ${hbarBalance} HBAR`);
+      
+      // If account has at least 0.5 HBAR, they've already been funded
+      if (hbarBalance >= 0.5) {
+        console.log('[API] Account already funded - skipping stipend');
+        return NextResponse.json({
+          success: false,
+          error: 'Account already funded',
+          alreadyFunded: true
+        }, { status: 400 });
+      }
+    } catch (balanceError) {
+      console.error('[API] Failed to check balance:', balanceError);
+      // Continue with funding if balance check fails
+    }
 
     // 1. Transfer 1 HBAR for gas
     console.log('[API] Transferring 1 HBAR for gas...');
@@ -120,9 +130,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Mark stipend as claimed
-    global[stipendKey] = true;
-    console.log('[API] Stipend claimed and marked for account:', accountId);
+    console.log('[API] Stipend successfully delivered to account:', accountId);
     
     return NextResponse.json({
       success: true,

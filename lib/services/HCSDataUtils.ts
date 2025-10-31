@@ -189,20 +189,19 @@ export function getBondedContactsFromHCS(events: any[], me: string): BondedConta
     const t = U(ev?.type)
     if (t === 'PROFILE_UPDATE') {
       const payload = ev?.payload || ev?.metadata || {}
-      const accountId = payload?.sessionId || payload?.accountId || A(ev)
       
-      if (accountId) {
-        const displayName = payload?.displayName || payload?.handle || payload?.name
-        const handle = payload?.handle || payload?.username || displayName
-        
-        if (displayName || handle) {
-          contactData.set(accountId, { 
-            name: displayName, 
-            handle: handle,
-            displayName: displayName 
-          })
-          console.log('[HCSDataUtils] Loaded profile for', accountId, '→', displayName || handle)
-        }
+      // Try top-level fields first (new format), then fall back to payload (old format)
+      const accountId = ev?.accountId || payload?.sessionId || payload?.accountId || A(ev)
+      const displayName = ev?.displayName || payload?.displayName || payload?.handle || payload?.name
+      const handle = ev?.handle || payload?.handle || payload?.username || displayName
+      
+      if (accountId && (displayName || handle)) {
+        contactData.set(accountId, { 
+          name: displayName, 
+          handle: handle,
+          displayName: displayName 
+        })
+        console.log('[HCSDataUtils] Loaded profile for', accountId, '→', displayName || handle)
       }
     }
   }

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { submitToTopic } from '@/lib/hedera/serverClient'
 import { getRegistryTopics } from '@/lib/hcs2/registry'
 
+/**
+ * @deprecated This endpoint writes old nested payload format.
+ * Use /api/hcs/profile instead which writes flat structure with accountId.
+ * This endpoint is kept for backward compatibility but should not be used in new code.
+ */
+
 // In-memory nonce store (per from); use Redis in prod
 const nonceStore: Record<string, number> = {}
 
@@ -23,6 +29,8 @@ function validateProfileUpdate(req: ProfileUpdateRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  console.warn('[DEPRECATED] /api/profile/update is deprecated. Use /api/hcs/profile instead.')
+  
   try {
     const body: ProfileUpdateRequest = await req.json()
     validateProfileUpdate(body)
