@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import BootHCSClient from "@/app/providers/BootHCSClient"
 import { BootRegistryClient } from "@/lib/registry/BootRegistryClient"
 import { LensProvider } from "@/components/providers/LensProvider"
+import { IdentityProvider } from "@/app/providers/IdentityProvider"
 import { isGenZ } from "@/lib/ui/theme"
 import "./globals.css"
 
@@ -49,7 +50,9 @@ export default function RootLayout({
         <LensProvider />
         <BootRegistryClient />
         <BootHCSClient />
-        {children}
+        <IdentityProvider>
+          {children}
+        </IdentityProvider>
         <Toaster />
       </body>
     </html>
