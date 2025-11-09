@@ -6,6 +6,8 @@ import { reduceHcs22 } from './reducer';
 import type { Hcs22Envelope } from './types';
 
 let initialized = false;
+let lastWatermark: string | undefined = undefined; // Track last processed timestamp
+let refreshInterval: NodeJS.Timeout | null = null; // Periodic refresh timer
 
 /**
  * Initialize HCS-22 identity registry
@@ -35,12 +37,19 @@ export async function initHcs22() {
   console.log('[HCS22 Init] Starting initialization for topic:', topicId);
 
   try {
-    // Step 1: Warmup from last 7 days
+    // Step 1: Initial warmup from last 7 days
     await warmupFromHistory(topicId);
 
-    // Step 2: Subscribe to live events
-    // Note: Live subscription is optional and can be enabled when needed
-    // await subscribeLive(topicId);
+    // Step 2: Optional periodic refresh (incremental)
+    const refreshMinutes = parseInt(process.env.HCS22_REFRESH_INTERVAL_MINUTES || '0', 10);
+    if (refreshMinutes > 0) {
+      refreshInterval = setInterval(() => {
+        refreshBindings().catch(err => {
+          console.error('[HCS22] Periodic refresh failed:', err);
+        });
+      }, refreshMinutes * 60 * 1000);
+      console.log(`[HCS22] Periodic refresh enabled (every ${refreshMinutes} minutes)`);
+    }
 
     initialized = true;
     console.log('[HCS22 Init] Initialization complete');
@@ -55,26 +64,25 @@ export async function initHcs22() {
  * Fetches events from the last N days to populate in-memory state
  */
 async function warmupFromHistory(topicId: string) {
-  console.log('[HCS22 Warmup] Fetching historical events...');
+  // Incremental fetch: only get new messages since last watermark
+  const sinceTimestamp = lastWatermark || (() => {
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    return `${Math.floor(sevenDaysAgo / 1000)}.0`;
+  })();
 
-  // Calculate timestamp for 7 days ago (in seconds.nanoseconds format)
-  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  const sinceTimestamp = `${Math.floor(sevenDaysAgo / 1000)}.0`;
+  const isInitial = !lastWatermark;
 
   try {
     const { messages, watermark } = await listSince(topicId, sinceTimestamp, 500, 0);
-    console.log(`[HCS22 Warmup] Fetched ${messages.length} messages`);
 
     let processed = 0;
     let errors = 0;
 
     for (const msg of messages) {
       try {
-        // Decode base64 message
         const event = decodeBase64Json(msg.message);
         
         if (!event || !event.t || !event.sub) {
-          // Not an HCS-22 event, skip
           continue;
         }
 
@@ -83,18 +91,25 @@ async function warmupFromHistory(topicId: string) {
           continue;
         }
 
-        // Reduce the event
+        // Reduce the event (silent)
         reduceHcs22(event as Hcs22Envelope);
         processed++;
       } catch (error: any) {
         errors++;
-        // Don't log every error, just count them
       }
     }
 
-    console.log(`[HCS22 Warmup] Processed ${processed} identity events (${errors} errors, watermark: ${watermark})`);
+    // Update watermark for next incremental fetch
+    lastWatermark = watermark;
+
+    // Only log summary
+    if (isInitial) {
+      console.log(`[HCS22] Loaded ${processed} identity bindings from ${messages.length} messages`);
+    } else if (processed > 0) {
+      console.log(`[HCS22] Refresh: +${processed} new bindings`);
+    }
   } catch (error: any) {
-    console.error('[HCS22 Warmup] Failed to fetch historical events:', error.message);
+    console.error('[HCS22 Warmup] Failed:', error.message);
     throw error;
   }
 }
@@ -148,14 +163,21 @@ async function subscribeLive(topicIdStr: string) {
 */
 
 /**
- * Manually trigger a warmup (useful for testing or manual refresh)
+ * Manually trigger a refresh (useful for testing or periodic updates)
+ * Only fetches new messages since last watermark
  */
-export async function manualWarmup() {
+export async function refreshBindings() {
   const topicId = process.env.HCS22_IDENTITY_TOPIC_ID;
   if (!topicId) {
     throw new Error('HCS22_IDENTITY_TOPIC_ID not set');
   }
 
-  console.log('[HCS22] Manual warmup triggered');
   await warmupFromHistory(topicId);
+}
+
+/**
+ * Get last watermark (for debugging)
+ */
+export function getLastWatermark(): string | undefined {
+  return lastWatermark;
 }

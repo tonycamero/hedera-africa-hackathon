@@ -372,7 +372,19 @@ export default function MePage() {
         </GenZCard>
 
         <GenZCard variant="glass" className="p-5">
-          <GenZHeading level={4}>Profile</GenZHeading>
+          <div className="flex items-center justify-between mb-2">
+            <GenZHeading level={4}>Profile</GenZHeading>
+            <a
+              href="https://hashscan.io/testnet/topic/0.0.7148066"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+              title="View HCS-22 Profile Topic on Hashscan"
+            >
+              <LinkIcon className="w-3 h-3" />
+              View on Hashscan
+            </a>
+          </div>
           <ProfileEditor accountId={accountId} />
         </GenZCard>
       </div>

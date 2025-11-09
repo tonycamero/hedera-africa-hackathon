@@ -20,7 +20,8 @@ import {
   X,
   Calendar,
   User,
-  Gift
+  Gift,
+  ExternalLink
 } from "lucide-react"
 import { toast } from "sonner"
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh"
@@ -271,7 +272,10 @@ export default function SignalsPage() {
                 target: item.json.payload?.recipientId || item.json.payload?.to,
                 ts: Date.now(),
                 topicId: item.topic_id || item.topicId || '',
-                metadata: item.json,
+                metadata: {
+                  ...item.json,
+                  sequenceNumber: item.sequence_number
+                },
                 source: 'hcs' as const
               }
               signalsStore.add(event)
@@ -671,13 +675,24 @@ export default function SignalsPage() {
               </div>
 
               {/* HCS Info */}
-              <div className="text-center pt-2 border-t border-white/10">
+              <div className="text-center pt-2 border-t border-white/10 space-y-2">
                 <p className="text-white/40 text-xs">
                   Verified on Hedera Consensus Service
                 </p>
-                <p className="text-white/30 text-xs font-mono mt-1">
+                <p className="text-white/30 text-xs font-mono">
                   {selectedSignal.topicId}
                 </p>
+                {selectedSignal.metadata?.sequenceNumber && (
+                  <a
+                    href={`https://hashscan.io/testnet/topic/${selectedSignal.topicId}/message/${selectedSignal.metadata.sequenceNumber}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View message on Hashscan
+                  </a>
+                )}
               </div>
             </div>
           </div>

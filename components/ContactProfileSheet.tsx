@@ -690,8 +690,20 @@ export function ContactProfileSheet({
 
             {/* Technical info */}
             <div className="border-t pt-3 space-y-1">
-              <div className="text-xs text-white/50">
-                <strong className="text-white/70">Peer ID:</strong> {peerId}
+              <div className="text-xs text-white/50 flex items-center justify-between">
+                <div>
+                  <strong className="text-white/70">Peer ID:</strong> {peerId}
+                </div>
+                {peerId.startsWith('0.0.') && (
+                  <button
+                    onClick={() => window.open(`https://hashscan.io/testnet/account/${peerId}`, '_blank', 'noopener,noreferrer')}
+                    className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                    title="View on Hashscan"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span className="text-xs">Hashscan</span>
+                  </button>
+                )}
               </div>
               <div className="text-xs text-white/50">
                 <strong className="text-white/70">Source:</strong> {source}

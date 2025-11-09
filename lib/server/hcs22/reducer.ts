@@ -13,7 +13,7 @@ type Binding = {
 // In-memory binding registry: issuer -> binding
 const bindings = new Map<string, Binding>();
 
-// Track if warmup has completed in this process
+// Track warmup state
 let warmupComplete = false;
 let warmupPromise: Promise<void> | null = null;
 
@@ -48,7 +48,7 @@ export function reduceHcs22(event: Hcs22Envelope) {
         lastIat: event.iat,
         evmAddress: event.payload.evm_address,
       });
-      console.log(`[HCS22] Reduced ${event.t} for ${sub} → ${event.payload.hedera_account_id}`);
+      // Silent - only log in debug mode
       break;
 
     case 'IDENTITY_ROTATE':
@@ -59,7 +59,7 @@ export function reduceHcs22(event: Hcs22Envelope) {
         lastIat: event.iat,
         evmAddress: current?.evmAddress, // preserve EVM address
       });
-      console.log(`[HCS22] Reduced ${event.t} for ${sub}: ${event.payload.from_hedera_id} → ${event.payload.to_hedera_id}`);
+      // Silent - only log in debug mode
       break;
 
     case 'IDENTITY_UNBIND':
@@ -70,29 +70,26 @@ export function reduceHcs22(event: Hcs22Envelope) {
           lastType: event.t, 
           lastIat: event.iat 
         });
-        console.log(`[HCS22] Reduced ${event.t} for ${sub}: ${current.accountId} unbound`);
       }
+      // Silent - only log in debug mode
       break;
   }
 }
 
 /**
- * Ensure warmup has run in this process
- * This is needed because Next.js dev mode runs instrumentation in a different process
+ * Ensure warmup has completed (lazy init if not done yet)
  */
 async function ensureWarmup() {
   if (warmupComplete) return;
   
   if (!warmupPromise) {
-    console.log('[HCS Reducer] Starting lazy warmup in API route process...');
     warmupPromise = (async () => {
       try {
         const { initHcs22 } = await import('./init');
         await initHcs22();
         warmupComplete = true;
-        console.log(`[HCS Reducer] Lazy warmup complete, loaded ${bindings.size} bindings`);
       } catch (error) {
-        console.error('[HCS Reducer] Lazy warmup failed:', error);
+        console.error('[HCS Reducer] Warmup failed:', error);
         warmupPromise = null; // Allow retry
       }
     })();
@@ -104,7 +101,6 @@ async function ensureWarmup() {
 /**
  * Get the active Hedera Account ID for an issuer
  * Returns null if no active binding exists
- * Automatically triggers warmup if not yet done in this process
  */
 export async function getBinding(issuer: string): Promise<string | null> {
   await ensureWarmup();
@@ -112,15 +108,8 @@ export async function getBinding(issuer: string): Promise<string | null> {
   const normalized = issuer.toLowerCase();
   const b = bindings.get(normalized);
   
-  console.log(`[HCS Reducer] Lookup for ${normalized}`);
-  console.log(`[HCS Reducer] Total bindings in map: ${bindings.size}`);
-  if (bindings.size > 0 && bindings.size <= 20) {
-    console.log(`[HCS Reducer] All keys: ${Array.from(bindings.keys()).join(', ')}`);
-  }
-  
-  if (b) {
-    console.log(`[HCS Reducer] Found binding: ${normalized} → ${b.accountId} (active: ${b.active})`);
-  } else {
+  // Silent lookup - only log misses in debug mode
+  if (!b && process.env.HCS22_LOG_LEVEL === 'debug') {
     console.log(`[HCS Reducer] No binding found for ${normalized}`);
   }
   

@@ -194,6 +194,14 @@ export async function POST(req: NextRequest) {
     invalidateProfileCache(accountId)
     console.log(`[HCS Profile POST] Invalidated cache for ${accountId}`)
 
+    // Trigger HCS-22 refresh to pick up any new identity bindings
+    try {
+      const { refreshBindings } = await import('@/lib/server/hcs22/init');
+      refreshBindings().catch(err => console.error('[HCS Profile POST] Background refresh failed:', err));
+    } catch (e) {
+      // Non-blocking
+    }
+
     client.close()
 
     return NextResponse.json({
