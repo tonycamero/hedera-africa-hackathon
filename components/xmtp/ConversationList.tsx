@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import type { MessagingContact } from '@/lib/services/contactsForMessaging';
 import { getContactsForMessaging } from '@/lib/services/contactsForMessaging';
 import { useIdentity } from '@/app/providers/IdentityProvider';
+import { MessageThread } from './MessageThread';
 
 export function ConversationList() {
   const { identity, xmtpClient } = useIdentity();
   const [contacts, setContacts] = useState<MessagingContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedContact, setSelectedContact] = useState<MessagingContact | null>(null);
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -38,14 +40,25 @@ export function ConversationList() {
   }, [identity, xmtpClient]);
 
   const handleMessage = (contact: MessagingContact) => {
-    // T9 will implement: navigate to thread view
-    console.log('[ConversationList] Message contact:', contact.hederaAccountId);
+    setSelectedContact(contact);
   };
 
   const handleInvite = (contact: MessagingContact) => {
     // T9 will implement: show invite modal or copy invite link
     console.log('[ConversationList] Invite contact:', contact.hederaAccountId);
   };
+
+  // Show thread view if contact selected
+  if (selectedContact && xmtpClient && identity) {
+    return (
+      <MessageThread
+        contact={selectedContact}
+        xmtpClient={xmtpClient}
+        currentUserAddress={identity.evmAddress}
+        onBack={() => setSelectedContact(null)}
+      />
+    );
+  }
 
   // Loading state
   if (loading) {
