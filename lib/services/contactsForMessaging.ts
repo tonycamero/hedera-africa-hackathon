@@ -193,8 +193,7 @@ export async function getContactsForMessaging(
           hasXMTP,
           lastBondedAt: c.lastBondedAt,
         } as MessagingContact;
-      } catch (err) {
-        console.warn('[contactsForMessaging] Failed to resolve contact', c.hederaAccountId, err);
+      } catch {
         return {
           hederaAccountId: c.hederaAccountId,
           evmAddress: '',
