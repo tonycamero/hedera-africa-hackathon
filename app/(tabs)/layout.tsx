@@ -16,7 +16,8 @@ import { modeToUnlockKind } from "@/lib/layout/upgrade-map"
 import { 
   Circle, 
   Activity, 
-  Users
+  Users,
+  MessageCircle
 } from "lucide-react"
 
 export default function TabsLayout({
@@ -76,7 +77,7 @@ export default function TabsLayout({
     }
   }, [])
 
-  // GenZ navigation order: Friends → Circle → Signals (social campfire in the center)
+  // GenZ navigation order: Friends → Circle → Signals → Messages
   const tabs = [
     {
       id: "contacts",
@@ -101,6 +102,14 @@ export default function TabsLayout({
       icon: Activity,
       badge: hasUnseen ? "•" : null,
       description: "Props activity"
+    },
+    {
+      id: "messages",
+      label: "Messages",
+      path: "/messages",
+      icon: MessageCircle,
+      badge: null,
+      description: "Direct messaging"
     }
   ]
 
