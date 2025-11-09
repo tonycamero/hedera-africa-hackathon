@@ -2,6 +2,7 @@
 
 import { useIdentity } from '@/app/providers/IdentityProvider';
 import { MessageCircle } from 'lucide-react';
+import { ConversationList } from '@/components/xmtp/ConversationList';
 
 export default function MessagesPage() {
   const {
@@ -97,7 +98,7 @@ export default function MessagesPage() {
     );
   }
 
-  // Ready state – placeholder for T8
+  // Ready state – show conversation list
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]">
       <div className="max-w-md mx-auto px-4 py-6">
@@ -106,25 +107,10 @@ export default function MessagesPage() {
             <MessageCircle className="w-5 h-5 text-[#FF6B35]" />
             Messages
           </h1>
-          <p className="text-sm text-white/70 mt-1">Direct Messaging via XMTP</p>
+          <p className="text-sm text-white/70 mt-1">Direct messaging via XMTP</p>
         </div>
-        
-        <div className="sheen-sweep overflow-hidden bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-green-400/20 rounded-lg p-8">
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/30 flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-8 h-8 text-green-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-white mb-2">XMTP connected</h2>
-            <p className="text-sm text-white/60 mb-2">
-              Your messaging setup is ready.
-            </p>
-            <p className="text-xs text-green-400/70">
-              Next step: show your trusted contacts here.
-            </p>
-          </div>
-        </div>
-        
-        {/* T7 will plug a <ConversationList contacts={...} /> in here */}
+
+        <ConversationList />
       </div>
     </div>
   );
