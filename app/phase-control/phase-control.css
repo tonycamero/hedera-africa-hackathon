@@ -1,0 +1,39 @@
+/* Force all text to be black and visible */
+* {
+  color: black !important;
+}
+
+/* Ensure white backgrounds for better contrast */
+.card, [data-radix-collection-item] {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* Fix any blue background text to be white */
+.bg-blue-500, .bg-blue-600, .bg-blue-700, [style*="background-color: blue"], [class*="bg-blue"] {
+  color: white !important;
+}
+
+/* Ensure buttons are visible */
+button {
+  color: black !important;
+  background-color: white !important;
+  border: 2px solid black !important;
+}
+
+/* Fix badges */
+.badge, [data-radix-collection-item] {
+  color: black !important;
+  background-color: white !important;
+  border: 2px solid black !important;
+}
+
+/* Make sure all headings are black */
+h1, h2, h3, h4, h5, h6 {
+  color: black !important;
+}
+
+/* Make sure all paragraphs and spans are black */
+p, span, div, li {
+  color: black !important;
+}

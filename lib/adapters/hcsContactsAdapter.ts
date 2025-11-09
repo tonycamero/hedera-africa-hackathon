@@ -32,8 +32,14 @@ async function loadEventsStoreFirst(): Promise<any[]> {
  *   2) HCSFeedService (fallback)
  */
 export async function getBondedContactsAdapter(sessionId: string): Promise<BondedContact[]> {
+  console.log('[HCSContactsAdapter] Loading events for session:', sessionId)
   const events = await loadEventsStoreFirst()
+  console.log('[HCSContactsAdapter] Loaded events count:', events.length)
+  console.log('[HCSContactsAdapter] Event types:', events.map(e => e.type).filter((t, i, arr) => arr.indexOf(t) === i))
+  
   const bonded = getBondedContactsFromHCS(events, sessionId) || []
+  console.log('[HCSContactsAdapter] Processed bonded contacts:', bonded)
+  
   // Keep it simple: only id/handle/bondedAt
   return bonded.map((b: any) => ({
     id: b.id || b.peerId || b.userId,

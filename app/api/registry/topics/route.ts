@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRegistry, getRegistrySource, getAllTopicIds, getTopicId } from '@/lib/registry/serverRegistry'
+import { topics } from '@/lib/registry/serverRegistry'
 
 // Force dynamic rendering and disable caching
 export const dynamic = 'force-dynamic'
@@ -8,41 +8,23 @@ export const fetchCache = 'force-no-store'
 
 export async function GET() {
   try {
-    const registry = getRegistry()
-    const source = getRegistrySource()
-    const allTopics = getAllTopicIds()
+    const topicRegistry = topics()
     
-    // Build comprehensive topic map with legacy compatibility
-    const topics = {
-      // Primary topics
-      contacts: getTopicId('contacts'),
-      trust: getTopicId('trust'),
-      profile: getTopicId('profile'),
-      recognition: getTopicId('recognition'),
-      
-      // Legacy aliases for backward compatibility
-      feed: getTopicId('recognition'), // Feed uses recognition topic
-      system: getTopicId('profile'),   // System uses profile topic
-      
-      // Recognition sub-topics (if configured)
-      recognitionDefinitions: allTopics.recognition_definitions || getTopicId('recognition'),
-      recognitionInstances: allTopics.recognition_instances || getTopicId('recognition')
-    }
-    
-    console.log(`[Registry Topics API] Serving topics from ${source}:`, {
-      contacts: topics.contacts,
-      trust: topics.trust,
-      profile: topics.profile,
-      recognition: topics.recognition
+    console.log('[Registry Topics API] Serving validated topics:', {
+      contacts: topicRegistry.contacts,
+      trust: topicRegistry.trust,
+      profile: topicRegistry.profile,
+      recognition: topicRegistry.recognition,
+      signal: topicRegistry.signal,
+      system: topicRegistry.system
     })
     
     return NextResponse.json({
       ok: true,
-      topics,
+      topics: topicRegistry,
       meta: {
-        source,
-        timestamp: new Date().toISOString(),
-        sharedContactsTrust: registry.flags.SHARED_CONTACTS_TRUST_TOPIC
+        source: 'environment',
+        timestamp: new Date().toISOString()
       }
     }, {
       headers: { 
@@ -58,7 +40,7 @@ export async function GET() {
       { 
         ok: false, 
         error: error.message || 'Failed to get registry topics',
-        fallback: 'Check registry configuration'
+        fallback: 'Check NEXT_PUBLIC_TOPIC_* environment variables'
       },
       { 
         status: 500,

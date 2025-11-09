@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
+import { topics } from '@/lib/registry/serverRegistry'
 
 export async function GET() {
   try {
     console.log('🐛 Debug: Checking client-side environment variables...')
     
-    // These should be inlined at build time if properly set
+    const topicRegistry = topics()
+    
+    // Show both raw env vars and validated registry
     const clientEnvs = {
       NEXT_PUBLIC_TOPIC_PROFILE: process.env.NEXT_PUBLIC_TOPIC_PROFILE,
       NEXT_PUBLIC_TOPIC_CONTACT: process.env.NEXT_PUBLIC_TOPIC_CONTACT,
@@ -13,8 +16,6 @@ export async function GET() {
       NEXT_PUBLIC_TOPIC_SIGNAL: process.env.NEXT_PUBLIC_TOPIC_SIGNAL,
       NEXT_PUBLIC_MIRROR_NODE_URL: process.env.NEXT_PUBLIC_MIRROR_NODE_URL,
       NEXT_PUBLIC_MIRROR_NODE_WS: process.env.NEXT_PUBLIC_MIRROR_NODE_WS,
-      NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
-      NEXT_PUBLIC_DEMO_SEED: process.env.NEXT_PUBLIC_DEMO_SEED,
       NEXT_PUBLIC_HCS_ENABLED: process.env.NEXT_PUBLIC_HCS_ENABLED,
     }
     
@@ -34,6 +35,7 @@ export async function GET() {
       success: true,
       available,
       missing,
+      registry: topicRegistry,
       totalCount: Object.keys(clientEnvs).length,
       availableCount: Object.keys(available).length,
       missingCount: missing.length,

@@ -31,14 +31,17 @@ export function normalizeHcsMessage(raw: any, source: 'hcs' | 'hcs-cached'): Sig
       return null
     }
 
+    // Enrich metadata for SIGNAL_MINT with normalized fields
+    const metadata = enrichMetadata(type, payload)
+
     return {
       id,
       type,
       actor,
       target,
-      timestamp,
+      ts: timestamp,
       topicId,
-      metadata: payload,
+      metadata,
       source,
     }
   } catch (error) {
@@ -86,9 +89,9 @@ function decodeBase64Json(base64String?: string): any | null {
  * @returns Signal type string
  */
 function inferSignalType(payload: any, raw: any): string | undefined {
-  // Explicit type field (preferred)
-  if (payload.type) return payload.type
-  if (raw.type) return raw.type
+  // Explicit type field (preferred) - always uppercase for consistency
+  if (payload.type) return String(payload.type).toUpperCase()
+  if (raw.type) return String(raw.type).toUpperCase()
   
   // Kind field (common pattern)
   if (payload.kind) {
@@ -162,8 +165,10 @@ function extractActor(payload: any): string | undefined {
   // Recognition-specific
   if (payload.issuer) return String(payload.issuer)
   
-  // Profile-specific (self-updates)
-  if (payload.owner && payload.type === 'PROFILE_UPDATE') return String(payload.owner)
+  // Profile-specific (self-updates) - use accountId or sessionId
+  if (payload.accountId) return String(payload.accountId)
+  if (payload.sessionId) return String(payload.sessionId)
+  if (payload.owner) return String(payload.owner)
   
   return undefined
 }
@@ -189,6 +194,29 @@ function extractTarget(payload: any): string | undefined {
 }
 
 /**
+ * Enrich metadata for specific event types
+ * @param type Signal type
+ * @param payload Original payload
+ * @returns Enriched metadata
+ */
+function enrichMetadata(type: string, payload: any): Record<string, any> {
+  // For SIGNAL_MINT, normalize category/kind field and extract key fields
+  if (type === 'SIGNAL_MINT') {
+    return {
+      ...payload,
+      category: payload.kind || payload.category || 'social', // Lens category
+      name: payload.name || payload.recognition || 'Untitled',
+      definitionId: payload.tokenId || payload.id,
+      note: payload.subtitle || payload.note || '',
+      emoji: payload.emoji || '🏆',
+    }
+  }
+  
+  // For other types, return payload as-is
+  return payload
+}
+
+/**
  * Validate SignalEvent has required fields
  * @param event Potential SignalEvent
  * @returns true if valid
@@ -199,7 +227,7 @@ export function isValidSignalEvent(event: any): event is SignalEvent {
     typeof event.id === 'string' &&
     typeof event.type === 'string' &&
     typeof event.actor === 'string' &&
-    typeof event.timestamp === 'number' &&
+    typeof event.ts === 'number' &&
     typeof event.topicId === 'string' &&
     typeof event.source === 'string' &&
     (event.source === 'hcs' || event.source === 'hcs-cached') &&

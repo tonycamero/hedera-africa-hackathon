@@ -71,34 +71,7 @@ export function BootRegistryClient() {
     }
   }, [])
 
-  // Show loading/error states during development
-  if (process.env.NODE_ENV === 'development') {
-    if (isLoading) {
-      return (
-        <div className="fixed top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded text-sm z-50">
-          Loading Registry...
-        </div>
-      )
-    }
-
-    if (error) {
-      return (
-        <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-1 rounded text-sm z-50">
-          Registry Error: {error}
-        </div>
-      )
-    }
-
-    if (registry) {
-      return (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-3 py-1 rounded text-sm z-50 opacity-75">
-          Registry: {registry.env} ({Object.keys(registry.topics).length} topics)
-        </div>
-      )
-    }
-  }
-
-  return null // No UI in production
+  return null // No UI - registry status removed
 }
 
 // Global accessor for components that need registry synchronously

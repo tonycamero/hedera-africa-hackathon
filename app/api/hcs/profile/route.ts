@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { parseHrl } from "@/lib/utils/hrl"
-import { HRL_DEMO_PROFILES } from "@/lib/services/profileService"
+import { Client, PrivateKey, TopicMessageSubmitTransaction } from "@hashgraph/sdk"
+import { ensureHbar } from "@/lib/services/hbarGuardrail"
+import { logTxServer } from "@/lib/telemetry/txLog"
+import { hasSufficientTRST, recordTRSTDebit } from "@/lib/services/trstBalanceService"
+import { TRST_PRICING } from "@/lib/config/pricing"
+import { topics } from "@/lib/registry/serverRegistry"
+import { invalidateProfileCache } from "@/lib/server/profile/normalizer"
 
 const MIRROR_BASE = process.env.HEDERA_MIRROR_BASE || "https://testnet.mirrornode.hedera.com"
+
+// Hedera operator configuration
+const OPERATOR_ID = process.env.HEDERA_OPERATOR_ID || process.env.NEXT_PUBLIC_HEDERA_OPERATOR_ID
+const OPERATOR_KEY = process.env.HEDERA_OPERATOR_KEY
+const HEDERA_NETWORK = process.env.HEDERA_NETWORK || "testnet"
 
 export async function GET(req: NextRequest) {
   try {
@@ -56,21 +67,167 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.warn(`[HCS Profile] Error fetching profile:`, error.message)
     
-    // Check demo profiles first before generic fallback
+    // Return error without fallback
     const hrl = req.nextUrl.searchParams.get("hrl")
-    let fallbackProfile = HRL_DEMO_PROFILES[hrl || ''] || {
-      handle: "Unknown User",
-      bio: "Profile unavailable",
-      visibility: "public",
-      verified: false
-    }
-
+    
     return NextResponse.json({ 
-      ok: false, 
-      profile: fallbackProfile,
+      ok: false,
       error: error.message || "Failed to fetch profile",
       hrl,
-      source: "fallback"
-    }, { status: 200 }) // Return 200 so UI can still render
+      source: "error"
+    }, { status: 404 })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { accountId, displayName, bio, avatar, signature, publicKey, timestamp } = body
+
+    if (!accountId) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: "missing accountId" 
+      }, { status: 400 })
+    }
+
+    // Check if payload is signed (client-side signing for user autonomy)
+    const isSignedPayload = signature && publicKey && timestamp
+    
+    if (!isSignedPayload) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: "Profile must be signed by user's Hedera key. Use lib/hedera/signProfile.ts" 
+      }, { status: 400 })
+    }
+
+    if (!OPERATOR_ID || !OPERATOR_KEY) {
+      throw new Error("Hedera operator credentials not configured")
+    }
+
+    // Initialize Hedera client
+    const client = HEDERA_NETWORK === "mainnet" 
+      ? Client.forMainnet() 
+      : Client.forTestnet()
+
+    // Parse operator key (handle hex format with 0x prefix)
+    const operatorKey = OPERATOR_KEY.startsWith("0x")
+      ? PrivateKey.fromStringECDSA(OPERATOR_KEY.slice(2))
+      : PrivateKey.fromString(OPERATOR_KEY)
+
+    client.setOperator(OPERATOR_ID, operatorKey)
+
+    // TRST Fee Check: Ensure sufficient TRST balance
+    const profileCost = TRST_PRICING.PROFILE_UPDATE
+    const trstCheck = await hasSufficientTRST(accountId, profileCost)
+    
+    if (!trstCheck.sufficient) {
+      client.close()
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'insufficient_trst',
+        details: `Profile update costs ${profileCost} TRST. You have ${trstCheck.current.toFixed(2)} TRST.`,
+        cost: profileCost,
+        balance: trstCheck.current
+      }, { status: 402 })
+    }
+    
+    console.log(`[HCS Profile POST] TRST balance check passed: ${trstCheck.current} >= ${profileCost}`)
+
+    // HBAR Guardrail: Ensure sufficient balance before transaction
+    try {
+      await ensureHbar(OPERATOR_ID, 0.01)
+    } catch (balanceError: any) {
+      console.error('[HCS Profile POST] HBAR guardrail failed:', balanceError.message)
+      client.close()
+      return NextResponse.json({ 
+        ok: false, 
+        error: `Insufficient HBAR balance: ${balanceError.message}` 
+      }, { status: 402 })
+    }
+
+    // Build PROFILE_UPDATE message payload (includes signature for verification)
+    const profilePayload = {
+      type: "PROFILE_UPDATE",
+      accountId,
+      displayName: displayName || "",
+      bio: bio || "",
+      avatar: avatar || "",
+      timestamp, // Use client-provided timestamp (part of signed message)
+      signature, // User's signature proves ownership
+      publicKey  // User's public key for verification
+    }
+
+    const PROFILE_TOPIC_ID = topics().profile
+    console.log(`[HCS Profile POST] Submitting signed profile for ${accountId} to topic ${PROFILE_TOPIC_ID}`)
+    console.log(`[HCS Profile POST] Signature: ${signature.slice(0, 16)}...`)
+    console.log(`[HCS Profile POST] Public Key: ${publicKey}`)
+
+    // Submit to HCS topic
+    const transaction = new TopicMessageSubmitTransaction({
+      topicId: PROFILE_TOPIC_ID,
+      message: JSON.stringify(profilePayload)
+    })
+
+    const txResponse = await transaction.execute(client)
+    const receipt = await txResponse.getReceipt(client)
+
+    console.log(`[HCS Profile POST] Success - Status: ${receipt.status}, Seq: ${receipt.topicSequenceNumber}`)
+
+    // Log transaction for telemetry
+    const txId = txResponse.transactionId.toString()
+    logTxServer({
+      action: "PROFILE_UPDATE",
+      accountId,
+      txId,
+      topicId: PROFILE_TOPIC_ID,
+      status: "SUCCESS"
+    })
+    
+    // Record TRST debit
+    recordTRSTDebit(accountId, profileCost, 'PROFILE_UPDATE', txId)
+
+    // Construct HRL for the created profile
+    const hrl = `hcs://${HEDERA_NETWORK}/${PROFILE_TOPIC_ID}/${receipt.topicSequenceNumber}`
+
+    // Invalidate profile cache so next fetch gets fresh data
+    invalidateProfileCache(accountId)
+    console.log(`[HCS Profile POST] Invalidated cache for ${accountId}`)
+
+    // Trigger HCS-22 refresh to pick up any new identity bindings
+    try {
+      const { refreshBindings } = await import('@/lib/server/hcs22/init');
+      refreshBindings().catch(err => console.error('[HCS Profile POST] Background refresh failed:', err));
+    } catch (e) {
+      // Non-blocking
+    }
+
+    client.close()
+
+    return NextResponse.json({
+      ok: true,
+      hrl,
+      profile: profilePayload,
+      transactionId: txId,
+      sequenceNumber: receipt.topicSequenceNumber?.toString()
+    })
+
+  } catch (error: any) {
+    console.error(`[HCS Profile POST] Error creating profile:`, error.message)
+    
+    // Log failed transaction
+    if (accountId) {
+      logTxServer({
+        action: "PROFILE_UPDATE",
+        accountId,
+        status: "ERROR",
+        meta: { error: error.message }
+      })
+    }
+    
+    return NextResponse.json({ 
+      ok: false,
+      error: error.message || "Failed to create profile"
+    }, { status: 500 })
   }
 }

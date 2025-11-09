@@ -48,6 +48,13 @@ export async function backfillTopic(opts: BackfillOptions): Promise<BackfillResu
       })
 
       if (!res.ok) {
+        // Handle 404 gracefully - topic may not exist or be empty
+        if (res.status === 404) {
+          if (INGEST_DEBUG) {
+            console.warn(`[Backfill] Topic ${topicId} not found (404) - likely empty or doesn't exist`)
+          }
+          return { count: 0 }
+        }
         throw new Error(`HTTP ${res.status}: ${res.statusText}`)
       }
 
@@ -73,8 +80,10 @@ export async function backfillTopic(opts: BackfillOptions): Promise<BackfillResu
         }
       }
 
-      // Check for next page
-      next = data?.links?.next ? `${MIRROR_REST}${data.links.next}` : null
+      // Check for next page - Mirror API returns full path, extract base URL
+      next = data?.links?.next 
+        ? `${new URL(MIRROR_REST).origin}${data.links.next}` 
+        : null
       
       if (messages.length === 0) {
         // No more messages available
@@ -159,7 +168,9 @@ export async function backfillRange(opts: BackfillOptions & {
       last = msg.consensus_timestamp
     }
 
-    next = data?.links?.next ? `${MIRROR_REST}${data.links.next}` : null
+    next = data?.links?.next 
+      ? `${new URL(MIRROR_REST).origin}${data.links.next}` 
+      : null
     if (messages.length === 0) break
   }
 

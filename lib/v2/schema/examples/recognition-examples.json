@@ -1,0 +1,99 @@
+{
+  "genz_recognition": {
+    "spaceId": "tm.v2.ucla.hackathon2024",
+    "senderId": "0.0.12345",
+    "recipientId": "0.0.67890",
+    "lens": "genz",
+    "metadata": {
+      "title": "Crushed that presentation! 🔥",
+      "description": "Absolutely nailed the pitch deck presentation. The demo was flawless and the Q&A was on point. Energy was unmatched!",
+      "category": "presentation",
+      "lensData": {
+        "vibeCheck": "fire",
+        "streakCount": 3,
+        "socialProof": ["viral_post", "standing_ovation"]
+      },
+      "skills": ["public_speaking", "demo", "energy"],
+      "visibility": "space"
+    },
+    "hcsTopicId": "0.0.98765"
+  },
+  "professional_recognition": {
+    "spaceId": "tm.v2.crafttrust.engineering",
+    "senderId": "0.0.11111",
+    "recipientId": "0.0.22222",
+    "lens": "professional",
+    "metadata": {
+      "title": "Exceptional Smart Contract Security Audit",
+      "description": "Conducted a thorough security review of the treasury smart contracts, identifying 3 critical vulnerabilities and providing detailed remediation steps. Work demonstrates mastery of DeFi security patterns.",
+      "category": "security_audit",
+      "lensData": {
+        "industryContext": "blockchain_security",
+        "competencyLevel": "expert",
+        "certificationRef": "https://certik.com/audits/crafttrust-treasury"
+      },
+      "skills": ["smart_contract_audit", "defi_security", "solidity", "vulnerability_assessment"],
+      "visibility": "public",
+      "attachments": [
+        {
+          "type": "document",
+          "url": "https://ipfs.io/ipfs/Qm123...audit-report.pdf",
+          "title": "Treasury Security Audit Report"
+        }
+      ]
+    },
+    "hcsTopicId": "0.0.55555"
+  },
+  "social_recognition": {
+    "spaceId": "tm.v2.cannabis-coop.outreach",
+    "senderId": "0.0.33333",
+    "recipientId": "0.0.44444",
+    "lens": "social",
+    "metadata": {
+      "title": "Community Education Workshop Leadership",
+      "description": "Organized and led a cannabis education workshop for 50+ community members, covering regulation compliance, health benefits, and responsible usage.",
+      "category": "community_education",
+      "lensData": {
+        "communityImpact": "local",
+        "collaborationScore": 95
+      },
+      "skills": ["community_organizing", "public_education", "cannabis_expertise"],
+      "visibility": "public"
+    },
+    "hcsTopicId": "0.0.77777"
+  },
+  "builder_recognition": {
+    "spaceId": "tm.v2.hackathon.buidl-week",
+    "senderId": "0.0.55555",
+    "recipientId": "0.0.66666",
+    "lens": "builder",
+    "metadata": {
+      "title": "MVP Implementation of Universal Recognition Engine",
+      "description": "Built a working prototype of the TrustMesh v2 universal recognition engine with Hedera integration, complete with schema validation and HCS publishing.",
+      "category": "mvp_development",
+      "lensData": {
+        "projectPhase": "mvp",
+        "techStack": ["typescript", "hedera", "zod", "node"],
+        "githubRepo": "https://github.com/crafttrust/trustmesh-v2"
+      },
+      "skills": ["typescript", "hedera_development", "schema_design", "api_design"],
+      "visibility": "space"
+    },
+    "hcsTopicId": "0.0.88888"
+  },
+  "invalid_lens_data_example": {
+    "spaceId": "tm.v2.test.invalid",
+    "senderId": "0.0.12345",
+    "recipientId": "0.0.67890",
+    "lens": "genz",
+    "metadata": {
+      "title": "Invalid lens data test",
+      "category": "test",
+      "lensData": {
+        "vibeCheck": "invalid_option",
+        "streakCount": "not_a_number"
+      }
+    },
+    "hcsTopicId": "0.0.99999"
+  }
+}

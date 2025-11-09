@@ -65,42 +65,11 @@ class ProfileService {
       let hrl = `local://profile/${seq}`
 
       if (hcsEnabled && sessionId) {
-        try {
-          console.log('[ProfileService] Publishing profile via server-side API...')
-          
-          const response = await fetch('/api/profile/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId,
-              handle: profile.handle,
-              bio: profile.bio || '',
-              visibility: profile.visibility,
-              location: profile.location || '',
-              avatar: profile.avatar || ''
-            })
-          })
-          
-          const result = await response.json()
-          
-          if (result.ok) {
-            seq = result.sequenceNumber
-            hrl = result.profileHrl
-            console.log('[ProfileService] Profile published successfully:', hrl)
-            // Clear error cache on success
-            this.errorCache.delete('profile_publish')
-          } else {
-            throw new Error(result.error || 'Profile update failed')
-          }
-          
-        } catch (error) {
-          console.error('[ProfileService] Failed to publish profile via server API:', error)
-          // Cache the error
-          this.errorCache.set('profile_publish', { error: error as Error, ts: Date.now() })
-          // Fall back to local mode
-          seq = Date.now()
-          hrl = `local://profile/${seq}`
-        }
+        // Skip HCS profile write during initialization
+        // User will need to explicitly update profile via Settings which uses signed payloads
+        console.log('[ProfileService] Using local profile (HCS publish requires user signature)')
+        seq = Date.now()
+        hrl = `local://profile/${seq}`
       } else {
         console.log('[ProfileService] Using local profile (HCS disabled or no session ID)')
         seq = Date.now()

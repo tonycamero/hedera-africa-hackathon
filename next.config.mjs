@@ -9,6 +9,18 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async headers() {
+    return [
+      {
+        source: '/collections/:path*',
+        headers: [{ key: 'x-robots-tag', value: 'noindex' }],
+      },
+      {
+        source: '/signals-trading',
+        headers: [{ key: 'x-robots-tag', value: 'noindex' }],
+      },
+    ]
+  },
   serverExternalPackages: ['@hashgraph/sdk', '@hashgraphonline/standards-sdk'],
   webpack: (config, { isServer }) => {
     // Handle HCS-2 SDK React Native dependencies

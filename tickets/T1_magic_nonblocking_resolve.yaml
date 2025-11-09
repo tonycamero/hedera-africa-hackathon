@@ -1,0 +1,75 @@
+title: "HCS-22: Integrate Non-Blocking Resolution with Magic Login"
+status: QUEUED
+priority: HIGH
+phase: 4
+dependencies:
+  - HCS-22 core implementation (Phase 3 complete)
+  - Verification report approved
+
+description: |
+  Integrate HCS-22 identity resolution into Magic login flow without blocking user experience.
+  
+  Resolution happens asynchronously after Magic authentication, populating HCS audit trail
+  with ASSERT events while preserving existing localStorage-based account management.
+
+scope:
+  file: lib/services/MagicWalletService.ts
+  function: loginWithMagicEmail
+  lines: ~48-200
+
+tasks:
+  - Extract EVM address from Magic metadata (metadata.publicAddress)
+  - Extract issuer DID from Magic metadata (metadata.issuer)
+  - Add non-blocking fetch to /api/identity/resolve after getting ID token
+  - Log resolution results for monitoring
+  - Do NOT await resolution - continue existing flow
+  - Do NOT change existing account creation logic (yet)
+
+implementation:
+  approach: "Fire-and-forget resolution call"
+  code: |
+    // In loginWithMagicEmail() after getting metadata and token
+    const issuer = metadata.issuer || '';
+    const evmAddress = metadata.publicAddress || '';
+    
+    // NON-BLOCKING HCS-22 resolution (fire-and-forget)
+    if (issuer && evmAddress) {
+      fetch('/api/identity/resolve', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ issuer })
+      })
+      .then(res => res.json())
+      .then(data => console.log('[HCS22] Resolved:', data))
+      .catch(err => console.warn('[HCS22] Resolve failed:', err));
+    }
+    
+    // Continue with existing logic...
+
+acceptance_criteria:
+  - Resolution call does not block login flow
+  - ASSERT events published to HCS for existing users
+  - Logs show resolution results
+  - Login time not affected (< 50ms overhead)
+  - No changes to existing account creation
+
+testing:
+  - Login with existing user → check HCS for ASSERT event
+  - Login with new user → resolution returns null, account created normally
+  - Verify login latency unchanged
+  - Monitor HCS topic for ASSERT events
+
+rollback:
+  - Remove fetch call
+  - No database changes to revert
+
+risks: LOW
+effort: 1 hour
+verification: "Check HCS topic for ASSERT events after user logins"
+
+notes: |
+  This is Step 1 of the gradual HCS-22 integration plan.
+  Does not change any existing behavior - purely additive audit trail.

@@ -1,11 +1,7 @@
 // lib/demo/guard.ts
-import { ALLOW_DEMO } from '@/lib/env';
+// Demo features have been removed from production
 
 export function assertDemoAllowed(ctx: string): boolean {
-  if (!ALLOW_DEMO) {
-    // Fail closed, loud log, no throw to avoid crashing UI
-    console.error(`[DEMO_DISABLED] Blocked demo feature: ${ctx}`);
-    return false;
-  }
-  return true;
+  console.warn(`[DEPRECATED] Demo guard called for: ${ctx}. Demo features have been removed.`);
+  return false;
 }

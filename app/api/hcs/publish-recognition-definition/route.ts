@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { hederaClient } from "@/packages/hedera/HederaClient"
-
-const RECOGNITION_TOPIC = process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || process.env.RECOGNITION_TOPIC || "0.0.6895261"
+import { submitToTopic } from "@/lib/hedera/serverClient"
+import { topics } from "@/lib/registry/serverRegistry"
 
 export async function POST(req: NextRequest) {
   try {
@@ -75,12 +74,16 @@ export async function POST(req: NextRequest) {
 
     console.log(`[HCS Definition] Publishing enhanced definition: ${data.name} (${data.id})`)
 
+    // Get recognition topic from registry
+    const RECOGNITION_TOPIC = topics().recognition
+
     // Submit to HCS Recognition topic
-    if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true" && RECOGNITION_TOPIC) {
-      const messageId = await hederaClient.submitMessage(
+    if (process.env.NEXT_PUBLIC_HCS_ENABLED === "true") {
+      const result = await submitToTopic(
         RECOGNITION_TOPIC, 
         JSON.stringify(enhancedDefinition)
       )
+      const messageId = result.transactionId
       
       console.log(`[HCS Definition] Successfully published: ${data.id} (Message ID: ${messageId})`)
       

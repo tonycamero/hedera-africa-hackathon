@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { submitToTopic } from '@/lib/hedera/serverClient'
 import { getRegistryTopics, type RegistryTopics } from '@/lib/hcs2/registry'
+import { getTemplate, templateExists } from '@/lib/templates'
 
 // In-memory nonce store (per from); use Redis in prod
 const nonceStore: Record<string, number> = {}
@@ -31,6 +32,14 @@ export async function POST(req: NextRequest) {
   try {
     const body: Envelope = await req.json()
     validateEnvelope(body)
+    
+    // Additional validation for signal mints
+    if (body.type === 'RECOGNITION_MINT' && body.payload?.t === 'signal.mint@1') {
+      const validationResult = validateSignalMint(body.payload)
+      if (!validationResult.valid) {
+        throw new Error(validationResult.error)
+      }
+    }
 
     const topics = await getRegistryTopics()
     const topicId = routeTopic(body.type, topics)
@@ -46,6 +55,73 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error(`[HCS Submit] Error: ${e.message}`)
     return NextResponse.json({ ok: false, error: e.message || 'Submit failed' }, { status: 400 })
+  }
+}
+
+/**
+ * Validate signal mint payload against template library
+ */
+function validateSignalMint(payload: any): { valid: boolean; error?: string } {
+  try {
+    // Extract template ID from def_id (format: grit.template_id@1)
+    const templateId = payload.def_id?.replace(/^grit\.|@1$/g, '')
+    if (!templateId) {
+      return { valid: false, error: 'Missing or invalid template ID in def_id' }
+    }
+    
+    // Check if template exists in library
+    if (!templateExists(templateId)) {
+      return { valid: false, error: `Template '${templateId}' not found in library` }
+    }
+    
+    // Get template for validation
+    const template = getTemplate(templateId)
+    if (!template) {
+      return { valid: false, error: `Template '${templateId}' not available` }
+    }
+    
+    // Validate fill length
+    const fill = payload.fill || ''
+    if (fill.length > template.maxFill) {
+      return { 
+        valid: false, 
+        error: `Fill text too long: ${fill.length} chars (max ${template.maxFill})` 
+      }
+    }
+    
+    if (fill.length === 0) {
+      return { valid: false, error: 'Fill text cannot be empty' }
+    }
+    
+    // Validate note length if present
+    const note = payload.note || ''
+    if (note.length > 120) {
+      return { 
+        valid: false, 
+        error: `Note too long: ${note.length} chars (max 120)` 
+      }
+    }
+    
+    // Basic positivity check
+    const negativeWords = ['hate', 'terrible', 'awful', 'horrible', 'worst', 'stupid', 'dumb', 'suck', 'sucks']
+    const textToCheck = (fill + ' ' + note).toLowerCase()
+    const foundNegative = negativeWords.find(word => textToCheck.includes(word))
+    
+    if (foundNegative) {
+      return { 
+        valid: false, 
+        error: `Please keep your message positive and encouraging (found: '${foundNegative}')` 
+      }
+    }
+    
+    // All checks passed
+    return { valid: true }
+    
+  } catch (error) {
+    return { 
+      valid: false, 
+      error: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    }
   }
 }
 

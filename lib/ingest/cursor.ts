@@ -70,6 +70,33 @@ export async function clearCursor(key: string): Promise<void> {
 }
 
 /**
+ * Clear all cursors (force full re-sync from HCS)
+ */
+export async function clearAllCursors(): Promise<void> {
+  console.log('[Cursor] Clearing all cursors...')
+  
+  // Clear memory cache
+  cursorCache.clear()
+  
+  // Clear localStorage
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const keysToRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key?.startsWith(`${CURSOR_STORAGE_PREFIX}:`)) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      console.log(`[Cursor] Cleared ${keysToRemove.length} cursors from localStorage`)
+    } catch (error) {
+      console.warn('[Cursor] Failed to clear from localStorage:', error)
+    }
+  }
+}
+
+/**
  * Get all cursors for debugging
  * @returns Map of all stored cursors
  */

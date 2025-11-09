@@ -1,0 +1,280 @@
+{
+  "sprint": {
+    "name": "TrustMesh v2 — Sprint 1",
+    "start_date": "2025-10-14",
+    "end_date": "2025-10-21",
+    "timezone": "America/Los_Angeles",
+    "repo": "TrustMesh_hackathon",
+    "branch": "feature/universal-recognition-v2",
+    "goal": "Ship Universal Recognition Engine with MatterFi treasury hooks ready for end-to-end test on testnet.",
+    "definition_of_done": [
+      "All tickets merged into feature/universal-recognition-v2",
+      "CI passes npm run test:e2e",
+      "Demo: cash deposit → TRST mint → recognition → reward → audit visible",
+      "Docs updated: /docs/V2_EXECUTION_PLAN.md"
+    ]
+  },
+  "epics": [
+    {
+      "key": "EPIC-A",
+      "title": "Core Foundation (Days 1–2)",
+      "description": "Schemas, Space Registry, Universal Engine, Settlement Ports.",
+      "tickets": [
+        {
+          "key": "A1",
+          "title": "Create Core Schemas",
+          "status": "todo",
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["backend", "schemas", "trustmesh-v2"],
+          "files": [
+            "/lib/v2/schema/tm.recognition@1.ts",
+            "/lib/v2/schema/tm.space@1.ts"
+          ],
+          "deliverables": [
+            "JSON schema + TS types for tm.recognition@1 and tm.space@1",
+            "Validation helpers (zod or ajv)",
+            "Example payloads committed under /lib/v2/schema/examples/"
+          ],
+          "acceptance_criteria": [
+            "Unit tests validate both schemas with example payloads",
+            "Recognitions reference spaceId, senderId, recipientId, lens",
+            "Spaces include policies, treasury, hcsTopicId"
+          ],
+          "estimate_hours": 8
+        },
+        {
+          "key": "A2",
+          "title": "Space Registry Service",
+          "status": "todo",
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["backend", "hedera", "hcs", "trustmesh-v2"],
+          "files": ["/lib/v2/engine/spaceRegistry.ts"],
+          "deliverables": [
+            "CRUD for Spaces persisted via Hedera HCS topic (tm.v2.space)",
+            "Policy inheritance logic with unit tests",
+            "API handler to create/update space"
+          ],
+          "acceptance_criteria": [
+            "Create/update emits HCS event (logged in test)",
+            "Round-trip serialization/deserialization passes",
+            "Policy inheritance covered by tests"
+          ],
+          "dependencies": ["A1"],
+          "estimate_hours": 10
+        },
+        {
+          "key": "A3",
+          "title": "Universal Recognition Engine",
+          "status": "todo",
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["backend", "engine", "trustmesh-v2"],
+          "files": ["/lib/v2/engine/universalRecognition.ts"],
+          "deliverables": [
+            "Unified handler for genz | professional | social | builder",
+            "Type-safe switch on lens",
+            "submitRecognition(req: UniversalRecognitionRequest) export"
+          ],
+          "acceptance_criteria": [
+            "Jest tests: all 4 lens types produce valid HCS payloads",
+            "Engine compiles and lints cleanly"
+          ],
+          "dependencies": ["A1", "A2"],
+          "estimate_hours": 10
+        },
+        {
+          "key": "A4",
+          "title": "Settlement Ports & Adapter Stubs",
+          "status": "todo",
+          "priority": "medium",
+          "owner": "Warp",
+          "labels": ["payments", "ports", "matterfi", "trustmesh-v2"],
+          "files": [
+            "/lib/v2/ports/SettlementPort.ts",
+            "/lib/v2/adapters/MatterFiSettlementAdapter.ts"
+          ],
+          "deliverables": [
+            "SettlementPort interface (mintToSpace, transferBetweenSpaces, getSpaceBalance)",
+            "MatterFi adapter stubs with mocked implementations"
+          ],
+          "acceptance_criteria": [
+            "Unit tests mock adapter calls",
+            "Types align with Integration Pack v1"
+          ],
+          "dependencies": ["A1"],
+          "estimate_hours": 6
+        }
+      ]
+    },
+    {
+      "key": "EPIC-B",
+      "title": "Integration (Days 3–4)",
+      "description": "MatterFi adapter implementation, Cross-lens UI, Contact Resolution, Policy Engine.",
+      "tickets": [
+        {
+          "key": "B1",
+          "title": "MatterFi Adapter — Real EVM Settlement",
+          "status": "blocked",
+          "blocked_on": ["Mehow API confirmations"],
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["payments", "matterfi", "evm", "polygon-or-base", "trustmesh-v2"],
+          "files": ["/lib/v2/adapters/MatterFiSettlementAdapter.ts"],
+          "deliverables": [
+            "Connect to MatterFi SDK (EVM endpoint: Polygon or Base)",
+            "Implement mintAsset, transfer, getBalance with metadata",
+            "Env contract for orgId, apiKey, trstTokenId (EVM)"
+          ],
+          "acceptance_criteria": [
+            "npm run test:e2e triggers mint+transfer on sandbox",
+            "Webhook receipts logged and verified"
+          ],
+          "dependencies": ["A4"],
+          "estimate_hours": 12
+        },
+        {
+          "key": "B2",
+          "title": "Cross-Lens UI Integration (Feature Flag)",
+          "status": "todo",
+          "priority": "medium",
+          "owner": "Warp",
+          "labels": ["frontend", "feature-flag", "trustmesh-v2"],
+          "files": ["/components/lens/RecognitionCard.tsx", "/app/api/recognition-v2/route.ts"],
+          "deliverables": [
+            "useV2Engine feature flag",
+            "When ON, call /api/recognition-v2/submit"
+          ],
+          "acceptance_criteria": [
+            "Flag toggling switches endpoint successfully",
+            "Legacy GenZ flow unaffected (snapshot tests)"
+          ],
+          "dependencies": ["A3"],
+          "estimate_hours": 6
+        },
+        {
+          "key": "B3",
+          "title": "Contact Resolution Module (MatterFi-first, KNS fallback)",
+          "status": "todo",
+          "priority": "medium",
+          "owner": "Warp",
+          "labels": ["identity", "matterfi", "kns", "trustmesh-v2"],
+          "files": ["/lib/v2/util/resolveContact.ts"],
+          "deliverables": [
+            "Resolver returning {accountId, walletId, source}",
+            "Fallback to KNS when MatterFi handle missing"
+          ],
+          "acceptance_criteria": [
+            "Jest tests cover both providers",
+            "Deterministic failure modes (no unhandled promise rejections)"
+          ],
+          "dependencies": ["A1"],
+          "estimate_hours": 5
+        },
+        {
+          "key": "B4",
+          "title": "Policy Engine (Space-level RBAC + Treasury Rules)",
+          "status": "todo",
+          "priority": "medium",
+          "owner": "Warp",
+          "labels": ["policy", "backend", "trustmesh-v2"],
+          "files": ["/lib/v2/engine/policyEngine.ts"],
+          "deliverables": [
+            "Evaluate actions against space policies and treasury limits",
+            "Integrate with Space Registry"
+          ],
+          "acceptance_criteria": [
+            "Allow/Deny scenarios covered by unit tests",
+            "Policy evaluation called before settlement/reward"
+          ],
+          "dependencies": ["A2"],
+          "estimate_hours": 8
+        }
+      ]
+    },
+    {
+      "key": "EPIC-C",
+      "title": "Production Readiness (Days 5–7)",
+      "description": "Compliance, Context hooks, Migration, E2E tests.",
+      "tickets": [
+        {
+          "key": "C1",
+          "title": "Compliance System (Webhook ingest + Ledger)",
+          "status": "todo",
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["compliance", "webhooks", "backend", "trustmesh-v2"],
+          "files": ["/lib/v2/engine/compliance.ts", "/app/api/matterfi/webhook/route.ts", "/app/api/compliance/logs/route.ts"],
+          "deliverables": [
+            "Store MatterFi webhook events in ot_events",
+            "REST feed for admin ledger"
+          ],
+          "acceptance_criteria": [
+            "Signatures verified",
+            "UI ledger lists txId, space, amount, proofHash"
+          ],
+          "dependencies": ["B1"],
+          "estimate_hours": 10
+        },
+        {
+          "key": "C2",
+          "title": "Context Engine Hook (Recognition → Reward)",
+          "status": "todo",
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["context-engine", "rewards", "backend", "trustmesh-v2"],
+          "files": ["/lib/v2/engine/contextHook.ts"],
+          "deliverables": [
+            "Map recognition types to reward triggers",
+            "Invoke SettlementPort.mintToSpace on match"
+          ],
+          "acceptance_criteria": [
+            "E2E: recognition event emits a (mocked) TRST mint",
+            "Logs show trigger + payload"
+          ],
+          "dependencies": ["A3", "A4", "B4"],
+          "estimate_hours": 8
+        },
+        {
+          "key": "C3",
+          "title": "Migration Tools (v1 → v2)",
+          "status": "todo",
+          "priority": "medium",
+          "owner": "Warp",
+          "labels": ["migration", "scripts", "trustmesh-v2"],
+          "files": ["/scripts/migrate-v1-to-v2.ts"],
+          "deliverables": [
+            "CLI to convert legacy data into v2 schemas",
+            "Dry-run and apply modes"
+          ],
+          "acceptance_criteria": [
+            "Dry-run prints converted count",
+            "Invalid records reported with reasons"
+          ],
+          "dependencies": ["A1"],
+          "estimate_hours": 6
+        },
+        {
+          "key": "C4",
+          "title": "End-to-End Test Suite",
+          "status": "todo",
+          "priority": "high",
+          "owner": "Warp",
+          "labels": ["testing", "e2e", "trustmesh-v2"],
+          "files": ["/tests/e2e/trustmesh-v2.spec.ts"],
+          "deliverables": [
+            "Automated flow: Cash → Mint → Recognition → Reward → Audit",
+            "Artifacts (JSON) of the event chain"
+          ],
+          "acceptance_criteria": [
+            "CI green with MatterFi sandbox credentials",
+            "Readable artifacts stored under /tests/e2e/artifacts/"
+          ],
+          "dependencies": ["B1", "C1", "C2"],
+          "estimate_hours": 10
+        }
+      ]
+    }
+  ]
+}

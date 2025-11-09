@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRegistry, getRegistrySource, validateRegistry } from '@/lib/registry/serverRegistry'
+import { topics } from '@/lib/registry/serverRegistry'
 
 // Force dynamic rendering and disable caching for development
 export const dynamic = 'force-dynamic'
@@ -8,32 +8,29 @@ export const fetchCache = 'force-no-store'
 
 export async function GET() {
   try {
-    const registry = getRegistry()
-    const source = getRegistrySource()
+    const topicRegistry = topics()
     
-    // Validate the registry before serving
-    const validation = validateRegistry(registry)
-    if (!validation.valid) {
-      console.error('[Registry Config API] Invalid registry:', validation.errors)
-      return NextResponse.json(
-        { 
-          ok: false, 
-          error: 'Invalid registry configuration',
-          details: validation.errors
-        },
-        { status: 500 }
-      )
-    }
+    console.log('[Registry Config API] Serving validated topic registry')
     
-    console.log(`[Registry Config API] Serving registry from ${source}`)
-    
+    // Return full registry config structure
     return NextResponse.json({
       ok: true,
-      registry,
+      registry: {
+        env: process.env.NODE_ENV || 'development',
+        topics: topicRegistry,
+        mirror: {
+          rest: process.env.NEXT_PUBLIC_MIRROR_REST_URL || 'https://mainnet.mirrornode.hedera.com/api/v1',
+          ws: process.env.NEXT_PUBLIC_MIRROR_WS_URL || 'wss://mainnet.mirrornode.hedera.com'
+        },
+        flags: {
+          enableRecognitionOverlays: true,
+          enableCulturalLayers: true
+        }
+      },
       meta: {
-        source,
+        source: 'environment',
         timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        version: '2.0.0'
       }
     }, {
       headers: { 
@@ -51,7 +48,7 @@ export async function GET() {
       { 
         ok: false, 
         error: error.message || 'Failed to load registry configuration',
-        fallback: 'Check environment variables or registry source'
+        fallback: 'Check NEXT_PUBLIC_TOPIC_* environment variables'
       },
       { 
         status: 500,

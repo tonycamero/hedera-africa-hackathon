@@ -6,7 +6,7 @@ import { MirrorNodeReader } from "@/lib/services/MirrorNodeReader"
 import { toSignalEvents } from "@/lib/services/MirrorNormalize"
 import { saveMirrorRaw } from "@/lib/cache/sessionCache"
 import { hcs2Registry, type TrustMeshTopics } from "@/lib/services/HCS2RegistryClient"
-import { TOPIC } from "@/lib/env"
+import { getRegistryTopics } from "@/lib/hcs2/registry"
 
 export type HCSFeedEvent = {
   id: string
@@ -35,6 +35,7 @@ export class HCSFeedService {
   private isSeeded: boolean = false
   private cachedEvents: HCSFeedEvent[] = [] // Cache for events successfully written to HCS
   private readonly CACHE_KEY = 'trustmesh_demo_cache'
+  private readonly WATERMARK_KEY = 'trustmesh_watermarks' // P1 fix from situation brief
   private mirrorReader: MirrorNodeReader | null = null;
   private isInitializing: boolean = false
   private initPromise: Promise<void> | null = null
@@ -98,16 +99,24 @@ export class HCSFeedService {
   }
 
   private async loadVerifiedTopics(): Promise<void> {
-    // Load the verified topics from centralized env configuration
-    this.topics = {
-      feed: TOPIC.contacts || '0.0.6896005', // Using contacts topic as feed
-      contacts: TOPIC.contacts || '0.0.6896005',
-      trust: TOPIC.trust || '0.0.6896005',
-      recognition: TOPIC.recognition || '0.0.6895261',
-      profiles: TOPIC.profile || '0.0.6896008',
-      system: TOPIC.profile || '0.0.6896008' // Using profile topic as system
+    // Load topics from THE SINGLE SOURCE OF TRUTH: the registry
+    // The registry reads from env vars internally
+    console.log('[HCSFeedService] Loading topics from registry...')
+    const registryTopics = await getRegistryTopics()
+    
+    if (!registryTopics.contacts || !registryTopics.trust || !registryTopics.profile || !registryTopics.recognition) {
+      throw new Error('[HCSFeedService] Registry returned incomplete topics - check NEXT_PUBLIC_TOPIC_* env vars')
     }
-    console.log('[HCSFeedService] Loaded verified topics:', this.topics)
+    
+    this.topics = {
+      feed: registryTopics.contacts!, // Using contacts topic as feed
+      contacts: registryTopics.contacts!,
+      trust: registryTopics.trust!,
+      recognition: registryTopics.recognition!,
+      profiles: registryTopics.profile!,
+      system: registryTopics.profile! // Using profile topic as system
+    }
+    console.log('[HCSFeedService] Loaded topics from registry:', this.topics)
   }
 
   private hasEssentialTopics(): boolean {
@@ -123,13 +132,14 @@ export class HCSFeedService {
       const registryTopics = await hcs2Registry.resolveTopics()
       
       // Use registry topics if available, otherwise use our verified ones as fallback
+      // NO HARDCODED FALLBACKS
       this.topics = {
-        feed: registryTopics.feed || this.topics.feed || '0.0.6896005',
-        contacts: registryTopics.contacts || this.topics.contacts || '0.0.6896005',
-        trust: registryTopics.trust || this.topics.trust || '0.0.6896005',
-        recognition: registryTopics.recognition || this.topics.recognition || '0.0.6895261',
-        profiles: registryTopics.profiles || this.topics.profiles || '0.0.6896008',
-        system: registryTopics.system || this.topics.system || '0.0.6896008'
+        feed: registryTopics.feed || this.topics.feed,
+        contacts: registryTopics.contacts || this.topics.contacts,
+        trust: registryTopics.trust || this.topics.trust,
+        recognition: registryTopics.recognition || this.topics.recognition,
+        profiles: registryTopics.profiles || this.topics.profiles,
+        system: registryTopics.system || this.topics.system
       }
       
       // Register our verified topics in the registry if not already there
@@ -172,6 +182,7 @@ export class HCSFeedService {
       this.topics.contacts,
       this.topics.trust, 
       this.topics.recognition,
+      this.topics.profiles,  // Include profile topic for PROFILE_UPDATE events
       this.topics.system
     ].filter(Boolean) as string[]
     
@@ -578,18 +589,30 @@ export class HCSFeedService {
         this.topics.contacts!,
         this.topics.trust!,
         this.topics.recognition!,
+        this.topics.profile!,  // Added profile topic for HCS-11 profiles
         this.topics.system!
       ].filter(Boolean) as string[];
 
       console.log(`[HCSFeedService] Fetching from ${topics.length} topics:`, topics);
 
       const { fetchTopicMessages } = await import("@/lib/services/MirrorReader");
+      
+      // Get stored watermarks for each topic (P1 fix from situation brief)
+      const topicWatermarks = this.getTopicWatermarks();
+      
       const perTopic = await Promise.all(
         topics.map(async tid => {
           try {
-            const messages = await fetchTopicMessages(tid, 50);
-            console.log(`[HCSFeedService] Topic ${tid}: ${messages.length} messages`);
-            return messages;
+            const watermark = topicWatermarks[tid];
+            const result = await fetchTopicMessages(tid, 50, watermark);
+            console.log(`[HCSFeedService] Topic ${tid}: ${result.messages.length} messages since ${watermark || 'beginning'}`);
+            
+            // Update watermark for this topic (store max consensus_ns)
+            if (result.next_since) {
+              this.setTopicWatermark(tid, result.next_since);
+            }
+            
+            return result.messages;
           } catch (e) {
             console.warn(`[HCSFeedService] Topic ${tid} failed:`, e);
             return [];
@@ -603,6 +626,12 @@ export class HCSFeedService {
       for (const m of flat) {
         try {
           const obj = JSON.parse(m.decoded);
+          
+          // Check for realm_id requirement (P1 fix from situation brief)
+          if (!obj?.realm_id && !obj?.realmId) {
+            console.log(`[HCSFeedService] Rejecting message without realm_id from ${m.topicId}:${m.sequenceNumber}`);
+            continue;
+          }
           
           // Handle both Flex format and real HCS message formats
           let event: HCSFeedEvent | null = null;
@@ -684,6 +713,7 @@ export class HCSFeedService {
                 break;
               
               case 'RECOGNITION_MINT':
+              case 'recognition_award': // P1 fix from situation brief - include recognition_award family
                 event = {
                   id: eventId,
                   type: 'recognition_mint',
@@ -711,11 +741,14 @@ export class HCSFeedService {
                   id: eventId,
                   type: 'profile_update',
                   timestamp,
-                  actor: obj.sessionId || obj.actor || 'unknown',
-                  target: obj.sessionId || obj.target || obj.actor || 'unknown',
+                  actor: obj.accountId || obj.sessionId || obj.actor || 'unknown',
+                  target: obj.accountId || obj.sessionId || obj.target || obj.actor || 'unknown',
                   metadata: {
-                    handle: obj.handle,
+                    accountId: obj.accountId,
+                    displayName: obj.displayName,
+                    handle: obj.handle || obj.displayName,
                     bio: obj.bio,
+                    avatar: obj.avatar,
                     visibility: obj.visibility,
                     topicId: m.topicId
                   },
@@ -965,6 +998,32 @@ export class HCSFeedService {
       localStorage.setItem(this.CACHE_KEY, JSON.stringify(this.cachedEvents))
     } catch (error) {
       console.error('[HCSFeedService] Failed to save cached events:', error)
+    }
+  }
+  
+  // Watermark management (P1 fix from situation brief)
+  private getTopicWatermarks(): Record<string, string> {
+    if (typeof window === 'undefined') return {}
+    
+    try {
+      const stored = localStorage.getItem(this.WATERMARK_KEY)
+      return stored ? JSON.parse(stored) : {}
+    } catch (error) {
+      console.error('[HCSFeedService] Failed to load watermarks:', error)
+      return {}
+    }
+  }
+  
+  private setTopicWatermark(topicId: string, consensusTimestamp: string): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      const watermarks = this.getTopicWatermarks()
+      watermarks[topicId] = consensusTimestamp
+      localStorage.setItem(this.WATERMARK_KEY, JSON.stringify(watermarks))
+      console.log(`[HCSFeedService] Updated watermark for ${topicId}: ${consensusTimestamp}`)
+    } catch (error) {
+      console.error('[HCSFeedService] Failed to save watermark:', error)
     }
   }
   

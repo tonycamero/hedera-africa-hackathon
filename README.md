@@ -56,6 +56,76 @@ TrustMesh includes an **ephemeral multiplayer demo** perfect for:
 
 See `docs/ARCHITECTURE.md` and `docs/INGESTION.md` for details.
 
+## 🧾 Hackathon Submission Snapshot
+
+- Track: DLT for Operations
+- TRL: Prototype (TRL 4–6)
+- Repository: Public, single source of truth (this repo)
+- Pitch deck: [Link pending]
+- Demo video (≤3 min): [Link pending]
+- Collaborator added for AI judging: Hackathon@hashgraph-association.com
+- Hedera Certification: [Add proof link for at least one team member]
+
+## 🔗 Hedera Integration Summary
+
+### Hedera Consensus Service (HCS)
+- Why: Immutable, low-cost event logging for social trust data (recognitions, contacts, trust allocations). Sub-$0.01 fees enable viral, high-frequency actions; ABFT finality prevents retroactive manipulation of trust.
+- Transaction types: TopicMessageSubmitTransaction (5 topics: profile, contact, trust, signal/recognition, identity)
+- Economic justification: 0.01 TRST per recognition mint sustains the economy even at scale; predictable HCS fees keep operating costs negligible.
+
+### Hedera Token Service (HTS) – TRST
+- Why: Utility token for micro-fees and unlocking mechanics (recognition mints, lens unlocks).
+- Transaction types: TokenAssociateTransaction, TransferTransaction
+- Economic justification: Micro-pricing (0.01 TRST) feels free to users, yet aggregates into meaningful protocol revenue at scale.
+
+### HCS‑22 Dual-Key Identity Binding (Magic.link + Hedera)
+- Why: Bind EVM wallets (Magic.link ED25519) to Hedera account IDs with verifiable proofs over HCS.
+- Transaction types: TopicMessageSubmitTransaction (identity topic); Mirror Node lookups for resolution.
+- Impact: Seamless auth and signing while preserving auditability and self-custody.
+
+### Real‑Time Ingestion (Mirror Node)
+- Why: Sub-2s feedback loop from action → consensus → UI.
+- Mechanism: REST backfill + WebSocket stream → reducer → SignalsStore.
+
+## 🧭 Architecture Diagram (Data Flow)
+
+```
+┌─────────────┐        UI actions        ┌─────────────────────────┐
+│   Next.js    │ ───────────────────────► │   API Routes (Server)   │
+│   Frontend   │                          │  HCS submit + lookups   │
+└──────┬──────┘                          └──────────┬──────────────┘
+       │                                           │
+       │ optimistic updates                        │ TopicMessageSubmit
+       │                                           ▼
+┌──────▼─────────┐    backfill + stream    ┌─────────────────────────┐
+│  SignalsStore   │ ◄────────────────────── │   Mirror Node (REST/WS) │
+│  (state layer)  │                         └──────────┬──────────────┘
+└────────┬────────┘                                    │
+         │                                             │
+         ▼                                             ▼
+      React UI                                 Hedera Consensus Service
+                                      (HCS topics + HTS TRST token)
+```
+
+## 🆔 Deployed Hedera IDs (Testnet)
+
+- Operator Account: 0.0.5864559
+- TRST Token (HTS): 0.0.5361653
+- HCS Topics:
+  - Profile: 0.0.7148066
+  - Contact: 0.0.7148063
+  - Trust: 0.0.7148064
+  - Signal/Recognition: 0.0.7148065
+  - HCS‑22 Identity: 0.0.7157980
+
+## 🧪 Judge Access & Demo Flow
+
+- Public repository (this repo). Add collaborator: Hackathon@hashgraph-association.com
+- Demo video (≤3 min) must show:
+  1) Mint a recognition (live)  
+  2) Immediately open HashScan (Mirror Node) and show the transaction hash confirmation
+- Test credentials: Provided in DoraHacks submission notes (not in repo)
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) - System overview and layers
@@ -113,23 +183,33 @@ pnpm run type-check
 
 ## Environment Setup
 
-Required environment variables:
+Required environment variables (testnet):
 
 ```env
-# Mirror Node endpoints
+# Network + Mirror
+NEXT_PUBLIC_HEDERA_NETWORK=testnet
 NEXT_PUBLIC_MIRROR_NODE_URL=https://testnet.mirrornode.hedera.com/api/v1
 NEXT_PUBLIC_MIRROR_NODE_WS=wss://testnet.mirrornode.hedera.com:5600
 
-# HCS Topics (testnet examples)
-NEXT_PUBLIC_TOPIC_CONTACT=0.0.6896005
-NEXT_PUBLIC_TOPIC_TRUST=0.0.6896005  
-NEXT_PUBLIC_TOPIC_RECOGNITION=0.0.6895261
-NEXT_PUBLIC_TOPIC_PROFILE=0.0.6896008
+# HCS Topics (Testnet)
+NEXT_PUBLIC_TOPIC_PROFILE=0.0.7148066
+NEXT_PUBLIC_TOPIC_CONTACT=0.0.7148063
+NEXT_PUBLIC_TOPIC_TRUST=0.0.7148064
+NEXT_PUBLIC_TOPIC_SIGNAL=0.0.7148065
+NEXT_PUBLIC_HCS_RECOGNITION_TOPIC=0.0.7148065
 
-# Feature flags
+# HTS (TRST utility token)
+NEXT_PUBLIC_TRST_TOKEN_ID=0.0.5361653
+
+# HCS‑22 Identity (DID binding)
+HCS22_IDENTITY_TOPIC_ID=0.0.7157980
+
+# Feature flags (safe defaults for demo)
 NEXT_PUBLIC_HCS_ENABLED=true
-NEXT_PUBLIC_ALLOW_DEMO=off  # Production default
+NEXT_PUBLIC_DEMO_MODE=true
 ```
+
+Security: Do not commit private keys. Provide judge test credentials via DoraHacks submission notes.
 
 See [Environment Configuration](docs/ENV.md) for complete setup guide.
 
@@ -154,4 +234,4 @@ Together, these create a complete stack: **Play the Game → Build Context → U
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - see LICENSE file for details# Trigger Vercel deployment

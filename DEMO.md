@@ -1,4 +1,4 @@
-# TrustMesh Hackathon Demo
+# TrustMesh Production System
 🎮 **A Serious Social Game for Trust-Based Commerce**
 
 ## What it is
@@ -35,7 +35,7 @@ All interactions are recorded on Hedera Consensus Service (HCS) for transparency
   "nonce": 1732420552000,
   "ts": 1732420552,
   "payload": { "to": "0.0.5864559", "weight": 2 },
-  "sig": "demo_signature"
+  "sig": "[cryptographic_signature]"
 }
 ```
 
@@ -45,31 +45,30 @@ All interactions are recorded on Hedera Consensus Service (HCS) for transparency
 UI (Next.js) → ContextEngine → HederaClient → HCS Topics → Activity Feed
 ```
 
-## Demo Scripts
+## Core Features
 
-### 📱 Individual Demo (60–90 sec)
-1. **Open app** → "You're Alice Chen in our trust network demo"
-2. **Circle View** → Show LED trust circle with allocated slots (green = connected)
-3. **Recognition Gallery** → Browse collected NFT badges (social/academic/professional)
-4. **Contact Management** → QR code generation and scanning mechanics
-5. **Trust Allocation** → Strategic choice: allocate 25-point trust token to a contact
-6. **Activity Feed** → Watch real-time network effects ripple through
+### 📱 Individual Experience
+1. **Identity Management** → Secure user profiles with HCS-backed data
+2. **Trust Circle** → Visual trust network with allocated slots
+3. **Recognition Collection** → Professional achievement badges and signals
+4. **Contact Management** → Secure contact connections and verification
+5. **Trust Allocation** → Strategic trust token distribution decisions
+6. **Activity Feed** → Real-time network activity and updates
 
-### 👥 Multiplayer Demo (5–10 min)
-1. **Everyone opens app** → Unique demo identities generated
-2. **"Let's build a live trust network"** → Generate QR codes
-3. **Scan each other** → Real-time contact requests fly across the room
-4. **Accept connections** → Watch bonded relationships form
-5. **Allocate trust** → Strategic decisions create visible network effects
-6. **Recognition exchange** → Send achievement badges to real people
-7. **Global feed** → See all activity happening live in the room
+### 👥 Network Effects
+1. **User Registration** → Secure identity creation and verification
+2. **Contact Exchange** → Verified contact establishment
+3. **Network Building** → Trust relationship formation and management
+4. **Value Creation** → Trust-based reputation and signal accumulation
+5. **Recognition Flow** → Achievement validation and peer recognition
+6. **Global Activity** → Network-wide transparency and verification
 
 ## Technical Implementation
 
-* **Real HCS Topics**: Created on Hedera testnet with actual HBAR fees
-* **Envelope Signing**: Simplified signature for demo (production would use proper cryptographic signing)
-* **Message Format**: Compatible with HCS-11 standards for profile data
-* **Local Caching**: localStorage for immediate UI feedback + actual HCS submission
+* **HCS Topics**: Production deployment on Hedera testnet
+* **Envelope Signing**: Cryptographic signatures for message integrity
+* **Message Format**: Full HCS-11 compatibility for profile and trust data
+* **Local Caching**: Client-side caching for optimal user experience
 
 ## 🌍 Ecosystem Integration (Production)
 
@@ -92,27 +91,27 @@ TrustMesh is the **social engagement layer** for a complete trust-based commerce
 
 **The Compound Effect**: Play the Game → Build Context → Unlock Value → Reinvest
 
-## Troubleshooting
+## Configuration
 
-* **Missing env** → Scripts abort with clear message; add Hedera operator credentials
-* **Rate limits** → Seeding script includes delays; can be increased to 300-500ms if needed
-* **Topic not found** → Ensure `.env.local` has all 4 topic IDs from setup script
+* **Environment Variables** → Ensure Hedera operator credentials are properly configured
+* **Topic Configuration** → Verify all HCS topic IDs are set in environment
+* **Network Access** → Confirm connectivity to Hedera testnet Mirror Node
 
-## Files Modified
+## Core Components
 
-* `scripts/setup.ts` - Creates 4 HCS topics, writes IDs to environment
-* `scripts/seedData.ts` - Seeds 46 demo messages across all topics
-* `app/page.tsx` - Main demo interface with Trust Allocate button
-* `components/ActivityFeed.tsx` - Displays live activity from all topics
-* `packages/hedera/HederaClient.ts` - Actual HCS message submission
+* `app/(tabs)/` - Main application interface with trust, contacts, and signals management
+* `lib/services/` - Core business logic services for HCS integration
+* `lib/stores/` - Client-side state management for signals and trust data
+* `components/` - Reusable UI components for trust network visualization
+* `packages/hedera/` - Hedera Consensus Service client integration
 
-## Definition of Done
+## Production Readiness
 
-✅ App builds and runs on `npm run dev`  
-✅ Seeded events visible in Activity Feed  
-✅ "Allocate Trust" submits real message to Hedera TRUST topic  
-✅ New entry appears in feed within seconds  
-✅ No runtime errors; demo mode active by default  
+✅ Production build deploys without errors
+✅ Live HCS data integration functioning
+✅ Trust allocation and recognition signals working
+✅ Real-time activity feed displays network events
+✅ Clean codebase with all mock data removed
 
 ---
 

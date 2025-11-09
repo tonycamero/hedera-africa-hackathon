@@ -3,7 +3,6 @@ export interface RuntimeFlags {
   scope: 'global' | 'my'
   ephemeralStrict: boolean
   isLiveMode: boolean
-  isDemoMode: boolean
 }
 
 let _flags: RuntimeFlags | null = null
@@ -15,24 +14,18 @@ export function getRuntimeFlags(): RuntimeFlags {
   if (typeof window === 'undefined') {
     // Server-side defaults
     return {
-      seedOn: process.env.NEXT_PUBLIC_DEMO_SEED === "on",
-      scope: (process.env.NEXT_PUBLIC_DEMO_SCOPE as 'global' | 'my') || 'global',
-      ephemeralStrict: process.env.NEXT_PUBLIC_DEMO_EPHEMERAL_STRICT === "true",
-      isLiveMode: false,
-      isDemoMode: false
+      seedOn: false,
+      scope: 'my',
+      ephemeralStrict: true,
+      isLiveMode: true
     }
   }
 
-  const q = new URLSearchParams(window.location.search)
-  const live = q.get("live") === "1"
-  const seed = q.get("seed") === "1"
-
   _flags = {
-    seedOn: live ? false : seed ? true : (process.env.NEXT_PUBLIC_DEMO_SEED === "on"),
-    scope: live ? "my" : (process.env.NEXT_PUBLIC_DEMO_SCOPE as 'global' | 'my') || "global",
-    ephemeralStrict: live ? true : (process.env.NEXT_PUBLIC_DEMO_EPHEMERAL_STRICT === "true"),
-    isLiveMode: live,
-    isDemoMode: seed
+    seedOn: false,
+    scope: 'my',
+    ephemeralStrict: true,
+    isLiveMode: true
   }
 
   return _flags
@@ -65,17 +58,11 @@ export function resetFlags(): void {
 // Environment flags (add these to .env.local)
 export function getRequiredEnvFlags() {
   return `
-# Demo & visibility flags
-NEXT_PUBLIC_DEMO_SEED=on           # on/off
-NEXT_PUBLIC_DEMO_SCOPE=global      # global | my
-
-# Ephemeral behavior
-NEXT_PUBLIC_DEMO_EPHEMERAL_STRICT=true   # true => no persistence; reset on reload
-
-# HCS
-NEXT_PUBLIC_HCS_ENABLED=true       # optional; UI never blocks if false
-NEXT_PUBLIC_TOPIC_PROFILE=${process.env.NEXT_PUBLIC_TOPIC_PROFILE || '11.x.x'}
-NEXT_PUBLIC_TOPIC_CONTACT=${process.env.NEXT_PUBLIC_TOPIC_CONTACT || '11.x.x'}
-NEXT_PUBLIC_TOPIC_TRUST=${process.env.NEXT_PUBLIC_TOPIC_TRUST || '11.x.x'}
+# HCS Configuration
+NEXT_PUBLIC_HCS_ENABLED=true
+NEXT_PUBLIC_TOPIC_PROFILE=${process.env.NEXT_PUBLIC_TOPIC_PROFILE || '0.0.xxxxx'}
+NEXT_PUBLIC_TOPIC_CONTACT=${process.env.NEXT_PUBLIC_TOPIC_CONTACT || '0.0.xxxxx'}
+NEXT_PUBLIC_TOPIC_TRUST=${process.env.NEXT_PUBLIC_TOPIC_TRUST || '0.0.xxxxx'}
+NEXT_PUBLIC_TOPIC_RECOGNITION=${process.env.NEXT_PUBLIC_TOPIC_RECOGNITION || '0.0.xxxxx'}
   `.trim()
 }

@@ -1,0 +1,289 @@
+{
+  "genz_professional_leadership": [
+    {
+      "id": "strategic-visionary-gz",
+      "base_id": "strategic-visionary",
+      "type_id": "strategic-visionary@2-genz",
+      "maps_to": "strategic-visionary",
+      "name": "Main Character Energy",
+      "short": "Has that CEO mindset, sees the vision before it's obvious",
+      "long": "This person has main character energy when it comes to strategy. They're not just reacting to the game - they're three moves ahead, calling plays nobody else saw coming. Pure visionary vibes.",
+      "icon": "🎯",
+      "trust": 0.5,
+      "rarity": "legendary",
+      "tags": [
+        "leadership",
+        "strategy",
+        "vision",
+        "based"
+      ],
+      "cultural_notes": "GenZ values authentic leadership that doesn't feel corporate"
+    },
+    {
+      "id": "team-catalyst-gz",
+      "base_id": "team-catalyst",
+      "type_id": "team-catalyst@2-genz",
+      "maps_to": "team-catalyst",
+      "name": "Hype Person",
+      "short": "Makes everyone level up, brings the energy",
+      "long": "The ultimate hype person who makes the whole squad better. They create that safe space where everyone can be themselves and pop off. When they're around, the whole vibe just hits different.",
+      "icon": "⚡",
+      "trust": 0.5,
+      "rarity": "legendary",
+      "tags": [
+        "leadership",
+        "teamwork",
+        "energy",
+        "positive-vibes"
+      ]
+    },
+    {
+      "id": "decision-maker-gz",
+      "base_id": "decision-maker",
+      "type_id": "decision-maker@2-genz",
+      "maps_to": "decision-maker",
+      "name": "No Cap Decision Maker",
+      "short": "Makes the call when it matters, no hesitation",
+      "long": "When everyone's spiraling, this person just makes the call - no cap, no overthinking. They trust their gut, commit to the move, and own the outcome. Built different when pressure hits.",
+      "icon": "⚖️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "decision-making",
+        "clutch"
+      ]
+    },
+    {
+      "id": "culture-builder-gz",
+      "base_id": "culture-builder",
+      "type_id": "culture-builder@2-genz",
+      "maps_to": "culture-builder",
+      "name": "Vibe Architect",
+      "short": "Creates the energy everyone wants to be around",
+      "long": "This person architects the vibes. Not in a forced HR way - they genuinely create spaces where people feel safe to be themselves and the culture just naturally slaps.",
+      "icon": "🏛️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "culture",
+        "authentic",
+        "safe-space"
+      ]
+    },
+    {
+      "id": "change-champion-gz",
+      "base_id": "change-champion",
+      "type_id": "change-champion@2-genz",
+      "maps_to": "change-champion",
+      "name": "Plot Twist Navigator",
+      "short": "Leads through change without the chaos",
+      "long": "When everything's changing and people are stressed, this person guides everyone through the plot twist. They keep it real about what's hard but help you see why the change hits.",
+      "icon": "🔄",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "change",
+        "empathy",
+        "real-talk"
+      ]
+    },
+    {
+      "id": "talent-developer-gz",
+      "base_id": "talent-developer",
+      "type_id": "talent-developer@2-genz",
+      "maps_to": "talent-developer",
+      "name": "Glow Up Enabler",
+      "short": "Helps people reach their final form",
+      "long": "This person sees your potential before you do and actively helps you glow up. They're invested in your growth journey and celebrate every level-up moment with genuine hype.",
+      "icon": "🌱",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "mentorship",
+        "growth",
+        "support"
+      ]
+    },
+    {
+      "id": "servant-leader-gz",
+      "base_id": "servant-leader",
+      "type_id": "servant-leader@2-genz",
+      "maps_to": "servant-leader",
+      "name": "For The Team",
+      "short": "Leads by clearing the path, not blocking it",
+      "long": "Pure 'for the team' energy. They're not ego-tripping on being the boss - they're literally just clearing obstacles so everyone else can shine. That's real leadership.",
+      "icon": "🤝",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "leadership",
+        "support",
+        "humble",
+        "team-first"
+      ]
+    },
+    {
+      "id": "consensus-builder-gz",
+      "base_id": "consensus-builder",
+      "type_id": "consensus-builder@2-genz",
+      "maps_to": "consensus-builder",
+      "name": "Mediator",
+      "short": "Gets everyone aligned without the drama",
+      "long": "When the group chat is divided, this person somehow gets everyone to agree without forcing it. They make everyone feel heard and find that middle ground that actually works.",
+      "icon": "🤲",
+      "trust": 0.3,
+      "rarity": "common",
+      "tags": [
+        "leadership",
+        "mediation",
+        "alignment",
+        "communication"
+      ]
+    }
+  ],
+  "genz_social_character": [
+    {
+      "id": "shows-up-gz",
+      "base_id": "shows-up",
+      "type_id": "shows-up@2-genz",
+      "maps_to": "shows-up",
+      "name": "Day One Energy",
+      "short": "Always there when it counts, no flaking",
+      "long": "Has that day one energy - when you need them, they're there. No flaking, no excuses. They understand that showing up is literally the foundation of everything.",
+      "icon": "✅",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "reliability",
+        "loyalty",
+        "real-one",
+        "day-one"
+      ]
+    },
+    {
+      "id": "honest-communicator-gz",
+      "base_id": "honest-communicator",
+      "type_id": "honest-communicator@2-genz",
+      "maps_to": "honest-communicator",
+      "name": "Keeps It Real",
+      "short": "Says what needs to be said, no sugar coating",
+      "long": "This person keeps it 100 even when the truth is uncomfortable. They're not being mean - they're being real because they actually care enough to be honest.",
+      "icon": "💬",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "honesty",
+        "real-talk",
+        "authentic",
+        "no-cap"
+      ]
+    },
+    {
+      "id": "authentic-self-gz",
+      "base_id": "authentic-self",
+      "type_id": "authentic-self@2-genz",
+      "maps_to": "authentic-self",
+      "name": "Unapologetically Them",
+      "short": "Never tries to be someone they're not",
+      "long": "Unapologetically themselves 24/7. They're not code-switching, not performing for approval - just existing in their truth. That energy gives everyone else permission to do the same.",
+      "icon": "🦋",
+      "trust": 0.3,
+      "rarity": "common",
+      "tags": [
+        "authenticity",
+        "self-acceptance",
+        "genuine",
+        "no-mask"
+      ]
+    },
+    {
+      "id": "emotional-intelligence-gz",
+      "base_id": "emotional-intelligence",
+      "type_id": "emotional-intelligence@2-genz",
+      "maps_to": "emotional-intelligence",
+      "name": "Reads The Room",
+      "short": "Just gets it without anyone explaining",
+      "long": "Has incredible emotional intelligence - reads the room instantly, picks up on subtle energy shifts, and responds with exactly what's needed. Just gets people on a deeper level.",
+      "icon": "❤️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "empathy",
+        "awareness",
+        "emotional-iq",
+        "understanding"
+      ]
+    }
+  ],
+  "genz_social_connection": [
+    {
+      "id": "connector-gz",
+      "base_id": "connector",
+      "type_id": "connector@2-genz",
+      "maps_to": "connector",
+      "name": "Link Up Specialist",
+      "short": "Connects people who need to meet each other",
+      "long": "Always linking people up who vibe. They see connections others miss and create intro's that actually matter. Your network grows just from knowing them.",
+      "icon": "🔗",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "networking",
+        "connections",
+        "introductions",
+        "community"
+      ]
+    },
+    {
+      "id": "space-holder-gz",
+      "base_id": "space-holder",
+      "type_id": "space-holder@2-genz",
+      "maps_to": "space-holder",
+      "name": "Safe Space",
+      "short": "Makes it safe to be vulnerable and real",
+      "long": "Creates that rare safe space where you can actually be vulnerable without judgment. They hold your secrets like Fort Knox and respond to real talk with genuine support.",
+      "icon": "🕊️",
+      "trust": 0.4,
+      "rarity": "rare",
+      "tags": [
+        "safety",
+        "vulnerability",
+        "trust",
+        "support"
+      ]
+    }
+  ],
+  "genz_civic_service": [
+    {
+      "id": "community-organizer-gz",
+      "base_id": "community-organizer",
+      "type_id": "community-organizer@2-genz",
+      "maps_to": "community-organizer",
+      "name": "Movement Starter",
+      "short": "Gets people mobilized for the cause",
+      "long": "Starts movements that actually matter. Not performative activism - real organizing that gets the community mobilized and creates actual change. Built different.",
+      "icon": "📢",
+      "trust": 0.5,
+      "rarity": "legendary",
+      "tags": [
+        "organizing",
+        "activism",
+        "community",
+        "movement-building"
+      ]
+    }
+  ],
+  "_metadata": {
+    "version": "1.0",
+    "overlay_type": "cultural_linguistic",
+    "base_catalog": "signals-v2-data.json",
+    "target_demographic": "GenZ (1997-2012)",
+    "language_style": "Authentic GenZ vernacular without forced slang",
+    "usage": "Alternative display names/descriptions for same recognition behaviors",
+    "notes": "Maintains same trust values and rarity - only language changes"
+  }
+}

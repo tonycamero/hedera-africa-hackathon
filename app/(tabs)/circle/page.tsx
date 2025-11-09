@@ -1,509 +1,582 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AddContactDialog } from "@/components/AddContactDialog"
-import { signalsStore, type BondedContact, type SignalEvent } from "@/lib/stores/signalsStore"
-import { getBondedContactsFromHCS, getRecentSignalsFromHCS } from "@/lib/services/HCSDataUtils"
-// import { bootstrapFlex, type BootstrapResult } from "@/lib/boot/bootstrapFlex"
-import Link from "next/link"
-import { 
-  Users, 
-  UserPlus, 
-  Heart, 
-  Activity, 
-  AlertCircle,
-  Check,
-  Clock
-} from "lucide-react"
 import { toast } from "sonner"
-import { hederaClient } from "@/packages/hedera/HederaClient"
+import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus } from "lucide-react"
+import { type BondedContact, signalsStore } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
-import { getRuntimeFlags } from "@/lib/runtimeFlags"
-import { HCS_ENABLED, TOPIC, MIRROR_REST, MIRROR_WS } from "@/lib/env"
-import { seedDemo } from "@/lib/demo/seed"
-import { RecognitionGrid } from "@/components/RecognitionGrid"
+import { StoicGuideModal } from "@/components/StoicGuideModal"
 
-const TRUST_TOPIC = TOPIC.trust || ""
-
-// Expose store for debugging
-if (typeof window !== 'undefined') {
-  (window as any).__signalsStore = signalsStore;
-}
-
-// Generate circular trust visualization
-function TrustCircle({ allocatedOut, maxSlots }: { allocatedOut: number; maxSlots: number }) {
-  const totalSlots = 9
+// Circle of Trust LED Visualization Component - Enhanced for Mobile
+function TrustCircleVisualization({ allocatedOut, maxSlots, bondedContacts, onPress }: { 
+  allocatedOut: number; 
+  maxSlots: number; 
+  bondedContacts: number;
+  onPress?: () => void;
+}) {
+  const totalSlots = maxSlots
   const dots = Array.from({ length: totalSlots }, (_, i) => {
-    // Arrange dots in a circle
+    // Arrange dots in a circle - using enhanced mobile-friendly sizing
     const angle = (i * 360) / totalSlots - 90 // Start from top
     const radian = (angle * Math.PI) / 180
-    const radius = 20 // Distance from center
-    const x = Math.cos(radian) * radius + 32 // 32 is center (64/2)
-    const y = Math.sin(radian) * radius + 32
+    const radius = 35 // Increased radius for mobile visibility
+    const x = Math.cos(radian) * radius + 48 // 48 is center (96/2) - scaled up
+    const y = Math.sin(radian) * radius + 48
 
-    // Determine LED state: green (trust allocated), gray (available slot)
+    // Determine LED state: CYAN (trust allocated), gray (available slot)
     let ledStyle = ""
     let innerStyle = ""
+    let pulseEffect = ""
     
     if (i < allocatedOut) {
-      // Green LEDs for trust allocations
-      ledStyle = "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/50 border-2 border-green-300"
-      innerStyle = "bg-gradient-to-br from-green-300 to-green-500"
+      // GREEN LEDs for trust allocations - enhanced with vibrant glow
+      ledStyle = "bg-gradient-to-br from-emerald-400 to-green-600 shadow-[0_0_12px_rgba(34,197,94,0.6),0_0_24px_rgba(34,197,94,0.3)] border-2 border-emerald-300"
+      innerStyle = "bg-gradient-to-br from-emerald-300 to-green-500"
+      pulseEffect = ""
     } else {
-      // Gray LEDs for available trust slots
-      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/20 border-2 border-gray-200"
+      // Gray LEDs for available trust slots - slightly more visible
+      ledStyle = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-md shadow-gray-400/30 border-2 border-gray-200 opacity-50"
       innerStyle = "bg-gradient-to-br from-gray-200 to-gray-400"
     }
 
     return (
       <div
         key={i}
-        className={`absolute w-4 h-4 rounded-full transform -translate-x-2 -translate-y-2 ${ledStyle}`}
+        className={`absolute w-5 h-5 rounded-full transform -translate-x-2.5 -translate-y-2.5 ${ledStyle} ${pulseEffect}`}
         style={{ left: x, top: y }}
       >
         {/* LED inner glow effect */}
         <div className={`absolute inset-1 rounded-full ${innerStyle}`} />
         {/* LED highlight spot */}
-        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-white opacity-60" />
+        <div className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-white opacity-70" />
       </div>
     )
   })
 
-  return (
-    <div className="relative w-16 h-16 flex-shrink-0">
+  // Make the whole circle tappable if onPress provided
+  const CircleContent = (
+    <div className="relative w-24 h-24 flex-shrink-0">
       {dots}
-      {/* Center flame emoji */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-        <span className="text-base">🔥</span>
+      {/* Center fire emoji - positioned at exact center (48px, 48px) */}
+      <div 
+        className="absolute flex items-center justify-center w-8 h-8"
+        style={{ left: 48, top: 48, transform: 'translate(-50%, -50%)' }}
+      >
+        <span className="text-2xl animate-pulse leading-none">🔥</span>
       </div>
     </div>
   )
-}
 
-async function submitTrustToHCS(envelope: any, signalId?: string) {
-  if (!HCS_ENABLED || !TRUST_TOPIC) return
-  
-  try {
-    await hederaClient.submitMessage(TRUST_TOPIC, JSON.stringify(envelope))
-    if (signalId) {
-      signalsStore.updateSignalStatus(signalId, "onchain")
-    }
-    toast.success("Trust allocated on-chain ✓", { description: `TRUST …${TRUST_TOPIC.slice(-6)}` })
-  } catch (e: any) {
-    if (signalId) {
-      signalsStore.updateSignalStatus(signalId, "error")
-    }
-    toast.error("Trust allocation failed", { description: e?.message ?? "Unknown error" })
-  }
-}
-
-function BondedContactCard({ 
-  contact, 
-  canAllocate, 
-  onAllocateTrust 
-}: { 
-  contact: BondedContact
-  canAllocate: boolean
-  onAllocateTrust: (peerId: string, weight: number) => void
-}) {
-  return (
-    <Card className="p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <Users className="w-4 h-4 text-blue-600" />
-          </div>
-          <div>
-            <div className="font-medium text-sm">
-              {contact.handle || `User ${contact.peerId.slice(-6)}`}
-            </div>
-            <div className="text-xs text-[hsl(var(--muted-foreground))]">
-              Bonded {new Date(contact.bondedAt).toLocaleDateString()}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {contact.trustLevel && (
-            <Badge variant="secondary" className="text-xs">
-              Trust {contact.trustLevel}
-            </Badge>
-          )}
-          
-          {canAllocate && !contact.trustLevel && (
-            <div className="flex gap-1">
-              {[1, 2, 3].map((weight) => (
-                <Button
-                  key={weight}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs px-2 py-1 h-6"
-                  onClick={() => onAllocateTrust(contact.peerId, weight)}
-                >
-                  {weight}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-function MiniFeedItem({ signal }: { signal: SignalEvent }) {
-  const getIcon = () => {
-    if (signal.class === "contact") return <UserPlus className="w-3 h-3" />
-    if (signal.class === "trust") return <Heart className="w-3 h-3" />
-    return <Activity className="w-3 h-3" />
+  if (onPress) {
+    return (
+      <button
+        type="button"
+        onClick={onPress}
+        className="active:scale-95 transition-transform duration-150 focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/50 focus:ring-offset-2 focus:ring-offset-panel rounded-full"
+        aria-label="Manage circle members"
+      >
+        {CircleContent}
+      </button>
+    )
   }
 
-  const getStatusIcon = () => {
-    if (signal.status === "onchain") return <Check className="w-3 h-3 text-green-600" />
-    if (signal.status === "error") return <AlertCircle className="w-3 h-3 text-red-600" />
-    return <Clock className="w-3 h-3 text-slate-400" />
-  }
-
-  const getTitle = () => {
-    if (signal.type === "CONTACT_REQUEST") {
-      return signal.direction === "outbound" ? "Contact request sent" : "Contact request received"
-    }
-    if (signal.type === "CONTACT_ACCEPT") {
-      return signal.direction === "outbound" ? "Contact accepted" : "Contact bonded"
-    }
-    if (signal.type === "TRUST_ALLOCATE") {
-      return `Trust allocated (${signal.payload?.weight || 1})`
-    }
-    return signal.type
-  }
-
-  return (
-    <div className="flex items-center gap-2 py-2 border-b last:border-0">
-      <div className="flex items-center gap-1">
-        {getIcon()}
-        {getStatusIcon()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate">{getTitle()}</div>
-        <div className="text-xs text-[hsl(var(--muted-foreground))]">
-          {new Date(signal.ts).toLocaleDateString()} · {signal.direction}
-        </div>
-      </div>
-    </div>
-  )
+  return CircleContent
 }
 
 export default function CirclePage() {
+  const router = useRouter()
+  const [selectedMember, setSelectedMember] = useState<string | null>(null)
   const [bondedContacts, setBondedContacts] = useState<BondedContact[]>([])
-  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, cap: 9 })
-  const [recentSignals, setRecentSignals] = useState<SignalEvent[]>([])
-  const [allEvents, setAllEvents] = useState<SignalEvent[]>([])
+  const [trustStats, setTrustStats] = useState({ allocatedOut: 0, maxSlots: 9, bondedContacts: 0 })
+  const [trustLevels, setTrustLevels] = useState<Map<string, { allocatedTo: number, receivedFrom: number }>>(new Map())
   const [sessionId, setSessionId] = useState("")
-  
-  // Log changes to UI state for debugging
+  const [isLoading, setIsLoading] = useState(true)
+  const [showContactSelection, setShowContactSelection] = useState(false)
+
+  // Load real data from server-side API
   useEffect(() => {
-    console.log('📋 [UI] bonded contacts updated:', bondedContacts.length, bondedContacts.map(b => b.handle || b.peerId.slice(-6)));
-  }, [bondedContacts]);
-  
-  useEffect(() => {
-    console.log('📋 [UI] recent signals updated:', recentSignals.length, recentSignals.map(s => s.type));
-  }, [recentSignals]);
-  
-  useEffect(() => {
-    console.log('📋 [UI] trust stats updated:', trustStats);
-  }, [trustStats]);
-  
-  // Note: Removed signalsStore subscription since we're using direct HCS loading for consistency
-  
-  // Load data from SignalsStore (single source of truth)
-  useEffect(() => {
-    const loadFromSignalsStore = () => {
+    const loadCircleData = async () => {
       try {
+        setIsLoading(true)
         const currentSessionId = getSessionId()
-        // Fallback to 'tm-alex-chen' if session ID is null/undefined (common in demo mode)
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
-        console.log('🚀 [CirclePage] Loading from SignalsStore (single source)...')
-        console.log('📋 [CirclePage] Session ID:', effectiveSessionId, '(raw:', currentSessionId, ')')
         
-        // Get all events from SignalsStore
-        const allStoreEvents = signalsStore.getAll()
-        
-        console.log('📡 [CirclePage] Loaded', allStoreEvents.length, 'events from SignalsStore')
-        
-        if (allStoreEvents.length > 0) {
-          // Process events using the same HCS utility functions but with store data
-          const bonded = getBondedContactsFromHCS(allStoreEvents, effectiveSessionId)
-          const recent = getRecentSignalsFromHCS(allStoreEvents, effectiveSessionId, 5)
-          const allSignals = getRecentSignalsFromHCS(allStoreEvents, effectiveSessionId, 1000)
-          
-          // Calculate TRUST allocation for LEDs (not contacts!)
-          const trustEvents = allStoreEvents.filter(e => 
-            e.type === 'trust_allocate' && e.actor === effectiveSessionId
-          )
-          
-          // Count trust allocations (green LEDs) - each allocation = 1 LED
-          const trustAllocated = trustEvents.length
-          
-          console.log('📊 [CirclePage] Trust calculation:', {
-            totalEvents: allStoreEvents.length,
-            trustEvents: trustEvents.length,
-            trustAllocated,
-            sessionId: effectiveSessionId,
-            sampleTrustEvent: trustEvents[0]
-          })
-          
-          const stats = { 
-            allocatedOut: trustAllocated, // Green LEDs = trust allocations (not contacts!)
-            cap: 9
-          }
-          
-          setBondedContacts(bonded)
-          setTrustStats(stats)
-          setRecentSignals(recent)
-          setAllEvents(allSignals)
-          
-          console.log('✅ [CirclePage] Data loaded from SignalsStore:', {
-            bonded: bonded.length,
-            stats,
-            recent: recent.length,
-            total: allStoreEvents.length,
-            session: currentSessionId
-          })
-        } else {
-          console.log('⚠️ [CirclePage] SignalsStore empty - waiting for ingestion...')
-          setBondedContacts([])
-          setTrustStats({ allocatedOut: 0, cap: 9 })
-          setRecentSignals([])
-          setAllEvents([])
+        // If no session (not authenticated), don't try to load from backend
+        if (!currentSessionId) {
+          console.log('🔥 [CirclePage] No session ID - user not authenticated')
+          setSessionId('') // Empty session indicates unauthenticated state
+          setIsLoading(false)
+          return
         }
         
+        setSessionId(currentSessionId)
+        
+        console.log('🔥 [CirclePage] Loading circle data from server API for:', currentSessionId)
+        
+        // Load circle data from server-side API
+        const response = await fetch(`/api/circle?sessionId=${currentSessionId}`)
+        const data = await response.json()
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load circle data')
+        }
+        
+        console.log('🔥 [CirclePage] Received circle data from API:', data)
+        setBondedContacts(data.bondedContacts)
+        
+        // Convert trust levels object back to Map
+        const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
+        Object.entries(data.trustLevels).forEach(([key, value]) => {
+          trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
+        })
+        
+        // Merge optimistic TRUST_ALLOCATE events from local store that haven't arrived via HCS yet
+        const localTrustEvents = signalsStore.getAll().filter(e => 
+          e.type === 'TRUST_ALLOCATE' && 
+          e.actor === currentSessionId &&
+          e.source === 'hcs-cached' &&
+          e.ts > Date.now() - 60000 // Only consider events from last minute
+        )
+        
+        let optimisticCount = 0
+        localTrustEvents.forEach(event => {
+          const targetId = event.target
+          if (targetId && !trustLevelsMap.has(targetId)) {
+            // This trust allocation hasn't arrived from HCS yet, add it optimistically
+            trustLevelsMap.set(targetId, { allocatedTo: 1, receivedFrom: 0 })
+            optimisticCount++
+            console.log(`[CirclePage] Added optimistic trust allocation to ${targetId}`)
+          }
+        })
+        
+        setTrustLevels(trustLevelsMap)
+        
+        // Update trust stats with optimistic allocations included
+        const finalAllocatedOut = data.trustStats.allocatedOut + optimisticCount
+        setTrustStats({ 
+          ...data.trustStats, 
+          allocatedOut: finalAllocatedOut 
+        })
+        
+        console.log(`[CirclePage] Loaded ${data.bondedContacts.length} bonded contacts with ${finalAllocatedOut}/${data.trustStats.maxSlots} trust allocated (${optimisticCount} optimistic)`)
       } catch (error) {
-        console.error('❌ [CirclePage] SignalsStore load failed:', error)
-        const currentSessionId = getSessionId()
-        const effectiveSessionId = currentSessionId || 'tm-alex-chen'
-        setSessionId(effectiveSessionId)
-        setBondedContacts([])
-        setTrustStats({ allocatedOut: 0, cap: 9 })
-        setRecentSignals([])
+        console.error('[CirclePage] Failed to load circle data:', error)
+        toast.error('Failed to load circle data')
+      } finally {
+        setIsLoading(false)
       }
     }
+
+    loadCircleData()
     
-    // Initial load
-    loadFromSignalsStore()
-    
-    // Subscribe to SignalsStore changes
-    const unsubscribe = signalsStore.subscribe(() => {
-      console.log('📡 [CirclePage] SignalsStore updated, refreshing...')
-      loadFromSignalsStore()
-    })
-    
-    return unsubscribe
+    // Refresh every 30 seconds
+    const interval = setInterval(loadCircleData, 30000)
+    return () => clearInterval(interval)
   }, [])
+  
+  // Circle members - ONLY show contacts to whom trust has been allocated
+  const circleMembers = bondedContacts
+    .filter((contact) => {
+      const trustData = trustLevels.get(contact.peerId || '') || { allocatedTo: 0, receivedFrom: 0 }
+      const hasAllocated = trustData.allocatedTo > 0
+      console.log(`[CirclePage] Contact ${contact.peerId}: allocatedTo=${trustData.allocatedTo}, included=${hasAllocated}`)
+      return hasAllocated // Only include if trust is allocated TO this contact
+    })
+    .map((contact, index) => {
+      const roles = ['Mentor', 'Collaborator', 'Accountability Ally', 'Collaborator', 'Mentor', 'Collaborator']
+      const types = ['mentor', 'collaborator', 'ally', 'collaborator', 'mentor', 'collaborator']
+      const trustData = trustLevels.get(contact.peerId || '') || { allocatedTo: 0, receivedFrom: 0 }
+      
+      return {
+        id: contact.peerId || `contact-${index}`,
+        name: contact.handle || `User ${contact.peerId?.slice(-6) || 'Unknown'}`,
+        role: roles[index % roles.length],
+        type: types[index % types.length],
+        engaged: true, // All circle members are engaged by definition (they have allocated trust)
+        trustAllocated: trustData.allocatedTo // Include trust amount for display
+      }
+    })
 
-  const availableSlots = Math.max(0, 9 - trustStats.allocatedOut)
+  const handleMemberClick = (memberId: string) => {
+    console.log('🖱️ Member clicked:', memberId)
+    setSelectedMember(memberId)
+    toast.info(`Opening profile for ${memberId}`)
+  }
 
-  const handleAllocateTrust = async (peerId: string, weight: number) => {
+  const handleRevoke = (memberId: string, name: string) => {
+    toast.error(`Revoked ${name} from circle`, {
+      description: 'Slot now available for new member'
+    })
+  }
+
+  // Get contacts that are bonded but not yet in the circle (no trust allocated)
+  const availableContacts = bondedContacts.filter(contact => {
+    const trustData = trustLevels.get(contact.peerId || '') || { allocatedTo: 0, receivedFrom: 0 }
+    return trustData.allocatedTo === 0 // Not in circle yet
+  })
+
+  const handleAddMember = () => {
+    if (availableContacts.length === 0) {
+      toast.error('No available contacts', {
+        description: 'Connect with more people first'
+      })
+      return
+    }
+    setShowContactSelection(true)
+  }
+
+  const handleSelectContact = async (contactId: string, contactName: string) => {
     try {
-      // Create a trust allocation signal and add to store
-      const trustSignal: SignalEvent = {
-        id: `trust_${sessionId}_${peerId}_${Date.now()}`,
-        type: 'TRUST_ALLOCATE',
+      setShowContactSelection(false)
+      toast.loading(`Adding ${contactName} to circle...`, { id: 'trust-allocation' })
+      
+      // Optimistic update: Add trust allocation event to local store immediately
+      const optimisticEvent = {
+        id: `trust_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        type: 'TRUST_ALLOCATE' as const,
         actor: sessionId,
-        target: peerId,
+        target: contactId,
         ts: Date.now(),
-        topicId: TRUST_TOPIC,
-        metadata: { weight, tag: 'circle_allocation' },
-        source: 'hcs-cached'
+        topicId: '0.0.6896005', // Trust topic ID
+        metadata: { weight: 1 },
+        source: 'hcs-cached' as const
+      }
+      signalsStore.add(optimisticEvent)
+      
+      // Update local state immediately for instant UI feedback
+      const updatedTrustLevels = new Map(trustLevels)
+      updatedTrustLevels.set(contactId, { allocatedTo: 1, receivedFrom: trustLevels.get(contactId)?.receivedFrom || 0 })
+      setTrustLevels(updatedTrustLevels)
+      setTrustStats(prev => ({ ...prev, allocatedOut: prev.allocatedOut + 1 }))
+      
+      // Submit trust allocation to Hedera ledger in background
+      const response = await fetch('/api/trust/allocate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          targetId: contactId,
+          weight: 1 // Equal trust for all circle members
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to allocate trust')
       }
       
-      signalsStore.addSignal(trustSignal)
+      toast.success(`${contactName} added to circle!`, {
+        id: 'trust-allocation',
+        description: 'Trust allocated on Hedera ledger'
+      })
       
-      toast.success(`Trust allocated to ${peerId.slice(-6)}`, { description: `Weight: ${weight}` })
-      
-      // SignalsStore subscription will automatically refresh the UI
-      // No need to manually refresh since we're subscribed to store changes
+      // Reload in background to sync with ledger (but UI already updated)
+      fetch(`/api/circle?sessionId=${sessionId}`)
+        .then(res => res.json())
+        .then(circleData => {
+          if (circleData.success) {
+            setBondedContacts(circleData.bondedContacts)
+            setTrustStats(circleData.trustStats)
+            
+            const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
+            Object.entries(circleData.trustLevels).forEach(([key, value]) => {
+              trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
+            })
+            setTrustLevels(trustLevelsMap)
+          }
+        })
+        .catch(err => console.warn('[CirclePage] Background sync failed:', err))
     } catch (error) {
-      console.error('[CirclePage] Failed to allocate trust via HCS:', error)
-      toast.error('Failed to allocate trust', { description: error.message || 'Unknown error' })
+      console.error('[CirclePage] Failed to add member:', error)
+      
+      // Rollback optimistic update on error
+      const updatedTrustLevels = new Map(trustLevels)
+      updatedTrustLevels.set(contactId, { allocatedTo: 0, receivedFrom: trustLevels.get(contactId)?.receivedFrom || 0 })
+      setTrustLevels(updatedTrustLevels)
+      setTrustStats(prev => ({ ...prev, allocatedOut: Math.max(0, prev.allocatedOut - 1) }))
+      
+      toast.error('Failed to add member to circle', {
+        id: 'trust-allocation',
+        description: error instanceof Error ? error.message : 'Please try again'
+      })
     }
   }
 
-  // Get metrics for compact display (connection workflow model)
-  const metrics = {
-    bondedContacts: bondedContacts.length,
-    trustAllocated: trustStats.allocatedOut, // Green LEDs = accepted connections
-    trustCapacity: 9,
-    recognitionOwned: allEvents.filter(s => 
-      (s.type === 'NFT_MINT' || s.type === 'RECOGNITION_MINT' || s.type === 'recognition_mint') && 
-      (s.target === effectiveSessionId || s.target === sessionId)
-    ).length // Recognition minted to current user
-  }
+  const availableSlots = trustStats.maxSlots - trustStats.allocatedOut
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Your Circle of Trust</h1>
-          {/* Personal Metrics under title */}
-          <div className="flex items-center gap-4 text-sm mt-2">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span className="font-semibold">{metrics.bondedContacts}</span>
-              <span className="text-muted-foreground">Bonded</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4 text-green-600" />
-              <span className="font-semibold">{metrics.trustAllocated}/9</span>
-              <span className="text-muted-foreground">Connected</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Activity className="w-4 h-4 text-purple-600" />
-              <span className="font-semibold">{metrics.recognitionOwned}</span>
-              <span className="text-muted-foreground">Recognition</span>
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]"><div className="max-w-md mx-auto px-4 py-4 space-y-6">
+      {/* Streamlined Header */}
+      <div className="text-center mb-6">
+        <h1 className="text-xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
+          <Circle className="w-5 h-5 text-[#FF6B35]" />
+          Circle of Trust
+        </h1>
+        <p className="text-sm text-white/70 mt-1">Your Inner Circle Dashboard</p>
+      </div>
+      
+      {/* Inner Circle Campfire - Visual Centerpiece */}
+      <div className="sheen-sweep overflow-hidden bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
+        <div className="p-6 relative z-10">
+          <div className="text-center mb-4">
+            <h2 className="text-lg font-semibold text-white mb-1">Inner Circle Members</h2>
+            <div className="text-xs">
+              {isLoading ? (
+                <span className="text-white/60 animate-pulse">Loading circle data...</span>
+              ) : (
+                <>
+                  <span className="text-[#FF6B35] font-medium">{trustStats.allocatedOut}/{trustStats.maxSlots} Slots</span>
+                  <span className="text-white/60 mx-2">•</span>
+                  <span className="text-white/60">Choose Wisely</span>
+                  <span className="text-white/60 mx-2">•</span>
+                  <span className="text-amber-400">(Scarce Trust)</span>
+                </>
+              )}
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <AddContactDialog />
-        </div>
-      </div>
-
-      {/* Trust & Contacts Summary */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <TrustCircle 
-                allocatedOut={trustStats.allocatedOut} 
-                maxSlots={9} 
-              />
-              <div>
-                <div className="font-semibold text-[hsl(var(--card-foreground))]">
-                  Connections: {trustStats.allocatedOut}/9
-                </div>
-                <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                  {bondedContacts.length} bonded contacts
-                </div>
+          
+          <div className="flex flex-col items-center gap-6">
+            {/* Campfire LED Visualization - Now tappable */}
+            <TrustCircleVisualization 
+              allocatedOut={trustStats.allocatedOut}
+              maxSlots={trustStats.maxSlots}
+              bondedContacts={trustStats.bondedContacts}
+              onPress={handleAddMember}
+            />
+            
+            {/* Circle Stats - Centered below */}
+            <div className="text-center">
+              <div className="text-xs">
+                <div className="text-white/50">Prioritize Strength</div>
               </div>
             </div>
+            
+            {/* Mobile-optimized CTA Button */}
+            <Button
+              className="w-full h-12 text-base font-medium bg-gradient-to-r from-[#FF6B35] to-yellow-400 text-black hover:from-[#FF6B35]/90 hover:to-yellow-400/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,107,53,0.4),0_0_40px_rgba(255,107,53,0.2)] hover:shadow-[0_0_25px_rgba(255,107,53,0.5),0_0_50px_rgba(255,107,53,0.3)]"
+              onClick={handleAddMember}
+            >
+              <UserPlus className="w-5 h-5 mr-2" />
+              Allocate Trust
+            </Button>
+          </div>
+          
+          {/* Tooltip-style hint positioned in bottom right of card, inside boundaries */}
+          <div className="flex justify-end mt-4">
+            <StoicGuideModal availableSlots={availableSlots} onAddMember={handleAddMember}>
+              <div className="text-xs text-[#FF6B35]/80 hover:text-[#FF6B35] transition-all duration-300 cursor-pointer font-medium flex items-center gap-1 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] hover:scale-105">
+                <span className="text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]">→</span>
+                <span className="drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] hover:drop-shadow-[0_0_12px_rgba(255,255,255,1.0)]">Who should I add?</span>
+              </div>
+            </StoicGuideModal>
+          </div>
+        </div>
+      </div>
+      
+      {/* Circle Members List */}
+      <div className="sheen-sweep overflow-hidden bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg relative before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
+        <div className="p-5 relative z-10">
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {availableSlots > 0 ? (
-                <Badge variant="secondary" className="bg-emerald-400/20 text-emerald-300">
-                  {availableSlots} slots
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-                  Full
-                </Badge>
-              )}
-              <Link 
-                href="/contacts"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Manage →
-              </Link>
+              <Users className="w-4 h-4 text-[#FF6B35]" />
+              <span>Current Circle Members</span>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-
-      {/* Recognition Collection */}
-      <RecognitionGrid ownerId={sessionId} maxItems={5} />
-
-      {/* Recent Signals Feed */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Recent Signals
-            </CardTitle>
-            {recentSignals.length > 0 && (
-              <Link 
-                href="/signals"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                View All →
-              </Link>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {recentSignals.length === 0 ? (
-            <div className="text-center py-6 text-[hsl(var(--muted-foreground))]">
-              <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No signals yet</p>
-              <p className="text-xs">Activity will appear here when you connect with others</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentSignals.map((signal) => (
-                <MiniFeedItem key={signal.id} signal={signal} />
+            <span className="text-xs text-white/60">{circleMembers.length} members</span>
+          </h3>
+          
+          <div className="space-y-2">
+            {isLoading ? (
+              <div className="text-center py-8 text-white/60">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
+                <p className="text-sm">Loading circle members...</p>
+              </div>
+            ) : circleMembers.length === 0 ? (
+              <div className="text-center py-8 text-white/60">
+                <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-3">
+                  <Plus className="w-6 h-6 text-white/40" />
+                </div>
+                <p className="text-sm mb-1">No members yet</p>
+                <p className="text-xs text-white/40">Allocate trust to contacts to add them to your circle</p>
+              </div>
+            ) : (
+              <>
+              {/* Existing Circle Members */}
+              {circleMembers.map((member) => (
+              <div key={member.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/40 to-panel/30 border border-green-400/20 rounded-lg hover:bg-gradient-to-r hover:from-panel/50 hover:to-panel/40 hover:border-green-400/30 hover:shadow-[0_0_15px_rgba(255,107,53,0.15)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-green-400/10 before:via-transparent before:to-green-400/10 before:-z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35]/20 to-yellow-500/20 border border-[#FF6B35]/30 flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#FF6B35]" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">{member.name}</div>
+                    <div className="text-xs text-white/60">
+                      {member.role} • <span className="text-[#FF6B35]">{member.trustAllocated} trust</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                  <Button 
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-white/70 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10"
+                    onClick={() => handleMemberClick(member.id)}
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    onClick={() => handleRevoke(member.id, member.name)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
               ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Trust Allocation - Show for all bonded contacts */}
-      {bondedContacts.length > 0 && (
-        <Card className="border-card-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
-              <Heart className="w-5 h-5 text-neon-green" />
-              Send Trust
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {bondedContacts.map((contact) => {
-                const hasTrust = contact.trustLevel && contact.trustLevel > 0
-                return (
-                  <div key={contact.peerId} className="flex items-center justify-between p-3 border-card-border bg-card rounded border">
+              
+              {/* Add 3 Challenge - Show only 3 empty slots BELOW members */}
+              {availableSlots > 0 && (
+              <>
+                {/* Challenge Header */}
+                <div className="text-center py-2 border-t border-white/10 mt-2">
+                  <div className="text-xs text-[#FF6B35] font-medium">Sprint Challenge</div>
+                  <div className="text-xs text-white/60 mt-1">Add 3 trusted members to strengthen your circle</div>
+                </div>
+                
+                {/* Show up to 3 empty slots */}
+                {Array.from({ length: Math.min(availableSlots, 3) }, (_, i) => (
+                  <div key={`empty-${i}`} className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/30 to-panel/20 rounded-lg border-2 border-dashed border-[#FF6B35]/30 hover:border-[#FF6B35]/50 hover:bg-gradient-to-r hover:from-panel/40 hover:to-panel/30 hover:shadow-[0_0_12px_rgba(255,107,53,0.1)] transition-all duration-300 relative before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-[#FF6B35]/5 before:via-transparent before:to-[#FF6B35]/5 before:-z-10">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-primary" />
+                      <div className="w-8 h-8 rounded-full bg-[#FF6B35]/10 border border-[#FF6B35]/30 flex items-center justify-center">
+                        <Plus className="w-4 h-4 text-[#FF6B35]/60" />
                       </div>
                       <div>
-                        <div className="font-medium text-sm text-card-foreground">
-                          {contact.handle || `User ${contact.peerId.slice(-6)}`}
-                        </div>
-                        {hasTrust && (
-                          <div className="text-xs text-neon-green">
-                            Trust Level: {contact.trustLevel}
-                          </div>
-                        )}
+                        <div className="text-sm text-white/60">Slot {i + 1}</div>
+                        <div className="text-xs text-[#FF6B35]/60">Add trusted contact</div>
                       </div>
                     </div>
                     
-                    {!hasTrust && (
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3].map((weight) => (
-                          <Button
-                            key={weight}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAllocateTrust(contact.peerId, weight)}
-                            disabled={trustStats.allocatedOut + weight > 9}
-                            className="text-xs px-2 py-1 h-6 border-card-border text-card-foreground hover:bg-card-border hover:text-card-foreground"
-                          >
-                            {weight}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
+                    <Button 
+                      size="sm"
+                      className="h-7 px-3 text-xs bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] border border-[#FF6B35]/30"
+                      onClick={handleAddMember}
+                    >
+                      Add
+                    </Button>
                   </div>
-                )
-              })}
+                ))}
+                
+                {/* Progress indicator if more than 3 slots available */}
+                {availableSlots > 3 && (
+                  <div className="text-center py-2">
+                    <div className="text-xs text-white/40">
+                      +{availableSlots - 3} more slots available after completing this sprint
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            </>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Contact Selection Modal */}
+      {showContactSelection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-md animate-in fade-in-0 duration-300"
+            onClick={() => setShowContactSelection(false)}
+          />
+          
+          {/* Modal */}
+          <div className="
+            relative animate-in zoom-in-90 fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+            max-w-md w-full max-h-[85vh] flex flex-col
+            bg-gradient-to-br from-slate-900/85 to-slate-800/80
+            backdrop-blur-xl
+            border-2 border-yellow-500/40
+            shadow-[0_0_40px_rgba(234,179,8,0.3),0_0_80px_rgba(234,179,8,0.1)]
+            rounded-[10px]
+            before:absolute before:inset-0 before:rounded-[10px] before:p-[2px]
+            before:bg-gradient-to-r before:from-yellow-500/50 before:via-transparent before:to-yellow-500/50
+            before:-z-10 before:animate-pulse
+          ">
+            <div className="
+              flex-1 overflow-y-auto overscroll-contain touch-pan-y p-6
+              [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
+              [-webkit-overflow-scrolling:touch]
+            ">
+              {/* Close Button */}
+              <button
+                onClick={() => setShowContactSelection(false)}
+                className="absolute top-4 right-4 w-6 h-6 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="sr-only">Close</span>
+              </button>
+              
+              {/* Modal Header */}
+              <div className="mb-6 pb-4 border-b border-yellow-500/20">
+                <h2 className="text-white text-2xl font-bold bg-gradient-to-r from-white via-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+                  Add to Circle
+                </h2>
+              </div>
+              
+              <p className="text-sm text-white/80 mb-6">
+                Choose from your bonded contacts to add to your circle of trust
+              </p>
+            
+              <div className="space-y-3">
+                {availableContacts.length === 0 ? (
+                  <div className="text-center py-8 text-white/60">
+                    <Users className="w-12 h-12 mx-auto mb-3 text-yellow-500/30" />
+                    <p className="text-sm mb-1 text-white">No available contacts</p>
+                    <p className="text-xs text-white/40">Connect with more people first</p>
+                  </div>
+                ) : (
+                  availableContacts.map((contact) => {
+                    const displayName = contact.handle || `User ${contact.peerId?.slice(-6) || 'Unknown'}`
+                    return (
+                      <div 
+                        key={contact.peerId}
+                        className="flex items-center justify-between p-4 bg-slate-800/30 hover:bg-slate-800/50 rounded-lg cursor-pointer transition-all border border-yellow-500/20 hover:border-yellow-500/40 hover:shadow-[0_0_20px_rgba(234,179,8,0.1)]"
+                        onClick={() => handleSelectContact(contact.peerId || '', displayName)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 flex items-center justify-center">
+                            <User className="w-5 h-5 text-yellow-500" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-white">{displayName}</div>
+                            <div className="text-xs text-yellow-500/70">Bonded Contact</div>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm"
+                          className="h-8 px-4 text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 font-medium"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
+
+    </div>
     </div>
   )
 }

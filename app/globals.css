@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import '../styles/glass-cards.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,7 +12,7 @@
   --card-foreground: #374151;
   --popover: #ffffff;
   --popover-foreground: #1f2937;
-  --primary: #15803d;
+  --primary: #8B5CF6;
   --primary-foreground: #ffffff;
   --secondary: #0891b2;
   --secondary-foreground: #ffffff;
@@ -48,7 +49,7 @@
   --card-foreground: #f1f5f9;
   --popover: #1e293b;
   --popover-foreground: #f1f5f9;
-  --primary: #22c55e;
+  --primary: #A78BFA;
   --primary-foreground: #ffffff;
   --secondary: #0ea5e9;
   --secondary-foreground: #ffffff;
@@ -68,7 +69,7 @@
   --chart-5: #9333ea;
   --sidebar: #1e293b;
   --sidebar-foreground: #f1f5f9;
-  --sidebar-primary: #22c55e;
+  --sidebar-primary: #A78BFA;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #a3e635;
   --sidebar-accent-foreground: #1f2937;
@@ -167,6 +168,146 @@ html.theme-mesh-dark * {
 
 /*
 =============================================================================
+  GENZ LENS THEME - Neon Dark GenZ Social Gaming
+  
+  Ultra-dark with electric neon accents for viral GenZ appeal
+  Copy of mesh-dark with enhanced neon values and social gaming aesthetics
+=============================================================================
+*/
+
+:root.theme-genz-dark,
+.theme-genz-dark,
+html.theme-genz-dark,
+html.theme-genz-dark *,
+body[data-genz="true"] {
+  /* ==> BACKGROUND SURFACES - Magenta blend gradient for GenZ aesthetic */
+  --background: #1a0a1f !important;           /* Deep purple-magenta base */
+  --card: #0a0a0a !important;                 /* Very dark card backgrounds */
+  --popover: #0a0a0a !important;              /* Popovers/dropdowns */
+  --muted: #0f0f0f !important;                /* Muted backgrounds */
+  --secondary: #0f0f0f !important;            /* Secondary backgrounds */
+  --input: #151515 !important;                /* Input field backgrounds */
+  
+  /* ==> TEXT HIERARCHY - High contrast for GenZ readability */
+  --foreground: #ffffff !important;           /* Pure white text */
+  --card-foreground: #ffffff !important;      /* Pure white card text */
+  --popover-foreground: #ffffff !important;   /* Pure white popover text */
+  
+  /* GenZ text hierarchy */
+  --text-primary: #ffffff !important;         /* Pure white headings */
+  --text-secondary: #f0f0f0 !important;       /* Near-white body text */
+  --text-muted: #cccccc !important;           /* Light gray labels */
+  --text-subtle: #999999 !important;          /* Medium gray helper text */
+  --text-placeholder: #666666 !important;     /* Dark gray placeholders */
+  
+  /* Legacy compatibility */
+  --muted-foreground: #cccccc !important;     /* Maps to text-muted */
+  --secondary-foreground: #f0f0f0 !important; /* Maps to text-secondary */
+  
+  /* ==> INTERACTIVE ELEMENTS - Electric neon primary */
+  --primary: #00F6FF !important;              /* Signature neon cyan */
+  --primary-foreground: #0a0a0a !important;   /* Dark text on neon buttons */
+  --accent: #00FF7F !important;               /* Electric spring green */
+  --accent-foreground: #0a0a0a !important;    /* Dark text on accent elements */
+  
+  /* ==> BORDERS & OUTLINES - Neon glow focus */
+  --border: #333333 !important;               /* Subtle dark borders */
+  --ring: #00F6FF !important;                 /* Neon cyan focus rings */
+  
+  /* GenZ card borders - electric and glowing */
+  --card-border: #00F6FF !important;          /* Signature neon cyan border */
+  
+  /* ==> SYSTEM COLORS */
+  --destructive: #ff3366 !important;          /* Hot pink error */
+  --destructive-foreground: #ffffff !important;
+  
+  /* ==> GENZ NEON PALETTE - Ultra-bright for social gaming */
+  --genz-cyan: #00F6FF !important;            /* Signature neon cyan */
+  --genz-pink: #ff0099 !important;            /* Hot viral pink */
+  --genz-green: #00ff88 !important;           /* Electric success green */
+  --genz-purple: #9d00ff !important;          /* Electric purple */
+  --genz-yellow: #ffff00 !important;          /* Electric yellow */
+  --genz-orange: #ff6600 !important;          /* Electric orange */
+  --genz-blue: #0066ff !important;            /* Electric blue */
+  --genz-red: #ff3366 !important;             /* Hot pink red */
+  
+  /* ==> SOCIAL GAMING COLORS */
+  --boost: #00F6FF !important;                /* Boost actions - signature cyan */
+  --share: #ff0099 !important;                /* Share actions - viral pink */
+  --signal: #00ff88 !important;               /* Signal success - electric green */
+  --suggest: #9d00ff !important;              /* Suggestions - electric purple */
+}
+
+/*
+=============================================================================
+  CIVIC LENS THEME - Community & Trust Focus
+  
+  Warm, trustworthy palette for civic/community engagement
+  Balanced between Professional (calm) and GenZ (energetic)
+=============================================================================
+*/
+
+:root.theme-civic-dark,
+.theme-civic-dark,
+html.theme-civic-dark,
+html.theme-civic-dark * {
+  /* ==> BACKGROUND SURFACES - Warm dark tones */
+  --background: #0d1117 !important;           /* Slightly warm dark */
+  --card: #161b22 !important;                 /* Card backgrounds */
+  --popover: #161b22 !important;              /* Popovers/dropdowns */
+  --muted: #21262d !important;                /* Muted backgrounds */
+  --secondary: #21262d !important;            /* Secondary backgrounds */
+  --input: #2d333b !important;                /* Input field backgrounds */
+  
+  /* ==> TEXT HIERARCHY - Clear & accessible */
+  --foreground: #f0f6fc !important;           /* Primary text */
+  --card-foreground: #f0f6fc !important;      /* Card text */
+  --popover-foreground: #f0f6fc !important;   /* Popover text */
+  
+  /* Civic text hierarchy */
+  --text-primary: #ffffff !important;         /* Headings */
+  --text-secondary: #e6edf3 !important;       /* Body text */
+  --text-muted: #c9d1d9 !important;           /* Labels */
+  --text-subtle: #8b949e !important;          /* Helper text */
+  --text-placeholder: #6e7681 !important;     /* Placeholders */
+  
+  /* Legacy compatibility */
+  --muted-foreground: #c9d1d9 !important;
+  --secondary-foreground: #e6edf3 !important;
+  
+  /* ==> INTERACTIVE ELEMENTS - Trust blue + community green */
+  --primary: #58a6ff !important;              /* Trust blue (primary) */
+  --primary-foreground: #0d1117 !important;
+  --accent: #3fb950 !important;               /* Community green (accent) */
+  --accent-foreground: #0d1117 !important;
+  
+  /* ==> BORDERS & OUTLINES */
+  --border: #30363d !important;               /* Subtle borders */
+  --ring: #58a6ff !important;                 /* Blue focus rings */
+  
+  /* Civic card borders - trust blue */
+  --card-border: #58a6ff !important;
+  
+  /* ==> SYSTEM COLORS */
+  --destructive: #f85149 !important;          /* Error red */
+  --destructive-foreground: #ffffff !important;
+  
+  /* ==> CIVIC PALETTE - Trust & community colors */
+  --civic-blue: #58a6ff !important;           /* Trust/leadership */
+  --civic-green: #3fb950 !important;          /* Community/growth */
+  --civic-purple: #a371f7 !important;         /* Recognition/achievement */
+  --civic-orange: #f0883e !important;         /* Events/energy */
+  --civic-teal: #39c5cf !important;           /* Engagement */
+  
+  /* ==> CIVIC ACTION COLORS */
+  --trust: #3fb950 !important;                /* Trust actions */
+  --civic-action: #58a6ff !important;         /* Civic participation */
+  --achievement: #a371f7 !important;          /* Achievements */
+  --community: #39c5cf !important;            /* Community building */
+}
+
+/*
+=============================================================================
   UNIVERSAL ELEMENT OVERRIDES - Forces theme on all components
 =============================================================================
 */
@@ -196,6 +337,92 @@ html.theme-mesh-dark .card-neon {
 
 html.theme-mesh-dark .card-subtle {
   border: 1px solid var(--border) !important; /* Uses default subtle border */
+}
+
+/*
+=============================================================================
+  STUNNING SIGNALS FEED - TikTok-style Scrolling
+=============================================================================
+*/
+
+/* Hide scrollbars for smooth TikTok-style experience */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Smooth scroll behavior for the entire app */
+html {
+  scroll-behavior: smooth;
+  font-size: 16px; /* mobile base */
+}
+
+@media (min-width: 640px) {
+  html { font-size: 17px; }
+}
+
+@media (min-width: 1024px) {
+  html { font-size: 18px; }
+}
+
+/* No horizontal scroll utility */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Snap scrolling for vertical feed */
+.snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+.snap-always {
+  scroll-snap-stop: always;
+}
+
+/* Custom gradient animations for signal cards */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Pulse animation for heart likes */
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.animate-heart-pulse {
+  animation: heartPulse 0.3s ease-in-out;
+}
+
+/* Floating animation for scroll hint */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 2s ease-in-out infinite;
 }
 
 /* All text elements */
@@ -352,6 +579,24 @@ html.theme-mesh-dark .badge-professional {
   }
 }
 
+/* Force mobile-first width constraints - override any interfering CSS */
+body, #__next, main {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Professional Network mobile constraints */
+.max-w-lg {
+  max-width: 32rem !important;
+}
+
+/* Remove any accidental container styling */
+.container {
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 /* Updated custom styles for earthy green theme */
 .trust-glow {
   box-shadow: 0 0 20px rgba(21, 128, 61, 0.3);
@@ -372,7 +617,7 @@ html.theme-mesh-dark .badge-professional {
 }
 
 .gradient-trust {
-  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
 }
 
 .gradient-accent {
@@ -414,9 +659,6 @@ html.theme-mesh-dark .badge-professional {
 .text-neon-green { color: var(--neon-green); }
 .bg-neon-green { background-color: var(--neon-green); }
 .border-neon-green { border-color: var(--neon-green); }
-.text-neon-cyan { color: var(--neon-cyan); }
-.bg-neon-cyan { background-color: var(--neon-cyan); }
-.border-neon-cyan { border-color: var(--neon-cyan); }
 
 /* High contrast text utilities - WCAG AA compliant */
 .text-high-contrast { color: hsl(var(--foreground)) !important; }
@@ -433,6 +675,72 @@ html.theme-mesh-dark .text-amber-500 {
 
 /*
 =============================================================================
+  FIRE LED VISUALIZATION - Custom gradient utilities
+=============================================================================
+*/
+
+/* Radial gradients for fire effects */
+.bg-gradient-radial {
+  background-image: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Conic gradients for rotating fire effects */
+.bg-gradient-conic {
+  background-image: conic-gradient(var(--tw-gradient-stops));
+}
+
+/* Fire LED pulse animation */
+@keyframes fire-pulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.animate-fire-pulse {
+  animation: fire-pulse 2s ease-in-out infinite;
+}
+
+/* LED glow effects */
+.led-glow-orange {
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.8), 0 0 40px rgba(251, 146, 60, 0.4);
+}
+
+.led-glow-purple {
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.8), 0 0 40px rgba(167, 139, 250, 0.4);
+}
+
+/*
+=============================================================================
+  TRUST AGENT FLAME ANIMATION - Organic, living presence
+=============================================================================
+*/
+
+/* Flame animation keyframes */
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1, 0.9) rotate(-1deg); }
+  50% { transform: scale(0.9, 1.1) rotate(1deg); }
+  75% { transform: scale(1.05, 0.95) rotate(-1deg); }
+}
+
+@keyframes flame-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.2) saturate(1.1); }
+}
+
+@keyframes flame-core-pop {
+  0%, 34%, 100% { opacity: 0; transform: translateX(-50%) scale(0.85); }
+  35% { opacity: 1; transform: translateX(-50%) scale(1.35); }
+  42% { opacity: 0; transform: translateX(-50%) scale(0.9); }
+}
+
+/*
+=============================================================================
   HIGH CONTRAST MODE - Add ?hc=1 to URL for presentations/accessibility
 =============================================================================
 */
@@ -440,4 +748,99 @@ html.theme-mesh-dark.hc {
   --muted-foreground: #e5e7eb !important;     /* Even brighter muted text */
   --secondary-foreground: #f1f5f9 !important; /* Even brighter secondary text */
   --border: #64748b !important;               /* More visible borders */
+}
+
+/*
+=============================================================================
+  3D TRADING CARD SYSTEM - IRL-style NFT Cards
+  
+  Pure CSS 3D trading cards with acrylic layers, idle tilt animation,
+  and specular sheen sweep for physical card feel.
+=============================================================================
+*/
+
+/* --- 3D primitives --- */
+.perspective-1200 { perspective: 1200px; }
+.preserve-3d { transform-style: preserve-3d; }
+
+/* --- Idle movement (tiny) --- */
+@keyframes idle-tilt {
+  0%   { transform: rotateX(0deg) rotateY(0deg) translateY(0); }
+  50%  { transform: rotateX(-1.25deg) rotateY(1.75deg) translateY(-4px); }
+  100% { transform: rotateX(0deg) rotateY(0deg) translateY(0); }
+}
+
+/* --- Specular sheen sweep --- */
+@keyframes sheen {
+  0%   { transform: translateX(-120%) rotate(12deg); opacity: .0; }
+  10%  { opacity: .25; }
+  50%  { transform: translateX(120%) rotate(12deg); opacity: .25; }
+  60%  { opacity: 0; }
+  100% { transform: translateX(120%) rotate(12deg); opacity: 0; }
+}
+
+/* Brushed aluminum pulsating sheen overlay */
+.sheen-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.sheen-sweep::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -120%;
+  width: 120%;
+  height: 200%;
+  background: linear-gradient(120deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0) 65%);
+  filter: blur(0.5px);
+  transform: translateX(-120%) rotate(12deg);
+  animation: sheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .idle-tilt, .sheen { animation: none !important; }
+}
+
+/* Helper for crisp inner border */
+.card-inner-border {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.18),
+    inset 0 0 0 2px rgba(255,255,255,.06);
+}
+
+/* Subtle acrylic edge glow */
+.card-edge-glow {
+  box-shadow:
+    0 8px 28px rgba(0,0,0,.45),
+    0 1px 0 rgba(255,255,255,.04) inset;
+}
+
+/* 3D hover tilt utilities */
+.rotate-y-3 { transform: rotateY(3deg); }
+.-rotate-x-2 { transform: rotateX(-2deg); }
+.hover\:rotate-y-3:hover { transform: rotateY(3deg); }
+.hover\:-rotate-x-2:hover { transform: rotateX(-2deg); }
+
+/*
+=============================================================================
+  STANDARDIZED MODAL BACKGROUNDS - Lighter magenta with brushed aluminum
+  
+  Consistent modal styling across all dialogs, sheets, and overlays
+  Based on main app gradient (#1a0a1f → #2a1030) but lighter
+=============================================================================
+*/
+.modal-magenta-base {
+  background: linear-gradient(to bottom right, rgba(58, 21, 64, 0.92), rgba(74, 26, 80, 0.88));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.modal-magenta-border {
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  box-shadow: 
+    0 0 40px rgba(255, 107, 53, 0.2),
+    0 0 80px rgba(255, 107, 53, 0.1);
 }
