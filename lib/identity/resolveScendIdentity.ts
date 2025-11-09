@@ -44,12 +44,23 @@ export async function resolveScendIdentity(): Promise<ScendIdentity> {
       throw new Error('[ScendIdentity] User not authenticated')
     }
     
-    // Step 2: Get EVM address from Magic metadata
+    // Step 2: Get EVM address from Magic DID (issuer)
     const metadata = await magic.user.getInfo()
-    const evmAddress = metadata.publicAddress
     
-    if (!evmAddress) {
-      throw new Error('[ScendIdentity] No EVM address found in Magic metadata')
+    // Magic DID format: did:ethr:0x<address> or did:ethr:<address>
+    // We need to extract the EVM address from the issuer
+    const issuer = metadata.issuer
+    if (!issuer || !issuer.startsWith('did:ethr:')) {
+      throw new Error('[ScendIdentity] Invalid Magic issuer format')
+    }
+    
+    // Extract EVM address from DID
+    const didParts = issuer.replace('did:ethr:', '')
+    let evmAddress = didParts.startsWith('0x') ? didParts : `0x${didParts}`
+    evmAddress = evmAddress.toLowerCase()
+    
+    if (!evmAddress || evmAddress.length !== 42) {
+      throw new Error(`[ScendIdentity] Invalid EVM address extracted from DID: ${evmAddress}`)
     }
     
     console.log('[ScendIdentity] Resolved EVM address:', evmAddress)
