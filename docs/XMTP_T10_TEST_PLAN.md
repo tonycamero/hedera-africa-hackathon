@@ -20,10 +20,12 @@ Validate end-to-end XMTP messaging functionality with two Magic users communicat
 **File:** `.env.local`
 
 ```bash
-NEXT_PUBLIC_XMTP_ENABLED=true
-NEXT_PUBLIC_XMTP_ENV=dev
+NEXT_PUBLIC_XMTP_ENABLED=true  # Enable XMTP sidecar
+NEXT_PUBLIC_XMTP_ENV=dev       # Use XMTP dev network
 NEXT_PUBLIC_HEDERA_NETWORK=testnet
 ```
+
+**Important:** Setting `NEXT_PUBLIC_XMTP_ENABLED=false` should keep the Messages tab visible but degrade gracefully to Invite-only / non-XMTP flows. All contacts will show "Invite" buttons instead of "Message" buttons.
 
 ### 2. Two Magic Users Required
 
