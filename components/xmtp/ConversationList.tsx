@@ -4,18 +4,30 @@ import { useState, useEffect } from 'react';
 import { User, MessageCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import type { Identifier } from '@xmtp/browser-sdk';
+import type { Identifier, Dm } from '@xmtp/browser-sdk';
 import type { MessagingContact } from '@/lib/services/contactsForMessaging';
 import { getContactsForMessaging } from '@/lib/services/contactsForMessaging';
 import { useIdentity } from '@/app/providers/IdentityProvider';
 import { MessageThread } from './MessageThread';
+import { getConversationMetadata } from '@/lib/xmtp/conversationHelpers';
+
+// LP-1: Enhanced contact with conversation metadata
+interface EnrichedContact extends MessagingContact {
+  unreadCount?: number
+  lastMessage?: {
+    content: string
+    sentAt: Date
+    isFromSelf: boolean
+  } | null
+  dm?: Dm
+}
 
 export function ConversationList() {
   const { identity, xmtpClient } = useIdentity();
-  const [contacts, setContacts] = useState<MessagingContact[]>([]);
+  const [contacts, setContacts] = useState<EnrichedContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedContact, setSelectedContact] = useState<MessagingContact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<EnrichedContact | null>(null);
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -28,8 +40,54 @@ export function ConversationList() {
       try {
         setLoading(true);
         setError(null);
-        const result = await getContactsForMessaging(identity, xmtpClient);
-        setContacts(result);
+        const basicContacts = await getContactsForMessaging(identity, xmtpClient);
+        
+        // LP-1: Enrich contacts with conversation metadata if XMTP client available
+        if (!xmtpClient) {
+          setContacts(basicContacts);
+          return;
+        }
+
+        // Sync conversations from network
+        await xmtpClient.conversations.sync();
+        const dms = await xmtpClient.conversations.listDms();
+
+        // Match DMs to contacts and load metadata
+        const enriched = await Promise.all(
+          basicContacts.map(async (contact) => {
+            // Find DM by matching contact's EVM address
+            const dm = dms.find((d) => {
+              const members = d.members;
+              return members.some((m) =>
+                m.accountAddresses.some((addr: string) =>
+                  addr.toLowerCase() === contact.evmAddress.toLowerCase()
+                )
+              );
+            });
+
+            if (!dm) {
+              // No existing DM - return contact as-is
+              return contact;
+            }
+
+            try {
+              // Load conversation metadata (unread count + last message)
+              const metadata = await getConversationMetadata(dm, xmtpClient.inboxId);
+              
+              return {
+                ...contact,
+                unreadCount: metadata.unreadCount,
+                lastMessage: metadata.lastMessage,
+                dm
+              } as EnrichedContact;
+            } catch (err) {
+              console.warn('[ConversationList] Failed to load metadata for', contact.displayName, err);
+              return contact;
+            }
+          })
+        );
+
+        setContacts(enriched);
       } catch (err) {
         console.error('[ConversationList] Failed to load contacts:', err);
         setError(err instanceof Error ? err.message : 'Failed to load contacts');
@@ -166,17 +224,40 @@ export function ConversationList() {
               key={contact.hederaAccountId}
               className="flex items-center justify-between p-3 bg-gradient-to-r from-panel/40 to-panel/30 border border-[#FF6B35]/20 rounded-lg hover:bg-gradient-to-r hover:from-panel/50 hover:to-panel/40 hover:border-[#FF6B35]/30 hover:shadow-[0_0_15px_rgba(255,107,53,0.15)] transition-all duration-300"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B35]/20 to-yellow-500/20 border border-[#FF6B35]/30 flex items-center justify-center flex-shrink-0">
                   <User className="w-5 h-5 text-[#FF6B35]" />
                 </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-white truncate">
-                    {contact.displayName}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className={`text-sm truncate ${
+                      (contact.unreadCount ?? 0) > 0 
+                        ? 'font-bold text-white' 
+                        : 'font-medium text-white'
+                    }`}>
+                      {contact.displayName}
+                    </div>
+                    {/* LP-2: Unread badge */}
+                    {(contact.unreadCount ?? 0) > 0 && (
+                      <span className="inline-flex items-center justify-center text-xs font-semibold rounded-full px-1.5 py-0.5 bg-[#FF6B35] text-white min-w-[20px]">
+                        {contact.unreadCount}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs text-white/60 truncate">
-                    {contact.hederaAccountId}
-                  </div>
+                  {/* LP-1: Last message preview */}
+                  {contact.lastMessage ? (
+                    <div className={`text-xs truncate mt-0.5 ${
+                      (contact.unreadCount ?? 0) > 0
+                        ? 'text-white/80 font-medium'
+                        : 'text-white/60'
+                    }`}>
+                      {contact.lastMessage.content}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-white/60 truncate mt-0.5">
+                      {contact.hederaAccountId}
+                    </div>
+                  )}
                   {contact.hasXMTP && (
                     <div className="flex items-center gap-1 mt-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
