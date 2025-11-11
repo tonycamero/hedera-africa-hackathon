@@ -1,200 +1,149 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBondedContactsFromHCS, getTrustStatsFromHCS, getTrustLevelsPerContact } from '@/lib/services/HCSDataUtils'
-import { toLegacyEventArray } from '@/lib/services/HCSDataAdapter'
-import { listSince, decodeBase64Json } from '@/lib/mirror/serverMirror'
-import { getRegistryTopics } from '@/lib/hcs2/registry'
+import { circleState } from '@/lib/stores/HcsCircleState'
+import { requireMagicAuth } from '@/lib/server/auth/requireMagicAuth'
+import { resolveOrProvision } from '@/lib/server/hcs22/resolveOrProvision'
 
 export const dynamic = 'force-dynamic'
 
+// Feature flag for gradual rollout
+const CIRCLE_STATE_ENABLED = process.env.CIRCLE_STATE_ENABLED !== 'false' // Enabled by default
+
+// Hard cap on contacts returned (CIR-3: Privacy safeguard)
+const MAX_CONTACTS_RETURNED = 250
+
+/**
+ * Log circle query metrics for observability (CIR-3)
+ */
+function logCircleQuery({
+  hederaAccountId,
+  authLatency,
+  queryLatency,
+  nodeCount,
+  cappedAt
+}: {
+  hederaAccountId: string
+  authLatency: number
+  queryLatency: number
+  nodeCount: number
+  cappedAt?: number
+}) {
+  console.log('[OBSERVABILITY /circle] Query metrics:', {
+    account: hederaAccountId,
+    authLatencyMs: authLatency.toFixed(2),
+    queryLatencyMs: queryLatency.toFixed(2),
+    nodeCount,
+    cappedAt: cappedAt || null,
+    totalLatencyMs: (authLatency + queryLatency).toFixed(2)
+  })
+  
+  if (cappedAt) {
+    console.warn(`[SAFEGUARD /circle] Contact count (${nodeCount}) exceeded limit, capped at ${cappedAt}`)
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const sessionId = searchParams.get('sessionId')
+    // === NEW: Auth-scoped circle query using HcsCircleState ===
     
-    // Validate session ID - must be a real Hedera account ID (0.0.X format) or null
-    if (!sessionId) {
+    const authStart = performance.now()
+    
+    // 1. Authenticate user via Magic token
+    const auth = await requireMagicAuth(request)
+    if (!auth?.success) {
       return NextResponse.json(
-        { success: false, error: 'No session ID provided - user not authenticated' },
+        { success: false, error: 'Unauthorized - please sign in' },
         { status: 401 }
       )
     }
     
-    // Reject legacy demo IDs
-    if (sessionId.startsWith('tm-')) {
+    // 2. Resolve Hedera account ID from Magic issuer via HCS-22
+    const { hederaAccountId } = await resolveOrProvision(auth.issuer)
+    
+    const authLatency = performance.now() - authStart
+    
+    if (!hederaAccountId) {
       return NextResponse.json(
-        { success: false, error: 'Invalid session ID - demo accounts not supported. Please sign in with Magic.' },
+        { success: false, error: 'No Hedera account - identity not bound' },
         { status: 400 }
       )
     }
     
-    // Validate Hedera account ID format (0.0.XXXXX)
-    if (!sessionId.match(/^0\.0\.\d+$/)) {
+    // 3. Check if circle state is ready (has processed at least one event)
+    if (!circleState.isReady()) {
       return NextResponse.json(
-        { success: false, error: 'Invalid Hedera account ID format' },
-        { status: 400 }
+        {
+          success: false,
+          status: 'warming',
+          message: 'Circle state initializing, please try again in a moment'
+        },
+        { status: 202 }
       )
     }
     
-    console.log('[API /circle] Loading circle data for:', sessionId)
+    console.log('[API /circle] Loading circle data for:', hederaAccountId)
     
-    // Get topics from registry (single source of truth)
-    const registry = await getRegistryTopics()
-    const trustTopicId = registry.trust
-    const contactTopicId = registry.contacts
-    const profileTopicId = registry.profile
+    const queryStart = performance.now()
     
-    console.log('[API /circle] Using registry topics:', { trust: trustTopicId, contacts: contactTopicId, profile: profileTopicId })
+    // 4. Query scoped circle (O(N) where N = user's contacts, NOT total events)
+    const circle = circleState.getCircleFor(hederaAccountId)
     
-    if (!trustTopicId || !contactTopicId || !profileTopicId) {
-      throw new Error('Missing required topic IDs from registry')
+    const queryLatency = performance.now() - queryStart
+    
+    // 5. Build minimal, privacy-preserving response with hard cap (CIR-3)
+    let allContacts = circle.contacts.map(contact => ({
+      peerId: contact.accountId,
+      handle: contact.handle,
+      bondedAt: contact.bondedAt,
+      profileHrl: contact.profileHrl,
+      // Exclude global metadata - only return what's needed
+      isBonded: true
+    }))
+    
+    // Apply hard cap to prevent exposure of large social graphs
+    const originalCount = allContacts.length
+    let cappedAt: number | undefined
+    if (allContacts.length > MAX_CONTACTS_RETURNED) {
+      cappedAt = MAX_CONTACTS_RETURNED
+      allContacts = allContacts.slice(0, MAX_CONTACTS_RETURNED)
     }
     
-    // Fetch messages with error handling for empty topics
-    const fetchWithFallback = async (topicId: string) => {
-      try {
-        return await listSince(topicId, undefined, 200)
-      } catch (error) {
-        // If topic is empty or doesn't exist yet, return empty result
-        if (error instanceof Error && error.message.includes('404')) {
-          console.warn(`[API /circle] Topic ${topicId} returned 404, treating as empty`)
-          return { messages: [], watermark: '0.0' }
-        }
-        throw error
-      }
-    }
+    const bondedContacts = allContacts
     
-    const [trustResult, contactResult, profileResult] = await Promise.all([
-      fetchWithFallback(trustTopicId),
-      fetchWithFallback(contactTopicId),
-      fetchWithFallback(profileTopicId)
-    ])
-    
-    const trustEvents = trustResult.messages
-      .filter((m: any) => m && m.message && m.consensus_timestamp)
-      .map((m: any) => {
-        const json = decodeBase64Json(m.message)
-        if (!json) {
-          console.warn('[API /circle] Failed to decode message:', m.consensus_timestamp)
-          return null
-        }
-        return {
-          consensus_timestamp: m.consensus_timestamp,
-          sequence_number: m.sequence_number,
-          topic_id: m.topic_id,
-          json,
-        }
-      })
-      .filter((m: any) => m !== null)
-    
-    const contactEvents = contactResult.messages
-      .filter((m: any) => m && m.message && m.consensus_timestamp)
-      .map((m: any) => {
-        const json = decodeBase64Json(m.message)
-        if (!json) {
-          console.warn('[API /circle] Failed to decode message:', m.consensus_timestamp)
-          return null
-        }
-        return {
-          consensus_timestamp: m.consensus_timestamp,
-          sequence_number: m.sequence_number,
-          topic_id: m.topic_id,
-          json,
-        }
-      })
-      .filter((m: any) => m !== null)
-    
-    const profileEvents = profileResult.messages
-      .filter((m: any) => m && m.message && m.consensus_timestamp)
-      .map((m: any) => {
-        const json = decodeBase64Json(m.message)
-        if (!json) {
-          console.warn('[API /circle] Failed to decode profile message:', m.consensus_timestamp)
-          return null
-        }
-        return {
-          consensus_timestamp: m.consensus_timestamp,
-          sequence_number: m.sequence_number,
-          topic_id: m.topic_id,
-          json,
-        }
-      })
-      .filter((m: any) => m !== null)
-    
-    // Filter events by type/version whitelist (v2 schema)
-    const filteredEvents = [...trustEvents, ...contactEvents, ...profileEvents].filter((event: any) => {
-      const payload = event.json?.payload || event.json
-      
-      // Type whitelist - only allow real contact/trust/profile operations
-      const allowedTypes = [
-        'CONTACT_REQUEST',
-        'CONTACT_ACCEPT', 
-        'CONTACT_MIRROR',
-        'TRUST_ALLOCATE',
-        'TRUST_REVOKE',
-        'PROFILE_UPDATE',
-        'RECOGNITION_DEFINITION',
-        'RECOGNITION_MINT'
-      ]
-      
-      const type = event.json?.type || payload?.type
-      if (!allowedTypes.includes(type)) {
-        console.log('[API /circle] Filtered out disallowed type:', type)
-        return false
-      }
-      
-      // Schema version check - prefer v:2, allow v:1 for backward compat
-      const version = payload?.v || 1
-      if (version < 1 || version > 2) {
-        console.log('[API /circle] Filtered out invalid version:', version)
-        return false
-      }
-      
-      // Audience validation - must be 'trustmesh' for v2
-      if (version === 2 && payload?.aud !== 'trustmesh') {
-        console.log('[API /circle] Filtered out invalid audience:', payload?.aud)
-        return false
-      }
-      
-      return true
-    })
-    
-    console.log('[API /circle] Filtered', trustEvents.length + contactEvents.length, '→', filteredEvents.length, 'events')
-    
-    // Convert to legacy format
-    const allEvents = toLegacyEventArray(filteredEvents as any)
-    
-    console.log('[API /circle] Loaded', allEvents.length, 'events from HCS')
-    console.log('[API /circle] Event types:', allEvents.map(e => e.type).filter((v, i, a) => a.indexOf(v) === i))
-    console.log('[API /circle] Sample event:', allEvents[0])
-    
-    // Calculate circle data using HCS utilities
-    const bondedContacts = getBondedContactsFromHCS(allEvents, sessionId)
-    const trustStats = getTrustStatsFromHCS(allEvents, sessionId)
-    const trustLevels = getTrustLevelsPerContact(allEvents, sessionId)
-    
-    console.log('[API /circle] Trust events found:', allEvents.filter(e => e.type === 'TRUST_ALLOCATE').length)
-    console.log('[API /circle] Sample trust event:', allEvents.find(e => e.type === 'TRUST_ALLOCATE'))
-    console.log('[API /circle] Trust levels calculated:', trustLevels.size, 'contacts')
-    console.log('[API /circle] Trust levels:', Array.from(trustLevels.entries()))
-    
-    // Convert Map to plain object for JSON serialization
-    const trustLevelsObject: Record<string, { allocatedTo: number, receivedFrom: number }> = {}
-    trustLevels.forEach((value, key) => {
-      trustLevelsObject[key] = value
-    })
+    // Calculate trust stats from edges (if available)
+    const trustAllocated = circle.edges
+      .filter(e => e.strength !== undefined)
+      .reduce((sum, e) => sum + (e.strength || 0), 0)
     
     const response = {
       success: true,
+      accountId: hederaAccountId,
       bondedContacts,
       trustStats: {
-        allocatedOut: trustStats.allocatedOut,
-        maxSlots: trustStats.cap,
+        allocatedOut: trustAllocated,
+        maxSlots: 9, // Fixed from Inner Circle spec
         bondedContacts: bondedContacts.length
       },
-      trustLevels: trustLevelsObject
+      // Placeholder for future Inner Circle integration
+      innerCircle: {
+        count: circle.innerCircle?.length || 0
+      },
+      _meta: {
+        source: 'HcsCircleState',
+        lastUpdated: circle.lastUpdated
+      }
     }
     
-    console.log('[API /circle] Returning:', response.bondedContacts.length, 'contacts,', response.trustStats.allocatedOut, 'trust allocated')
+    // Log observability metrics (CIR-3)
+    logCircleQuery({
+      hederaAccountId,
+      authLatency,
+      queryLatency,
+      nodeCount: originalCount,
+      cappedAt
+    })
+    
+    console.log('[API /circle] ✅ Returning auth-scoped data:', bondedContacts.length, 'contacts')
+    console.log('[API /circle] ✅ NO GLOBAL SCAN - query complexity: O(N) where N =', originalCount)
     
     return NextResponse.json(response)
   } catch (error) {

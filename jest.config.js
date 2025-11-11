@@ -12,4 +12,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  // Force Jest to exit cleanly after tests complete
+  forceExit: true,
 }
