@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import type { MessagingContact } from '@/lib/services/contactsForMessaging';
 import type { Client as XmtpClient, Dm, DecodedMessage, Identifier } from '@xmtp/browser-sdk';
 import { MessageComposer } from './MessageComposer';
+import { markConversationRead } from '@/lib/xmtp/readReceipts';
+import { sortMessages, upsertMessage } from '@/lib/xmtp/messageOrdering';
 
 interface Message {
   id: string;
@@ -41,6 +43,19 @@ export function MessageThread({
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // XMTP-12: Mark conversation as read when messages load/update
+  useEffect(() => {
+    if (!dmRef.current || messages.length === 0) return;
+
+    const lastMessage = messages[messages.length - 1];
+    const lastMs = lastMessage.sentAt.getTime();
+    const conversationId = (dmRef.current as any).topic ?? (dmRef.current as any).id ?? '';
+
+    if (conversationId) {
+      markConversationRead(conversationId, lastMs);
+    }
   }, [messages]);
 
   // Load DM and messages (XMTP V3 API)
@@ -83,7 +98,7 @@ export function MessageThread({
         // Sync messages
         await dm.sync();
 
-        // Load existing messages
+        // Load existing messages and sort them (XMTP-11)
         const existingMessages = await dm.messages();
         const formattedMessages: Message[] = existingMessages.map((msg: DecodedMessage) => ({
           id: msg.id,
@@ -93,7 +108,7 @@ export function MessageThread({
           isSent: msg.senderInboxId === xmtpClient.inboxId,
         }));
 
-        setMessages(formattedMessages);
+        setMessages(sortMessages(formattedMessages));
 
         // Stream new messages
         const stream = dm.streamMessages();
@@ -109,12 +124,10 @@ export function MessageThread({
                 isSent: message.senderInboxId === xmtpClient.inboxId,
               };
 
+              // XMTP-11: Use upsert + sort for deterministic ordering
               setMessages((prev) => {
-                // Avoid duplicates
-                if (prev.some((m) => m.id === newMessage.id)) {
-                  return prev;
-                }
-                return [...prev, newMessage];
+                const withUpsert = upsertMessage(prev, newMessage);
+                return sortMessages(withUpsert);
               });
             }
           } catch (err) {
