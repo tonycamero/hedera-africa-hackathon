@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { User, MessageCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import type { Identifier } from '@xmtp/browser-sdk';
 import type { MessagingContact } from '@/lib/services/contactsForMessaging';
 import { getContactsForMessaging } from '@/lib/services/contactsForMessaging';
 import { useIdentity } from '@/app/providers/IdentityProvider';
@@ -43,9 +45,51 @@ export function ConversationList() {
     setSelectedContact(contact);
   };
 
-  const handleInvite = (contact: MessagingContact) => {
-    // T9 will implement: show invite modal or copy invite link
-    console.log('[ConversationList] Invite contact:', contact.hederaAccountId);
+  const handleStartConversation = async (contact: MessagingContact) => {
+    console.log('[ConversationList] Starting conversation with:', contact.hederaAccountId);
+    
+    if (!xmtpClient || !identity) {
+      toast.error('XMTP client not ready');
+      return;
+    }
+
+    try {
+      // Build Identifier object for XMTP V3
+      const identifier: Identifier = {
+        identifier: contact.evmAddress.toLowerCase(),
+        identifierKind: 'Ethereum'
+      };
+      
+      // Check if they can message (XMTP canMessage check)
+      const canMessageResult = await xmtpClient.canMessage([identifier]);
+      const canMessage = canMessageResult.get(contact.evmAddress.toLowerCase());
+      
+      if (canMessage) {
+        // They have XMTP - open conversation directly
+        setSelectedContact(contact);
+      } else {
+        // They don't have XMTP yet - send them an invite message
+        toast.info(`📤 Sending XMTP invite to ${contact.displayName}...`, {
+          description: 'They\'ll receive an encrypted invitation',
+        });
+        
+        // Try to create conversation anyway - XMTP will queue the message
+        setSelectedContact(contact);
+        
+        // Show helper toast
+        setTimeout(() => {
+          toast.success('💬 Conversation ready!', {
+            description: `Send ${contact.displayName} a message to invite them to encrypted chat`,
+            duration: 5000,
+          });
+        }, 500);
+      }
+    } catch (err) {
+      console.error('[ConversationList] Failed to start conversation:', err);
+      toast.error('Failed to start conversation', {
+        description: 'Please try again',
+      });
+    }
   };
 
   // Show thread view if contact selected
@@ -142,26 +186,18 @@ export function ConversationList() {
                 </div>
               </div>
 
-              {contact.hasXMTP ? (
-                <Button
-                  size="sm"
-                  className="h-8 px-4 text-xs bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white font-medium shadow-[0_0_12px_rgba(255,107,53,0.3)] hover:shadow-[0_0_20px_rgba(255,107,53,0.4)] flex-shrink-0"
-                  onClick={() => handleMessage(contact)}
-                >
-                  <MessageCircle className="w-3 h-3 mr-1" />
-                  Message
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-4 text-xs text-white/70 hover:text-white border-white/20 hover:border-white/40 hover:bg-white/10 flex-shrink-0"
-                  onClick={() => handleInvite(contact)}
-                >
-                  <UserPlus className="w-3 h-3 mr-1" />
-                  Invite
-                </Button>
-              )}
+              <Button
+                size="sm"
+                className={`h-8 px-4 text-xs font-medium flex-shrink-0 ${
+                  contact.hasXMTP
+                    ? 'bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white shadow-[0_0_12px_rgba(255,107,53,0.3)] hover:shadow-[0_0_20px_rgba(255,107,53,0.4)]'
+                    : 'bg-gradient-to-r from-[#FF6B35]/70 to-purple-500/70 hover:from-[#FF6B35]/80 hover:to-purple-500/80 text-white'
+                }`}
+                onClick={() => contact.hasXMTP ? handleMessage(contact) : handleStartConversation(contact)}
+              >
+                <MessageCircle className="w-3 h-3 mr-1" />
+                {contact.hasXMTP ? 'Message' : 'Send Message'}
+              </Button>
             </div>
           ))}
         </div>

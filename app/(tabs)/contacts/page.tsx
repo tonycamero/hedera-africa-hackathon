@@ -242,7 +242,11 @@ export default function ContactsPage() {
             </Button>
           </AddContactDialog>
           <AddContactModal>
-            <Button variant="outline" className="border-orange-500/30 text-orange-500 hover:bg-emerald-500/20">
+            <Button 
+              variant="outline" 
+              className="border-orange-500/30 text-orange-500 hover:bg-emerald-500/20"
+              onClick={() => console.log('[ContactsPage] Invite button clicked')}
+            >
               <UserPlus className="w-4 h-4 mr-1" />
               Invite
             </Button>

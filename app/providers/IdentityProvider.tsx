@@ -38,7 +38,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { ScendIdentity } from '@/lib/identity/ScendIdentity'
 import { resolveScendIdentity } from '@/lib/identity/resolveScendIdentity'
-import type { Client as XmtpClient } from '@xmtp/browser-sdk'
+import type { Client as XmtpClient } from '@xmtp/xmtp-js'
 import { useXmtpClient } from '@/lib/xmtp/hooks/useXmtpClient'
 
 /**

@@ -3,8 +3,9 @@
  * Coordinates backfill, streaming, and two-phase recognition processing
  */
 
-import { HCS_ENABLED, MIRROR_REST, MIRROR_WS, TOPICS, TopicKey, INGEST_DEBUG } from '@/lib/env'
+import { HCS_ENABLED, MIRROR_REST, MIRROR_WS, TOPICS, TopicKey, INGEST_DEBUG, WS_ENABLED, REST_POLL_INTERVAL } from '@/lib/env'
 import { signalsStore } from '@/lib/stores/signalsStore'
+import { circleState } from '@/lib/stores/HcsCircleState'
 import { normalizeHcsMessage } from './normalizers'
 import { backfillTopic } from './restBackfill'
 import { connectTopicWs } from './wsStream'
@@ -31,6 +32,9 @@ const stats: Record<TopicKey, IngestStats> = {
 
 // Track active connections for cleanup
 const activeConnections = new Map<TopicKey, () => void>()
+
+// Track REST polling intervals
+const pollingIntervals = new Map<TopicKey, NodeJS.Timeout>()
 
 let ingestionStarted = false
 
@@ -68,7 +72,13 @@ export async function startIngestion(): Promise<void> {
 
     // Phase 2: Start real-time streaming for each topic (with error recovery)
     try {
-      startStreamingAllTopics()
+      if (WS_ENABLED) {
+        console.info('[Ingest] WebSocket streaming enabled')
+        startStreamingAllTopics()
+      } else {
+        console.info('[Ingest] WebSocket disabled, using REST polling only')
+        startRestPollingAllTopics()
+      }
     } catch (streamingError) {
       console.error('[Ingest] Streaming failed, running with cached data only:', streamingError)
       // Don't throw - system can still use cached data
@@ -92,6 +102,13 @@ export async function startIngestion(): Promise<void> {
  */
 export function stopIngestion(): void {
   console.info('[Ingest] Stopping ingestion…')
+  
+  // Clear all polling intervals
+  for (const [topic, intervalId] of pollingIntervals) {
+    clearInterval(intervalId)
+    console.info(`[Ingest] Stopped polling for ${topic}`)
+  }
+  pollingIntervals.clear()
   
   // Close all active connections
   for (const [topic, cleanup] of activeConnections) {
@@ -259,6 +276,70 @@ function startStreamingAllTopics(): void {
 }
 
 /**
+ * Start REST polling for all topics (fallback when WebSocket is unavailable)
+ */
+function startRestPollingAllTopics(): void {
+  // Filter out empty or invalid topic IDs
+  const validTopics = Object.entries(TOPICS).filter(([key, topicId]) => {
+    const isValid = topicId && topicId.trim() !== '' && topicId.match(/^0\.0\.[0-9]+$/)
+    if (!isValid) {
+      console.warn(`[Ingest] Skipping invalid topic ID for REST polling ${key}: "${topicId}"`)
+    }
+    return isValid
+  })
+  
+  console.info(`[Ingest] Starting REST polling for ${validTopics.length} valid topics (interval: ${REST_POLL_INTERVAL}ms)`)
+  
+  validTopics.forEach(([key, topicId]) => {
+    const topicKey = key as TopicKey
+    
+    // Create polling function
+    const poll = async () => {
+      try {
+        const { count, last } = await backfillTopic({
+          topicId,
+          since: stats[topicKey].lastConsensusNs,
+          MIRROR_REST,
+          onMessage: (msg, consensusNs) => {
+            handleMessage(topicKey, msg, 'hcs', consensusNs)
+            stats[topicKey].streamed++
+          },
+        })
+        
+        if (count > 0) {
+          console.info(`[Ingest] REST poll found ${count} new messages for ${topicKey}`)
+          stats[topicKey].lastActivity = Date.now()
+          syncState.recordActivity()
+          syncState.markSynced()
+        }
+        
+        if (last) {
+          stats[topicKey].lastConsensusNs = last
+          await saveCursor(topicKey, last)
+        }
+      } catch (error) {
+        console.warn(`[Ingest] REST polling failed for ${topicKey}:`, error)
+        stats[topicKey].failed++
+        syncState.pushError(error)
+      }
+    }
+    
+    // Start polling immediately, then on interval
+    poll()
+    const intervalId = setInterval(poll, REST_POLL_INTERVAL)
+    pollingIntervals.set(topicKey, intervalId)
+    
+    console.info(`[Ingest] Started REST polling for ${topicKey}`)
+  })
+  
+  // Update sync state
+  if (typeof window !== 'undefined') {
+    syncState.setConnectionCount(pollingIntervals.size)
+    syncState.setLive(true) // Consider polling as "live"
+  }
+}
+
+/**
  * Handle incoming message for a specific topic
  * All topics now use standard normalization (no special recognition handling)
  */
@@ -269,7 +350,27 @@ function handleMessage(topic: TopicKey, raw: any, source: 'hcs' | 'hcs-cached', 
     // Standard message processing for all topics
     const normalizedEvent = normalizeHcsMessage(raw, source)
     if (normalizedEvent) {
+      // Add to SignalsStore (existing behavior)
       signalsStore.add(normalizedEvent)
+      
+      // NEW: Update HcsCircleState for contact/trust events
+      if (normalizedEvent.type === 'CONTACT_ACCEPT' || normalizedEvent.type === 'CONTACT_REVOKE') {
+        circleState.addContactEvent({
+          type: normalizedEvent.type,
+          actor: normalizedEvent.actor,
+          target: normalizedEvent.target,
+          ts: normalizedEvent.ts,
+          metadata: normalizedEvent.metadata
+        })
+      } else if (normalizedEvent.type === 'TRUST_ALLOCATE') {
+        circleState.addTrustEvent({
+          type: normalizedEvent.type,
+          actor: normalizedEvent.actor,
+          target: normalizedEvent.target,
+          ts: normalizedEvent.ts,
+          metadata: normalizedEvent.metadata
+        })
+      }
     } else {
       stats[topic].failed++
       if (INGEST_DEBUG) {

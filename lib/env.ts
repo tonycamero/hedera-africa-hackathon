@@ -60,3 +60,7 @@ export const BACKFILL_PAGE_SIZE = parseInt(process.env.HCS_BACKFILL_PAGE_SIZE ||
 export const WS_RECONNECT_MAX_BACKOFF = parseInt(process.env.HCS_WS_MAX_BACKOFF || '15000');
 export const CURSOR_STORAGE_PREFIX = 'hcs-cursor';
 export const WS_RECONNECT_JITTER_MAX = 250;
+
+// WebSocket configuration
+export const WS_ENABLED = cleanBool(process.env.NEXT_PUBLIC_HCS_WS_ENABLED) ?? true;
+export const REST_POLL_INTERVAL = parseInt(process.env.HCS_REST_POLL_INTERVAL || '10000'); // 10 seconds default

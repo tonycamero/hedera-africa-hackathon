@@ -45,6 +45,8 @@ export function AddContactModal({ children }: AddContactModalProps) {
   const [importing, setImporting] = useState(false)
   const [sending, setSending] = useState(false)
 
+  console.log('[AddContactModal] Render state:', { open, activeTab })
+
   const handleImportContacts = async () => {
     setImporting(true)
     

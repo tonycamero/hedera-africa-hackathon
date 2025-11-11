@@ -26,7 +26,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { Client } from '@xmtp/browser-sdk'
+import type { Client } from '@xmtp/xmtp-js'
 import type { ScendIdentity } from '@/lib/identity/ScendIdentity'
 import { getXMTPClient, resetXMTPClient } from '@/lib/xmtp/client'
 

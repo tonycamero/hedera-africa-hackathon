@@ -1,5 +1,7 @@
 import type { ScendIdentity } from '@/lib/identity/ScendIdentity';
 import type { Client as XmtpClient } from '@xmtp/browser-sdk';
+import { Client, type Identifier } from '@xmtp/browser-sdk';
+import { XMTP_ENV } from '@/lib/config/xmtp';
 import type { BondedContact } from '@/lib/stores/signalsStore';
 
 export interface MessagingContact {
@@ -92,7 +94,12 @@ async function resolveEvmForHedera(hederaAccountId: string): Promise<string> {
       throw new Error(`No EVM address for Hedera ${hederaAccountId}`);
     }
     
-    const evmAddress = `0x${data.evm_address}`.toLowerCase();
+    // Mirror Node returns evm_address with 0x prefix already, ensure no double prefix
+    let evmAddress = data.evm_address.toLowerCase();
+    if (!evmAddress.startsWith('0x')) {
+      evmAddress = `0x${evmAddress}`;
+    }
+    
     evmCache.set(hederaAccountId, { evmAddress, ts: Date.now() });
     return evmAddress;
   } catch (error) {
@@ -102,36 +109,34 @@ async function resolveEvmForHedera(hederaAccountId: string): Promise<string> {
 }
 
 /**
- * Check XMTP reachability for an EVM address
- * Uses XMTP client.canMessage() with caching
+ * Check XMTP reachability for an EVM address (V3/V5 API)
+ * Uses Client.canMessage(Identifier[]) with caching
  */
 async function checkXmtpReachability(
-  xmtpClient: XmtpClient,
+  _xmtpClient: XmtpClient, // kept for signature compatibility, not used here
   evmAddress: string
 ): Promise<boolean> {
-  const cached = reachabilityCache.get(evmAddress);
+  const key = evmAddress.toLowerCase();
+  const cached = reachabilityCache.get(key);
   if (cached && Date.now() - cached.ts < REACHABILITY_TTL_MS) {
     return cached.hasXMTP;
   }
 
   try {
-    // XMTP Browser SDK v3 pattern
-    // Note: canMessage may not be available in all SDK versions
-    // For now, we'll check if method exists and fallback to true
-    let hasXMTP = true;
-    
-    // Check if canMessage method exists on client
-    if (typeof (xmtpClient as any).canMessage === 'function') {
-      hasXMTP = await (xmtpClient as any).canMessage(evmAddress);
-    } else {
-      // TODO: Update when XMTP Browser SDK v3 stable API is confirmed
-      // For now, assume reachable if no check available
-      console.warn('[contactsForMessaging] canMessage not available on XMTP client, assuming reachable');
-    }
+    const identifiers: Identifier[] = [
+      {
+        identifier: key,
+        identifierKind: 'Ethereum',
+      },
+    ];
 
-    reachabilityCache.set(evmAddress, { hasXMTP, ts: Date.now() });
-    
-    // Trim cache if over limit (simple FIFO, not true LRU)
+    // Use static canMessage with the same env as the client
+    const result = await Client.canMessage(identifiers, XMTP_ENV);
+    const hasXMTP = result.get(key) === true;
+
+    reachabilityCache.set(key, { hasXMTP, ts: Date.now() });
+
+    // Trim cache if over limit (simple FIFO)
     if (reachabilityCache.size > REACHABILITY_MAX) {
       const firstKey = reachabilityCache.keys().next().value;
       if (firstKey) {
@@ -141,7 +146,7 @@ async function checkXmtpReachability(
 
     return hasXMTP;
   } catch (error) {
-    console.warn(`[contactsForMessaging] Failed to check XMTP for ${evmAddress}:`, error);
+    console.warn(`[contactsForMessaging] Failed to check XMTP for ${key}:`, error);
     // Fail soft: assume not reachable on error
     return false;
   }

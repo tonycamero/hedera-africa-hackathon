@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { MessagingContact } from '@/lib/services/contactsForMessaging';
-import type { Client as XmtpClient } from '@xmtp/browser-sdk';
+import type { Client as XmtpClient, Dm, DecodedMessage, Identifier } from '@xmtp/browser-sdk';
 import { MessageComposer } from './MessageComposer';
 
 interface Message {
@@ -32,7 +32,7 @@ export function MessageThread({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const conversationRef = useRef<any>(null);
+  const dmRef = useRef<Dm | null>(null);
 
   // Scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -43,62 +43,70 @@ export function MessageThread({
     scrollToBottom();
   }, [messages]);
 
-  // Load conversation and messages
+  // Load DM and messages (XMTP V3 API)
   useEffect(() => {
     let streamCleanup: (() => void) | null = null;
 
-    const loadConversation = async () => {
+    const loadDm = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Get or create conversation
-        const conversations = await (xmtpClient as any).conversations.list();
-        let conversation = conversations.find(
-          (c: any) => c.peerAddress.toLowerCase() === contact.evmAddress.toLowerCase()
-        );
+        // Sync conversations from network first
+        await xmtpClient.conversations.sync();
 
-        if (!conversation) {
-          conversation = await (xmtpClient as any).conversations.newConversation(
-            contact.evmAddress
+        // Get list of existing DMs
+        const dms = await xmtpClient.conversations.listDms();
+        
+        // Find existing DM with this contact (match by member inboxId)
+        let dm = dms.find((d) => {
+          const members = d.members;
+          // Check if any member matches the contact's EVM address
+          return members.some((m) => 
+            m.accountAddresses.some((addr: string) => 
+              addr.toLowerCase() === contact.evmAddress.toLowerCase()
+            )
           );
+        });
+
+        // If no DM exists, create one
+        if (!dm) {
+          const identifier: Identifier = {
+            identifier: contact.evmAddress.toLowerCase(),
+            identifierKind: 'Ethereum'
+          };
+          dm = await xmtpClient.conversations.newDmWithIdentifier(identifier);
         }
 
-        conversationRef.current = conversation;
+        dmRef.current = dm;
+
+        // Sync messages
+        await dm.sync();
 
         // Load existing messages
-        const existingMessages = await conversation.messages();
-        const formattedMessages: Message[] = existingMessages.map((msg: any) => ({
-          id: msg.id || `${msg.sent}-${msg.senderAddress}`,
-          content: msg.content || msg.text || '',
-          senderAddress: msg.senderAddress.toLowerCase(),
-          sentAt: new Date(msg.sent),
-          isSent: msg.senderAddress.toLowerCase() === currentUserAddress.toLowerCase(),
+        const existingMessages = await dm.messages();
+        const formattedMessages: Message[] = existingMessages.map((msg: DecodedMessage) => ({
+          id: msg.id,
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          senderAddress: msg.senderInboxId, // V3 uses inboxId instead of address
+          sentAt: msg.sentAt,
+          isSent: msg.senderInboxId === xmtpClient.inboxId,
         }));
 
         setMessages(formattedMessages);
 
         // Stream new messages
-        const stream = await conversation.streamMessages();
-        streamCleanup = () => {
-          try {
-            if (stream && typeof stream.return === 'function') {
-              stream.return();
-            }
-          } catch (err) {
-            console.warn('[MessageThread] Stream cleanup warning:', err);
-          }
-        };
-
+        const stream = dm.streamMessages();
+        
         (async () => {
           try {
             for await (const message of stream) {
               const newMessage: Message = {
-                id: message.id || `${message.sent}-${message.senderAddress}`,
-                content: message.content || message.text || '',
-                senderAddress: message.senderAddress.toLowerCase(),
-                sentAt: new Date(message.sent),
-                isSent: message.senderAddress.toLowerCase() === currentUserAddress.toLowerCase(),
+                id: message.id,
+                content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
+                senderAddress: message.senderInboxId,
+                sentAt: message.sentAt,
+                isSent: message.senderInboxId === xmtpClient.inboxId,
               };
 
               setMessages((prev) => {
@@ -113,35 +121,39 @@ export function MessageThread({
             console.warn('[MessageThread] Stream ended:', err);
           }
         })();
+        
+        streamCleanup = () => {
+          // V3 streams are async iterators, no explicit cleanup needed
+        };
       } catch (err) {
-        console.error('[MessageThread] Failed to load conversation:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load conversation');
+        console.error('[MessageThread] Failed to load DM:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load DM');
       } finally {
         setLoading(false);
       }
     };
 
-    loadConversation();
+    loadDm();
 
     return () => {
       if (streamCleanup) {
         streamCleanup();
       }
     };
-  }, [contact.evmAddress, xmtpClient, currentUserAddress]);
+  }, [contact.evmAddress, xmtpClient]);
 
   const handleSendMessage = async (content: string) => {
-    if (!conversationRef.current) {
-      throw new Error('No active conversation');
+    if (!dmRef.current) {
+      throw new Error('No active DM');
     }
 
-    await conversationRef.current.send(content);
+    await dmRef.current.send(content);
 
     // Optimistically add message (stream will update it)
     const optimisticMessage: Message = {
       id: `temp-${Date.now()}`,
       content,
-      senderAddress: currentUserAddress.toLowerCase(),
+      senderAddress: xmtpClient.inboxId,
       sentAt: new Date(),
       isSent: true,
     };

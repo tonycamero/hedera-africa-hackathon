@@ -42,6 +42,19 @@ const nextConfig = {
       'zstd-napi': false
     }
 
+    // XMTP browser-sdk: Enable WASM and async WebAssembly
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true
+    }
+
+    // XMTP browser-sdk: Exclude from server bundle
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push('@xmtp/browser-sdk', '@xmtp/wasm-bindings')
+    }
+
     return config
   },
 }

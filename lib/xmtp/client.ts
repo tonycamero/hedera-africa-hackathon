@@ -1,23 +1,22 @@
 /**
- * XMTP Client Helper (Browser SDK v3)
+ * XMTP Client Helper (browser-sdk V3)
  * 
  * Creates and manages XMTP client for E2EE messaging
- * Uses @xmtp/browser-sdk (stable v3, NOT legacy xmtp-js)
+ * Uses @xmtp/browser-sdk v5 (XMTP V3 protocol)
  * 
  * Phase 1 Constraints:
  * - Client-only ('use client' required in calling components)
  * - Respects XMTP_ENABLED feature flag
  * - Returns null if disabled (fail-soft, no errors)
  * - Singleton pattern (cached client per session)
- * - Magic.link as EVM signer (ECDSA)
- * 
- * TODO Phase 2: Migrate to @xmtp/react-sdk if available
+ * - Magic.link as EVM signer
+ * - Automatic installation cleanup (keeps 5 most recent, revokes oldest)
  */
 
 'use client'
 
-import { Client, type Signer, type Identifier } from '@xmtp/browser-sdk'
-import { BrowserProvider } from 'ethers' // ethers v6
+import { Client, Utils } from '@xmtp/browser-sdk'
+import type { Identifier } from '@xmtp/browser-sdk'
 import { XMTP_ENABLED, XMTP_ENV, XMTP_APP_VERSION } from '@/lib/config/xmtp'
 import { magic } from '@/lib/magic'
 import type { ScendIdentity } from '@/lib/identity/ScendIdentity'
@@ -26,72 +25,130 @@ import type { ScendIdentity } from '@/lib/identity/ScendIdentity'
 let cachedClient: Client | null = null
 let initPromise: Promise<Client | null> | null = null
 
+// Maximum number of installations to keep (XMTP allows 10 total)
+// Keep 5 to allow room for new devices/browsers without hitting limit immediately
+const MAX_INSTALLATIONS = 5
+
 /**
- * Create XMTP Signer from Magic.link wallet
- * Adapts Magic's EVM signer to XMTP's Signer interface
+ * Create XMTP V3 Signer from Magic.link
+ * V3 uses a simpler interface: { type, getIdentifier, signMessage }
  * 
  * @param identity ScendIdentity with EVM address
- * @returns XMTP Signer (EOA type with signMessage capability)
+ * @returns Signer compatible with XMTP V3
  */
-async function createXMTPSigner(identity: ScendIdentity): Promise<Signer> {
+function createXMTPSigner(identity: ScendIdentity) {
   if (!magic) {
     throw new Error('[XMTP] Magic SDK not initialized')
   }
   
-  try {
-    // Step 1: Get Magic wallet provider
-    const rpcProvider = await magic.wallet.getProvider()
+  return {
+    type: 'EOA' as const,
     
-    // Step 2: Wrap in ethers v6 BrowserProvider
-    const ethersProvider = new BrowserProvider(rpcProvider)
+    getIdentifier: (): Identifier => {
+      return {
+        identifier: identity.evmAddress.toLowerCase(),
+        identifierKind: 'Ethereum' as const
+      }
+    },
     
-    // Step 3: Get signer from provider
-    const ethersSigner = await ethersProvider.getSigner()
-    
-    // Step 4: Get address (normalize to lowercase for consistency)
-    const address = (await ethersSigner.getAddress()).toLowerCase()
-    
-    console.log('[XMTP] Creating signer for address:', address)
-    
-    // Step 5: Create XMTP identifier
-    const identifier: Identifier = {
-      identifier: address,
-      identifierKind: 'Ethereum'
-    }
-    
-    // Step 6: Create XMTP Signer (EOA type)
-    const xmtpSigner: Signer = {
-      type: 'EOA',
+    signMessage: async (message: string): Promise<Uint8Array> => {
+      console.log('[XMTP] Signing message with Magic:', {
+        address: identity.evmAddress,
+        messagePreview: message.slice(0, 50)
+      })
       
-      // Returns the account identifier
-      getIdentifier: async () => identifier,
-      
-      // Signs messages using Magic's EVM signer
-      // Note: XMTP expects Uint8Array, ethers returns hex string
-      signMessage: async (message: string): Promise<Uint8Array> => {
-        try {
-          // Sign with ethers (returns hex string like "0x...")
-          const signatureHex = await ethersSigner.signMessage(message)
-          
-          // Convert hex string to Uint8Array
-          // Remove '0x' prefix and convert to bytes
-          const signatureBytes = new Uint8Array(
-            signatureHex.slice(2).match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
-          )
-          
-          return signatureBytes
-        } catch (error) {
-          console.error('[XMTP] Failed to sign message:', error)
-          throw error
+      try {
+        // Use Magic's personal_sign via RPC provider
+        const signature = await magic.rpcProvider.request({
+          method: 'personal_sign',
+          params: [message, identity.evmAddress]
+        }) as string
+        
+        console.log('[XMTP] Message signed successfully')
+        
+        // Convert hex signature to Uint8Array
+        const cleanSig = signature.startsWith('0x') ? signature.slice(2) : signature
+        const bytes = new Uint8Array(cleanSig.length / 2)
+        for (let i = 0; i < cleanSig.length; i += 2) {
+          bytes[i / 2] = parseInt(cleanSig.slice(i, i + 2), 16)
         }
+        
+        return bytes
+        
+      } catch (error) {
+        console.error('[XMTP] Failed to sign message:', error)
+        throw error
       }
     }
+  }
+}
+
+/**
+ * Prune old XMTP installations using Utils (before client creation).
+ * Fetches inbox state and revokes oldest installations to stay under limit.
+ * 
+ * @param utils XMTP Utils instance
+ * @param signer XMTP signer
+ * @param identifier User identifier
+ */
+async function pruneOldInstallationsPreCreate(
+  utils: Utils,
+  signer: ReturnType<typeof createXMTPSigner>,
+  identifier: Identifier
+): Promise<void> {
+  try {
+    // Step 1: Get inboxId for this identifier (without creating client)
+    const inboxId = await utils.getInboxIdForIdentifier(identifier, XMTP_ENV as 'dev' | 'production' | 'local')
     
-    return xmtpSigner
+    if (!inboxId) {
+      console.log('[XMTP] No inbox found — new user, skip cleanup')
+      return
+    }
     
-  } catch (error) {
-    console.error('[XMTP] Failed to create signer:', error)
-    throw error
+    console.log(`[XMTP] Found existing inbox: ${inboxId}`)
+    
+    // Step 2: Fetch inbox state using Utils (no client needed)
+    const states = await utils.inboxStateFromInboxIds([inboxId], XMTP_ENV as 'dev' | 'production' | 'local')
+    
+    if (!states || states.length === 0) {
+      console.warn('[XMTP] No inbox state found')
+      return
+    }
+    
+    const state = states[0]
+    const installations = state.installations || []
+
+    console.log(`[XMTP] Found ${installations.length} installations`)
+
+    if (installations.length < 10) {
+      console.log(`[XMTP] Under limit (${installations.length}/10), no cleanup needed`)
+      return
+    }
+
+    // Step 3: Sort by timestamp (oldest first)
+    const sorted = [...installations].sort(
+      (a, b) => Number((a.clientTimestampNs || 0n) - (b.clientTimestampNs || 0n))
+    )
+
+    // Step 4: Revoke oldest installations to bring count under limit
+    // Keep the 5 most recent for multi-device resilience
+    const keepCount = Math.min(MAX_INSTALLATIONS, installations.length - 1)
+    const revokeTargets = sorted.slice(0, installations.length - keepCount).map(i => i.bytes)
+    
+    console.log(`[XMTP] Revoking ${revokeTargets.length} old installations (keeping ${keepCount} most recent)...`)
+
+    // Step 5: Use Utils.revokeInstallations (no client needed)
+    await utils.revokeInstallations(
+      signer,
+      inboxId,
+      revokeTargets,
+      XMTP_ENV as 'dev' | 'production' | 'local'
+    )
+    
+    console.log('[XMTP] Old installations revoked successfully')
+  } catch (err) {
+    console.error('[XMTP] Pre-creation installation cleanup failed:', err)
+    throw err
   }
 }
 
@@ -133,27 +190,43 @@ async function initClient(identity: ScendIdentity): Promise<Client | null> {
   // Start initialization
   initPromise = (async () => {
     try {
-      console.log('[XMTP] Initializing client...', {
+      console.log('[XMTP] Initializing client with pre-cleanup...', {
         env: XMTP_ENV,
-        appVersion: XMTP_APP_VERSION,
         evmAddress: identity.evmAddress,
         hederaAccount: identity.hederaAccountId
       })
       
-      // Step 1: Create signer
-      const signer = await createXMTPSigner(identity)
+      // Create XMTP V3 signer from Magic
+      const signer = createXMTPSigner(identity)
       
-      // Step 2: Create XMTP client
+      // Build identifier
+      const identifier: Identifier = {
+        identifier: identity.evmAddress.toLowerCase(),
+        identifierKind: 'Ethereum' as const
+      }
+      
+      // Create Utils instance for pre-creation operations
+      const utils = new Utils()
+      
+      // PRE-CREATION CLEANUP: Check and clean installations BEFORE client creation
+      try {
+        await pruneOldInstallationsPreCreate(utils, signer, identifier)
+      } catch (cleanupError) {
+        // Log cleanup failure but continue - might be a new user
+        console.warn('[XMTP] Pre-creation cleanup failed (might be new user):', cleanupError)
+      }
+      
+      // Create XMTP client (should succeed now with room for new installation)
       const client = await Client.create(signer, {
-        env: XMTP_ENV,                    // 'dev' | 'production' | 'local'
-        appVersion: XMTP_APP_VERSION      // 'trustmesh/xmtp-sidecar-v0.1'
-        // Note: dbEncryptionKey is not used in browser environments (per XMTP docs)
+        env: XMTP_ENV as 'dev' | 'production' | 'local',
+        // Use in-memory storage for browser compatibility
+        dbPath: null
       })
       
-      console.log('[XMTP] Client initialized successfully', {
+      console.log('[XMTP] Client ready:', {
         inboxId: client.inboxId,
         installationId: client.installationId,
-        accountAddresses: client.accountAddresses
+        accountIdentifier: client.accountIdentifier
       })
       
       cachedClient = client
@@ -206,4 +279,37 @@ export function resetXMTPClient(): void {
   console.log('[XMTP] Resetting client cache')
   cachedClient = null
   initPromise = null
+}
+
+/**
+ * List all installations for the current user's XMTP inbox
+ * Useful for debugging and monitoring installation usage
+ * 
+ * @param client Authenticated XMTP client (from getXMTPClient)
+ * @returns Array of installations with metadata, or null if error
+ */
+export async function listInstallations(client: Client | null): Promise<Array<{
+  id: string
+  timestamp: string | null
+  isCurrent: boolean
+}> | null> {
+  if (!client) {
+    return null
+  }
+  
+  try {
+    const state = await client.inboxState(true)
+    const installations = state.installations || []
+    const currentInstallationId = client.installationId
+    
+    return installations.map(i => ({
+      id: i.id,
+      timestamp: i.clientTimestampNs ? new Date(Number(i.clientTimestampNs / 1000000n)).toISOString() : null,
+      isCurrent: i.id === currentInstallationId
+    }))
+    
+  } catch (error) {
+    console.error('[XMTP] Failed to list installations:', error)
+    return null
+  }
 }
