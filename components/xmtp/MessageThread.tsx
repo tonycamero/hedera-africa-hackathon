@@ -125,8 +125,17 @@ export function MessageThread({
               };
 
               // XMTP-11: Use upsert + sort for deterministic ordering
+              // LP-3: Remove temp optimistic messages when real message arrives
               setMessages((prev) => {
-                const withUpsert = upsertMessage(prev, newMessage);
+                // Remove temp messages with matching content and sender (prevent duplicates)
+                const withoutTemp = prev.filter(m => 
+                  !(m.id.startsWith('temp-') && 
+                    m.content === newMessage.content && 
+                    m.isSent === newMessage.isSent &&
+                    // Only remove if timestamps are close (within 5 seconds)
+                    Math.abs(m.sentAt.getTime() - newMessage.sentAt.getTime()) < 5000)
+                );
+                const withUpsert = upsertMessage(withoutTemp, newMessage);
                 return sortMessages(withUpsert);
               });
             }
