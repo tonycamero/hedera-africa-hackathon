@@ -162,16 +162,19 @@ export function MessageThread({
 
     await dmRef.current.send(content);
 
-    // Optimistically add message (stream will update it)
+    // LP-3: Optimistically add message using upsert+sort pattern (consistent with streaming)
     const optimisticMessage: Message = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique temp ID
       content,
       senderAddress: xmtpClient.inboxId,
       sentAt: new Date(),
       isSent: true,
     };
 
-    setMessages((prev) => [...prev, optimisticMessage]);
+    setMessages((prev) => {
+      const withUpsert = upsertMessage(prev, optimisticMessage);
+      return sortMessages(withUpsert);
+    });
   };
 
   if (loading) {
