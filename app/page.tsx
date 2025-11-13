@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { ArrowRight, Shield, Zap, Users } from "lucide-react";
+import { ArrowRight, Shield, Zap, Users, Code2, Globe, Rocket } from "lucide-react";
 import { MagicLogin } from '@/components/MagicLogin';
 import { Button } from "@/components/ui/button";
 
@@ -99,13 +99,6 @@ export default function Home() {
                   {/* Magic Login Form */}
                   <MagicLogin />
 
-                  {/* Demo link */}
-                  <div className="pt-4 border-t border-white/5">
-                    <Link href="/signals" className="flex items-center justify-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors group">
-                      <span>Explore demo</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </Link>
-                  </div>
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/5">
@@ -129,6 +122,111 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Narrative Section: Own Your Future */}
+      <div className="border-t border-white/5 bg-gradient-to-b from-black to-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fbbf24]/10 border border-[#fbbf24]/20">
+              <Globe className="w-3 h-3 text-[#fbbf24]" />
+              <span className="text-xs font-medium text-[#fbbf24]">Built in Africa, For the World</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-light tracking-tight">
+              Own Your Future.
+              <br />
+              <span className="text-[#10b981]">Build Without Permission.</span>
+            </h2>
+            <p className="text-lg text-zinc-400 leading-relaxed">
+              Your reputation shouldn't be locked in walled gardens. TrustMesh is an open protocol for portable credibility—build trust once, use it everywhere. Break free from platform lock-in. Your identity, your data, your sovereignty.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+              <div className="flex items-center gap-2 text-sm text-zinc-500">
+                <Rocket className="w-4 h-4 text-[#10b981]" />
+                <span>Upward mobility you own</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-500">
+                <Shield className="w-4 h-4 text-[#10b981]" />
+                <span>Anti-platform, pro-human</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Developer Section: HCS-21 & HCS-22 Standards */}
+      <div className="border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24">
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10b981]/10 border border-[#10b981]/20">
+                <Code2 className="w-3 h-3 text-[#10b981]" />
+                <span className="text-xs font-medium text-[#10b981]">Open Standard</span>
+              </div>
+              <h2 className="text-4xl font-light tracking-tight">
+                Help Shape the Standard
+              </h2>
+              <p className="text-lg text-zinc-400 leading-relaxed">
+                TrustMesh is built on <strong className="text-white">HCS-21</strong> (Trust Signals) and <strong className="text-white">HCS-22</strong> (Identity Resolution)—proposed open standards for decentralized reputation on Hedera.
+              </p>
+              <p className="text-base text-zinc-500 leading-relaxed">
+                We need protocol designers, cryptographers, and builders to refine these specs. This is early. Your input matters.
+              </p>
+            </div>
+
+            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-8 space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#10b981]/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-mono font-medium text-[#10b981]">21</span>
+                  </div>
+                  <div>
+                    <div className="text-base font-medium text-white">HCS-21: Trust Signals</div>
+                    <div className="text-sm text-zinc-500 mt-1">Immutable recognition tokens on Hedera Consensus Service</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#10b981]/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-mono font-medium text-[#10b981]">22</span>
+                  </div>
+                  <div>
+                    <div className="text-base font-medium text-white">HCS-22: Identity Resolution</div>
+                    <div className="text-sm text-zinc-500 mt-1">Bind DIDs to Hedera accounts without revealing identity</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-white/5">
+                <p className="text-sm text-zinc-400 mb-4">Want to contribute?</p>
+                <a 
+                  href="https://scend.cash" 
+                  target="_blank" 
+                  rel="noopener"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#10b981] hover:bg-[#10b981]/90 text-black font-medium text-sm transition-colors"
+                >
+                  <span>Contact Us</span>
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 bg-black">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-12">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-sm text-zinc-600">
+              © 2025 TrustMesh · Built on <span className="text-[#10b981]">Hedera</span> · Infrastructure by <a href="https://scend.cash" target="_blank" rel="noopener" className="text-[#fbbf24] hover:text-[#fbbf24]/80 transition-colors">Scend</a>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="/signals" className="text-sm text-zinc-600 hover:text-white transition-colors">Demo</Link>
+              <a href="https://scend.cash" target="_blank" rel="noopener" className="text-sm text-zinc-600 hover:text-white transition-colors">Scend</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
