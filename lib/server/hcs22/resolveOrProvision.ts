@@ -84,6 +84,7 @@ export async function resolveOrProvision(issuer: string): Promise<ResolutionResu
   // Step 5: No existing binding - provision new account (with lock)
   console.log(`[ResolveOrProvision] No existing account for ${did}, provisioning...`);
   
+  // Use extended TTL (60s) to allow for Mirror Node propagation retries
   const accountId = await withIdentityLock(did, async () => {
     // Double-check after acquiring lock (another request may have completed)
     const recheck = await queryMirrorNode(did);
@@ -122,7 +123,7 @@ export async function resolveOrProvision(issuer: string): Promise<ResolutionResu
     }
     
     return newAccountId;
-  });
+  }, 60000); // 60s TTL for Mirror Node propagation
   
   updateCache(did, accountId);
   
@@ -218,10 +219,10 @@ async function provisionHederaAccount(did: string): Promise<string> {
   console.log(`[Provision] Waiting for mirror propagation...`);
   
   let mirrorAccountId: string | null = null;
-  const maxRetries = 6; // Up to ~15 seconds total
+  const maxRetries = 10; // Up to ~40 seconds total
   
   for (let i = 0; i < maxRetries; i++) {
-    const waitMs = Math.min(1000 * Math.pow(1.5, i), 4000); // 1s, 1.5s, 2.25s, 3.38s, 4s, 4s
+    const waitMs = Math.min(2000 * Math.pow(1.3, i), 6000); // 2s, 2.6s, 3.38s, 4.39s, 5.71s, 6s...
     await new Promise(resolve => setTimeout(resolve, waitMs));
     
     mirrorAccountId = await queryMirrorNode(did);
