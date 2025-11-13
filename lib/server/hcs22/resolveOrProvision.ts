@@ -214,15 +214,29 @@ async function provisionHederaAccount(did: string): Promise<string> {
   const receipt = await tx.getReceipt(client);
   
   // Query the account that was just created via the EVM alias
-  // The Mirror Node will now have the mapping
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for mirror propagation
+  // The Mirror Node needs time to propagate - retry with exponential backoff
+  console.log(`[Provision] Waiting for mirror propagation...`);
   
-  const mirrorAccountId = await queryMirrorNode(did);
-  if (!mirrorAccountId) {
-    throw new Error(`Failed to verify account creation for ${evmAddress}`);
+  let mirrorAccountId: string | null = null;
+  const maxRetries = 6; // Up to ~15 seconds total
+  
+  for (let i = 0; i < maxRetries; i++) {
+    const waitMs = Math.min(1000 * Math.pow(1.5, i), 4000); // 1s, 1.5s, 2.25s, 3.38s, 4s, 4s
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+    
+    mirrorAccountId = await queryMirrorNode(did);
+    if (mirrorAccountId) {
+      console.log(`[Provision] Account verified after ${i + 1} attempts: ${mirrorAccountId}`);
+      break;
+    }
+    
+    console.log(`[Provision] Attempt ${i + 1}/${maxRetries} - not found yet, retrying...`);
   }
   
-  console.log(`[Provision] Account created: ${mirrorAccountId}`);
+  if (!mirrorAccountId) {
+    throw new Error(`Failed to verify account creation for ${evmAddress} after ${maxRetries} attempts`);
+  }
+  
   return mirrorAccountId;
 }
 
