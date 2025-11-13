@@ -190,7 +190,7 @@ async function queryMirrorNode(did: string): Promise<string | null> {
 
 /**
  * Provision new Hedera account for DID
- * Uses operator account to send dust transfer for auto-create
+ * Creates account directly using Hedera SDK with EVM alias auto-create
  */
 async function provisionHederaAccount(did: string): Promise<string> {
   // Extract EVM address from DID
@@ -198,20 +198,32 @@ async function provisionHederaAccount(did: string): Promise<string> {
   
   console.log(`[Provision] Creating Hedera account for EVM alias ${evmAddress}`);
   
-  // Call existing account creation endpoint
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/hedera/account/create-alias`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ evmAddress })
-  });
+  // Use Hedera SDK directly instead of internal fetch
+  const { getHederaClient } = await import('@/lib/hedera/serverClient');
+  const { TransferTransaction, Hbar, AccountId } = await import('@hashgraph/sdk');
   
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Account provision failed: ${error}`);
+  const client = await getHederaClient();
+  
+  // Create account by sending 1 HBAR to EVM alias (auto-create)
+  // The EVM alias format triggers Hedera's auto-account-creation
+  const tx = await new TransferTransaction()
+    .addHbarTransfer(client.operatorAccountId!, new Hbar(-1))
+    .addHbarTransfer(AccountId.fromEvmAddress(0, 0, evmAddress), new Hbar(1))
+    .execute(client);
+  
+  const receipt = await tx.getReceipt(client);
+  
+  // Query the account that was just created via the EVM alias
+  // The Mirror Node will now have the mapping
+  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for mirror propagation
+  
+  const mirrorAccountId = await queryMirrorNode(did);
+  if (!mirrorAccountId) {
+    throw new Error(`Failed to verify account creation for ${evmAddress}`);
   }
   
-  const { accountId } = await response.json();
-  return accountId;
+  console.log(`[Provision] Account created: ${mirrorAccountId}`);
+  return mirrorAccountId;
 }
 
 /**
