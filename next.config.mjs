@@ -21,7 +21,12 @@ const nextConfig = {
       },
     ]
   },
-  serverExternalPackages: ['@hashgraph/sdk', '@hashgraphonline/standards-sdk'],
+  serverExternalPackages: [
+    '@hashgraph/sdk',
+    '@hashgraphonline/standards-sdk',
+    '@xmtp/browser-sdk',
+    '@xmtp/wasm-bindings'
+  ],
   webpack: (config, { isServer }) => {
     // Handle HCS-2 SDK React Native dependencies
     config.resolve.fallback = {
@@ -49,10 +54,25 @@ const nextConfig = {
       layers: true
     }
 
-    // XMTP browser-sdk: Exclude from server bundle
+    // XMTP browser-sdk: Completely exclude from server bundle (prevent require() errors)
     if (isServer) {
-      config.externals = config.externals || []
-      config.externals.push('@xmtp/browser-sdk', '@xmtp/wasm-bindings')
+      // Use externals as a function to fully skip XMTP modules on server
+      const originalExternals = config.externals || []
+      config.externals = [
+        ...originalExternals,
+        // Mark XMTP packages as external for server bundles
+        ({ request }, callback) => {
+          if (
+            request === '@xmtp/browser-sdk' ||
+            request === '@xmtp/wasm-bindings' ||
+            request?.startsWith('@xmtp/browser-sdk/') ||
+            request?.startsWith('@xmtp/wasm-bindings/')
+          ) {
+            return callback(null, `commonjs ${request}`)
+          }
+          callback()
+        }
+      ]
     }
 
     return config
