@@ -16,6 +16,14 @@ export function getCanonicalDid(issuer: string): string {
     throw new Error('[getCanonicalDid] Issuer required');
   }
 
+  // CRITICAL: Handle email: prefix (stable identifier format)
+  // This ensures same email always maps to same DID regardless of Magic issuer format
+  if (issuer.startsWith('email:')) {
+    const email = issuer.replace('email:', '');
+    const hash = hashEmail(email);
+    return `did:ethr:0x${hash}`;
+  }
+
   // If already a proper did:ethr with hex address, use as-is
   if (issuer.startsWith('did:ethr:0x')) {
     return issuer;

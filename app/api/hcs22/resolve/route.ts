@@ -52,8 +52,15 @@ export async function POST(req: NextRequest) {
     }
     
     // HARD GUARD: Derive canonical DID from verified issuer (no PII)
-    const identityDid = getCanonicalDid(auth.issuer);
+    // CRITICAL: Use email as stable identifier if available (Magic can return different issuer formats)
+    const stableIdentifier = auth.email ? `email:${auth.email}` : auth.issuer;
+    const identityDid = getCanonicalDid(stableIdentifier);
     assertSafeForHCS(identityDid);
+    
+    console.log(`[HCS22 ${mode}] Using stable identifier: ${auth.email ? 'email' : 'issuer'}`);
+    console.log(`[HCS22 ${mode}] Auth issuer: ${auth.issuer}`);
+    console.log(`[HCS22 ${mode}] Auth email: ${auth.email || 'none'}`);
+    console.log(`[HCS22 ${mode}] Canonical DID: ${identityDid}`);
     
     console.log(`[HCS22 ${mode}] Processing for ${identityDid}`);
 
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
     // BIND mode: Resolve or provision Hedera account (server-side only)
     if (mode === 'BIND') {
       console.log(`[HCS22 BIND] Resolving/provisioning account for ${identityDid}`);
-      const resolution = await resolveOrProvision(auth.issuer);
+      const resolution = await resolveOrProvision(stableIdentifier);
       hederaAccountId = resolution.hederaAccountId;
       resolutionSource = resolution.source;
       console.log(`[HCS22 BIND] Resolved to ${hederaAccountId} (source: ${resolutionSource})`);
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest) {
     } else {
       // ASSERT mode: Publish assertion event
       // Note: We need an account ID to assert, so resolve without provisioning
-      const resolution = await resolveOrProvision(auth.issuer);
+      const resolution = await resolveOrProvision(stableIdentifier);
       hederaAccountId = resolution.hederaAccountId;
       resolutionSource = resolution.source;
       
@@ -149,7 +156,8 @@ export async function GET(req: NextRequest) {
     // Authenticated lookup mode - resolve current user's DID
     if (mode === 'lookup') {
       const auth = await requireMagicAuth(req);
-      did = getCanonicalDid(auth.issuer);
+      const stableIdentifier = auth.email ? `email:${auth.email}` : auth.issuer;
+      did = getCanonicalDid(stableIdentifier);
       console.log(`[HCS22 GET] Authenticated lookup for ${did}`);
       
       // Use full resolver (cache → reducer → mirror)

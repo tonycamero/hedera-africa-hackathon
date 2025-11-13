@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh"
+import { SendSignalsModal } from "@/components/SendSignalsModal"
 
 interface EnhancedSignal extends SignalEvent {
   firstName: string
