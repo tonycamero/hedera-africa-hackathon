@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PurpleFlame } from '@/components/ui/TrustAgentFlame'
 import { GenZButton, GenZCard, GenZText } from '@/components/ui/genz-design-system'
 import { UserPlus, X } from 'lucide-react'
@@ -8,6 +8,14 @@ import { UserPlus, X } from 'lucide-react'
 export function TrustAgentNav() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  
+  // Load from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+    const seen = localStorage.getItem('trustmesh:trust-agent-seen') === 'true'
+    setHasSeenOnboarding(seen)
+  }, [])
   
   const nudges = [
     "Hey who's on your mind? Go add them to your TrustMesh crew 💫",
@@ -25,6 +33,7 @@ export function TrustAgentNav() {
     setIsExpanded(!isExpanded)
     if (!hasSeenOnboarding) {
       setHasSeenOnboarding(true)
+      localStorage.setItem('trustmesh:trust-agent-seen', 'true')
     }
   }
 
@@ -32,12 +41,12 @@ export function TrustAgentNav() {
     <>
       {/* Flame in Navigation */}
       <div 
-        className="cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-all duration-200 group"
+        className="cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-all duration-200 group relative"
         onClick={handleFlameClick}
       >
         <PurpleFlame size="sm" active={true} />
         {/* Subtle indicator for new users */}
-        {!hasSeenOnboarding && (
+        {mounted && !hasSeenOnboarding && (
           <div className="absolute -top-1 -right-1 w-2 h-2 bg-boost-500 rounded-full animate-ping" />
         )}
       </div>

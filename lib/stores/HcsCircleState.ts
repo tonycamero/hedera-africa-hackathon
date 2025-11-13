@@ -12,8 +12,6 @@
  * Privacy alignment: Returns ONLY first-degree connections for authenticated user
  */
 
-'use client'
-
 export interface CircleNode {
   accountId: string
   handle: string

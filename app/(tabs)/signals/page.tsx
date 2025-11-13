@@ -21,7 +21,9 @@ import {
   Calendar,
   User,
   Gift,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Filter
 } from "lucide-react"
 import { toast } from "sonner"
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh"
@@ -121,6 +123,14 @@ export default function SignalsPage() {
   const [loading, setLoading] = useState(true)
   const [userTokens] = useState(getUserTokenCollection())
   const [selectedSignal, setSelectedSignal] = useState<EnhancedSignal | null>(null)
+  const [filter, setFilter] = useState<'all' | 'from-me' | 'to-me' | 'mine'>(() => {
+    // Load filter from localStorage
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('signals_filter') as any) || 'all'
+    }
+    return 'all'
+  })
+  const [showMintModal, setShowMintModal] = useState(false)
   
   const loadIdRef = useRef(0)
 
@@ -346,7 +356,15 @@ export default function SignalsPage() {
     }
   }
 
+  // Apply direction filter
+  const sessionId = getSessionId()
   const filteredSignals = selectedTab === 'feed' ? signals.filter(signal => {
+    // Apply direction filter first
+    if (filter === 'from-me' && signal.actor !== sessionId) return false
+    if (filter === 'to-me' && signal.target !== sessionId) return false
+    if (filter === 'mine' && signal.actor !== sessionId && signal.target !== sessionId) return false
+    
+    // Then apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return signal.firstName.toLowerCase().includes(query) || 
@@ -354,6 +372,14 @@ export default function SignalsPage() {
     }
     return true
   }) : []
+
+  // Save filter to localStorage
+  const handleFilterChange = (newFilter: typeof filter) => {
+    setFilter(newFilter)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('signals_filter', newFilter)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]">
@@ -383,6 +409,33 @@ export default function SignalsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10 py-3 bg-white/5 border-white/10 text-white placeholder-white/40 focus:border-[#FF6B35]/50 rounded-lg text-sm"
         />
+      </div>
+
+      {/* Quick Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {[
+          { id: 'all', label: 'All', icon: Filter },
+          { id: 'from-me', label: 'From Me', icon: User },
+          { id: 'to-me', label: 'To Me', icon: Gift },
+          { id: 'mine', label: 'Mine', icon: Activity },
+        ].map((filterOption) => {
+          const Icon = filterOption.icon
+          const isActive = filter === filterOption.id
+          return (
+            <button
+              key={filterOption.id}
+              onClick={() => handleFilterChange(filterOption.id as typeof filter)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
+                isActive
+                  ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30 shadow-[0_0_8px_rgba(255,107,53,0.3)]'
+                  : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {filterOption.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Mobile Tabs */}
@@ -698,6 +751,16 @@ export default function SignalsPage() {
           </div>
         </div>
       )}
+
+      {/* Mint Signal FAB */}
+      <SendSignalsModal>
+        <button
+          className="fixed bottom-20 right-4 z-30 w-14 h-14 bg-gradient-to-r from-[#FF6B35] to-yellow-400 rounded-full shadow-[0_0_20px_rgba(255,107,53,0.6)] hover:shadow-[0_0_30px_rgba(255,107,53,0.8)] transition-all active:scale-95 flex items-center justify-center"
+          aria-label="Mint Signal"
+        >
+          <Plus className="w-6 h-6 text-black" />
+        </button>
+      </SendSignalsModal>
     </div>
     </div>
   )

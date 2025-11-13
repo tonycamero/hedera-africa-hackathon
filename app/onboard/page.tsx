@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Loader2, Gift, Coins } from 'lucide-react'
 import { Button, Card, Input, Text } from '@/components/ui/kit'
@@ -23,6 +23,9 @@ export default function OnboardingPage() {
   const [stipendLoading, setStipendLoading] = useState(false)
   const [showCarousel, setShowCarousel] = useState(false)
   const [hasExistingProfile, setHasExistingProfile] = useState(false)
+  
+  // Ref to prevent double-execution in React StrictMode
+  const stipendRequestInProgress = useRef(false)
 
   useEffect(() => {
     async function checkAuth() {
@@ -90,6 +93,13 @@ export default function OnboardingPage() {
   const handleAcceptStipend = async () => {
     if (!magicUser || stipendLoading || stipendAccepted) return
     
+    // Guard against double-execution (React StrictMode in dev)
+    if (stipendRequestInProgress.current) {
+      console.log('[Onboarding] Stipend request already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    stipendRequestInProgress.current = true;
     setStipendLoading(true)
     try {
       const magicToken = await magic?.user.getIdToken()
@@ -143,6 +153,7 @@ export default function OnboardingPage() {
       })
     } finally {
       setStipendLoading(false)
+      stipendRequestInProgress.current = false;
     }
   }
 

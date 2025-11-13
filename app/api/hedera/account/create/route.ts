@@ -46,42 +46,19 @@ export async function POST(req: NextRequest) {
       console.log('[API] Using Magic-provided public key');
     }
 
-    // 1. Create new Hedera account with 1 HBAR initial balance and auto-association slots
+    // 1. Create new Hedera account with 0 balance - user will fund via stipend acceptance
+    // Note: Minimum balance for account creation is 0 (account remains dormant until funded)
     const accountCreateTx = await new AccountCreateTransaction()
       .setKey(userPublicKey)
-      .setInitialBalance(new Hbar(1)) // 1 HBAR for gas
+      .setInitialBalance(new Hbar(0)) // No initial balance - funded via stipend
       .setMaxAutomaticTokenAssociations(10) // Enable auto-association for first 10 tokens
       .execute(client);
 
     const accountCreateReceipt = await accountCreateTx.getReceipt(client);
     const newAccountId = accountCreateReceipt.accountId!.toString();
 
-    console.log('[API] Created account:', newAccountId);
-
-    // 2. Transfer initial TRST to new account (will auto-associate on first transfer)
-    const TRST_TOKEN_ID = process.env.NEXT_PUBLIC_TRST_TOKEN_ID;
-    
-    if (!TRST_TOKEN_ID) {
-      console.warn('[API] No TRST token ID configured, skipping TRST transfer');
-    } else {
-      try {
-        console.log('[API] Transferring TRST (will auto-associate on receipt)...');
-        
-        // TRST has 6 decimals, so 1.35 TRST = 1,350,000 smallest units
-        const trstAmount = 1_350_000;
-
-        // Transfer TRST - account will auto-associate thanks to setMaxAutomaticTokenAssociations
-        await new TransferTransaction()
-          .addTokenTransfer(TRST_TOKEN_ID, operatorId, -trstAmount)
-          .addTokenTransfer(TRST_TOKEN_ID, newAccountId, trstAmount)
-          .execute(client);
-
-        console.log(`[API] Transferred ${trstAmount / 1_000_000} TRST to ${newAccountId} (auto-associated)`);
-      } catch (trstError: any) {
-        console.error('[API] TRST transfer failed:', trstError.message);
-        // Don't fail the whole request if TRST transfer fails
-      }
-    }
+    console.log('[API] Created account with 0 balance:', newAccountId);
+    console.log('[API] Account will be funded when user accepts stipend');
 
     // Publish IDENTITY_BIND to HCS-22 for durable persistence
     if (magicDID) {

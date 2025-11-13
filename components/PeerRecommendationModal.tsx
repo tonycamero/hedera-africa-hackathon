@@ -149,16 +149,10 @@ export function PeerRecommendationModal({ children }: PeerRecommendationModalPro
       const effectiveSessionId = sessionId || 'tm-alex-chen'
       console.log('[PeerRecommendationModal] Loading contacts for session:', effectiveSessionId)
       
-      // Load bonded contacts from server API (same as contacts page)
-      const response = await fetch(`/api/circle?sessionId=${effectiveSessionId}`)
-      const data = await response.json()
-      
-      if (data.success && data.bondedContacts) {
-        setBondedContacts(data.bondedContacts)
-        console.log(`[PeerRecommendationModal] Loaded ${data.bondedContacts.length} bonded contacts from server API`)
-      } else {
-        console.error('[PeerRecommendationModal] Failed to load contacts:', data.error)
-      }
+      // Load bonded contacts directly from signalsStore (same as contacts page)
+      const contacts = signalsStore.getBondedContacts(effectiveSessionId)
+      setBondedContacts(contacts)
+      console.log(`[PeerRecommendationModal] Loaded ${contacts.length} bonded contacts from signalsStore`)
       
       // Pure HCS data flow - no enhanced contacts needed
       setEnhancedContacts([])

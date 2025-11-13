@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { hederaClient } from "@/packages/hedera/HederaClient"
 import { signalsStore, type SignalEvent } from "@/lib/stores/signalsStore"
 import { getSessionProfile } from "@/lib/session"
+import { resolveScendIdentity } from "@/lib/identity/resolveScendIdentity"
 import { hashContactRequest } from "@/lib/crypto/hash"
 import { logTxClient } from "@/lib/telemetry/txLog"
 import { CameraScanner } from "@/components/CameraScanner"
@@ -96,14 +97,18 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
   const [validatedInvite, setValidatedInvite] = useState<ContactRequestPayload | null>(null)  // Validated secure payload
   const [qrDataUrl, setQrDataUrl] = useState<string>("")
   const [sessionProfile, setSessionProfile] = useState<any>(null)
+  const [userIdentity, setUserIdentity] = useState<any>(null)
   const [securePayload, setSecurePayload] = useState<ContactRequestPayload | null>(null)
   const [expiresIn, setExpiresIn] = useState<number>(120) // seconds until expiry
   const [isGenerating, setIsGenerating] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
 
-  // Load session profile on mount
+  // Load session profile and identity on mount
   useEffect(() => {
-    getSessionProfile().then(setSessionProfile)
+    Promise.all([
+      getSessionProfile().then(setSessionProfile),
+      resolveScendIdentity().then(setUserIdentity).catch(() => null)
+    ])
   }, [])
 
   // Generate secure signed QR payload when dialog opens
@@ -117,6 +122,7 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
           sessionProfile.hederaAccountId || sessionProfile.sessionId,
           sessionProfile.handle || sessionProfile.displayName || 'Anonymous',
           sessionProfile.profileHrl || `hrl:tm/${sessionProfile.sessionId}`,
+          userIdentity?.evmAddress, // Pass EVM address for XMTP
           120 // 2 minute expiry
         )
         
@@ -312,6 +318,7 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
         requestHash,
         acceptorAccountId,
         acceptorHandle,
+        userIdentity?.evmAddress, // Pass EVM address for XMTP
         true // Enable auto-mutual bonding
       )
       
@@ -329,15 +336,20 @@ export function AddContactDialog({ children, handle }: { children?: React.ReactN
       signalsStore.add(acceptEvent)
       
       // Create CONTACT_MIRROR for auto-mutual bonding
+      // This represents the original requester's reciprocal acceptance
       const acceptHash = await hashPayload(acceptPayload)
       const mirrorPayload = await createContactMirror(
         requestHash,
         acceptHash,
-        validatedInvite.from.acct,
-        acceptorAccountId
+        validatedInvite.from.acct,  // requester (will be 'from' in payload)
+        acceptorAccountId,          // acceptor (will be 'to' in payload)
+        validatedInvite.from.evm,   // requester's EVM address
+        userIdentity?.evmAddress    // acceptor's EVM address
       )
       
       // Add CONTACT_MIRROR signal
+      // Actor is the requester (who is mirroring back acceptance)
+      // Target is the acceptor (who they're bonding with)
       const mirrorEvent = {
         id: `contact_mirror_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         type: 'CONTACT_MIRROR' as const,

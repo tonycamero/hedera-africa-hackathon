@@ -26,13 +26,7 @@ import { recognitionSignals, type RecognitionSignal, type SignalCategory } from 
 import { SignalDetailModal } from './SignalDetailModal'
 import { magic } from '@/lib/magic'
 import { payTRSTToTreasury } from '@/lib/hedera/transferTRST'
-
-interface BondedContact {
-  peerId: string
-  handle: string
-  hrl?: string
-  bondedAt?: string | number
-}
+import { signalsStore, type BondedContact } from '@/lib/stores/signalsStore'
 
 interface SendSignalsModalProps {
   children: React.ReactNode
@@ -108,16 +102,10 @@ export function SendSignalsModal({ children }: SendSignalsModalProps) {
         return
       }
       
-      const response = await fetch(`/api/circle?sessionId=${sessionId}`)
-      const data = await response.json()
-      
-      if (data.success && data.bondedContacts) {
-        setBondedContacts(data.bondedContacts)
-        console.log(`[SendSignals] Loaded ${data.bondedContacts.length} bonded contacts`)
-      } else {
-        console.error('[SendSignals] Failed to load contacts:', data.error)
-        toast.error('Failed to load contacts')
-      }
+      // Load contacts directly from signalsStore (same as /contacts page)
+      const contacts = signalsStore.getBondedContacts(sessionId)
+      setBondedContacts(contacts)
+      console.log(`[SendSignals] Loaded ${contacts.length} bonded contacts from signalsStore`)
     } catch (error) {
       console.error('[SendSignals] Error loading contacts:', error)
       toast.error('Failed to load contacts')

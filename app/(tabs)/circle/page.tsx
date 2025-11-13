@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Users, UserPlus, Settings, Circle, User, MessageCircle, X, Plus } from "lucide-react"
 import { type BondedContact, signalsStore } from "@/lib/stores/signalsStore"
 import { getSessionId } from "@/lib/session"
+import { getValidMagicToken } from "@/lib/auth/getValidMagicToken"
 import { StoicGuideModal } from "@/components/StoicGuideModal"
 
 // Circle of Trust LED Visualization Component - Enhanced for Mobile
@@ -96,14 +97,14 @@ export default function CirclePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showContactSelection, setShowContactSelection] = useState(false)
 
-  // Load real data from server-side API
+  // Load real data directly from signalsStore
   useEffect(() => {
     const loadCircleData = async () => {
       try {
         setIsLoading(true)
         const currentSessionId = getSessionId()
         
-        // If no session (not authenticated), don't try to load from backend
+        // If no session (not authenticated), don't try to load data
         if (!currentSessionId) {
           console.log('🔥 [CirclePage] No session ID - user not authenticated')
           setSessionId('') // Empty session indicates unauthenticated state
@@ -113,54 +114,55 @@ export default function CirclePage() {
         
         setSessionId(currentSessionId)
         
-        console.log('🔥 [CirclePage] Loading circle data from server API for:', currentSessionId)
+        console.log('🔥 [CirclePage] Loading circle data from signalsStore for:', currentSessionId)
         
-        // Load circle data from server-side API
-        const response = await fetch(`/api/circle?sessionId=${currentSessionId}`)
-        const data = await response.json()
+        // Load bonded contacts directly from signalsStore (same as contacts page)
+        const contacts = signalsStore.getBondedContacts(currentSessionId)
+        setBondedContacts(contacts)
+        console.log(`[CirclePage] Loaded ${contacts.length} bonded contacts from signalsStore`)
         
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to load circle data')
-        }
-        
-        console.log('🔥 [CirclePage] Received circle data from API:', data)
-        setBondedContacts(data.bondedContacts)
-        
-        // Convert trust levels object back to Map
+        // Build trust levels map from TRUST_ALLOCATE events
         const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
-        Object.entries(data.trustLevels).forEach(([key, value]) => {
-          trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
-        })
+        const trustEvents = signalsStore.getAll().filter(e => e.type === 'TRUST_ALLOCATE')
         
-        // Merge optimistic TRUST_ALLOCATE events from local store that haven't arrived via HCS yet
-        const localTrustEvents = signalsStore.getAll().filter(e => 
-          e.type === 'TRUST_ALLOCATE' && 
-          e.actor === currentSessionId &&
-          e.source === 'hcs-cached' &&
-          e.ts > Date.now() - 60000 // Only consider events from last minute
-        )
-        
-        let optimisticCount = 0
-        localTrustEvents.forEach(event => {
+        trustEvents.forEach(event => {
           const targetId = event.target
-          if (targetId && !trustLevelsMap.has(targetId)) {
-            // This trust allocation hasn't arrived from HCS yet, add it optimistically
-            trustLevelsMap.set(targetId, { allocatedTo: 1, receivedFrom: 0 })
-            optimisticCount++
-            console.log(`[CirclePage] Added optimistic trust allocation to ${targetId}`)
+          if (!targetId) return
+          
+          // Track trust allocated TO others (outgoing)
+          if (event.actor === currentSessionId) {
+            const existing = trustLevelsMap.get(targetId) || { allocatedTo: 0, receivedFrom: 0 }
+            existing.allocatedTo += 1
+            trustLevelsMap.set(targetId, existing)
+          }
+          
+          // Track trust received FROM others (incoming)
+          if (event.target === currentSessionId) {
+            const actorId = event.actor
+            const existing = trustLevelsMap.get(actorId) || { allocatedTo: 0, receivedFrom: 0 }
+            existing.receivedFrom += 1
+            trustLevelsMap.set(actorId, existing)
           }
         })
         
         setTrustLevels(trustLevelsMap)
         
-        // Update trust stats with optimistic allocations included
-        const finalAllocatedOut = data.trustStats.allocatedOut + optimisticCount
-        setTrustStats({ 
-          ...data.trustStats, 
-          allocatedOut: finalAllocatedOut 
+        // Calculate circle members (those with allocated trust)
+        const circleMembers = contacts.filter(contact => {
+          const trustData = trustLevelsMap.get(contact.peerId || '')
+          return trustData && trustData.allocatedTo > 0
         })
         
-        console.log(`[CirclePage] Loaded ${data.bondedContacts.length} bonded contacts with ${finalAllocatedOut}/${data.trustStats.maxSlots} trust allocated (${optimisticCount} optimistic)`)
+        // Update trust stats
+        const allocatedOut = circleMembers.length
+        const maxSlots = 9
+        setTrustStats({ 
+          allocatedOut,
+          maxSlots,
+          bondedContacts: contacts.length
+        })
+        
+        console.log(`[CirclePage] Loaded ${contacts.length} bonded contacts with ${allocatedOut}/${maxSlots} trust allocated`)
       } catch (error) {
         console.error('[CirclePage] Failed to load circle data:', error)
         toast.error('Failed to load circle data')
@@ -171,9 +173,14 @@ export default function CirclePage() {
 
     loadCircleData()
     
-    // Refresh every 30 seconds
-    const interval = setInterval(loadCircleData, 30000)
-    return () => clearInterval(interval)
+    // Subscribe to signalsStore changes for real-time updates
+    const unsubscribe = signalsStore.subscribe(() => {
+      loadCircleData()
+    })
+    
+    return () => {
+      unsubscribe()
+    }
   }, [])
   
   // Circle members - ONLY show contacts to whom trust has been allocated
@@ -273,22 +280,8 @@ export default function CirclePage() {
         description: 'Trust allocated on Hedera ledger'
       })
       
-      // Reload in background to sync with ledger (but UI already updated)
-      fetch(`/api/circle?sessionId=${sessionId}`)
-        .then(res => res.json())
-        .then(circleData => {
-          if (circleData.success) {
-            setBondedContacts(circleData.bondedContacts)
-            setTrustStats(circleData.trustStats)
-            
-            const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
-            Object.entries(circleData.trustLevels).forEach(([key, value]) => {
-              trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
-            })
-            setTrustLevels(trustLevelsMap)
-          }
-        })
-        .catch(err => console.warn('[CirclePage] Background sync failed:', err))
+      // signalsStore will automatically update when HCS events arrive
+      // No need for background sync - the useEffect will retrigger via signalsStore.subscribe
     } catch (error) {
       console.error('[CirclePage] Failed to add member:', error)
       

@@ -36,21 +36,14 @@ export function MessageThread({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dmRef = useRef<Dm | null>(null);
 
-  // Scroll to bottom when messages change
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // XMTP-12: Mark conversation as read when messages load/update
   useEffect(() => {
     if (!dmRef.current || messages.length === 0) return;
 
     const lastMessage = messages[messages.length - 1];
-    const lastMs = lastMessage.sentAt.getTime();
+    const lastMs = lastMessage.sentAt instanceof Date 
+      ? lastMessage.sentAt.getTime() 
+      : new Date(lastMessage.sentAt).getTime();
     const conversationId = (dmRef.current as any).topic ?? (dmRef.current as any).id ?? '';
 
     if (conversationId) {
@@ -61,6 +54,7 @@ export function MessageThread({
   // Load DM and messages (XMTP V3 API)
   useEffect(() => {
     let streamCleanup: (() => void) | null = null;
+    let syncInterval: NodeJS.Timeout | null = null;
 
     const loadDm = async () => {
       try {
@@ -75,9 +69,9 @@ export function MessageThread({
         
         // Find existing DM with this contact (match by member inboxId)
         let dm = dms.find((d) => {
-          const members = d.members;
+          const members = typeof d.members === 'function' ? d.members() : d.members;
           // Check if any member matches the contact's EVM address
-          return members.some((m) => 
+          return Array.isArray(members) && members.some((m) => 
             m.accountAddresses.some((addr: string) => 
               addr.toLowerCase() === contact.evmAddress.toLowerCase()
             )
@@ -90,7 +84,16 @@ export function MessageThread({
             identifier: contact.evmAddress.toLowerCase(),
             identifierKind: 'Ethereum'
           };
-          dm = await xmtpClient.conversations.newDmWithIdentifier(identifier);
+          
+          try {
+            dm = await xmtpClient.conversations.newDmWithIdentifier(identifier);
+          } catch (createError: any) {
+            // Check if error is due to missing inbox ID
+            if (createError?.message?.includes('inbox id') || createError?.message?.includes('not found')) {
+              throw new Error(`${contact.displayName} hasn't enabled XMTP yet. They need to sign in and activate encrypted messaging first.`);
+            }
+            throw createError;
+          }
         }
 
         dmRef.current = dm;
@@ -99,23 +102,75 @@ export function MessageThread({
         await dm.sync();
 
         // Load existing messages and sort them (XMTP-11)
+        // Filter out system messages (membership changes, etc)
         const existingMessages = await dm.messages();
-        const formattedMessages: Message[] = existingMessages.map((msg: DecodedMessage) => ({
-          id: msg.id,
-          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          senderAddress: msg.senderInboxId, // V3 uses inboxId instead of address
-          sentAt: msg.sentAt,
-          isSent: msg.senderInboxId === xmtpClient.inboxId,
-        }));
+        console.log(`[MessageThread] 📥 Loaded ${existingMessages.length} existing messages`);
+        
+        const formattedMessages: Message[] = existingMessages
+          .filter((msg: DecodedMessage) => {
+            // Only include text content messages (filter out system messages)
+            return typeof msg.content === 'string' || 
+                   (msg.content && typeof msg.content === 'object' && !msg.content.initiatedByInboxId);
+          })
+          .map((msg: DecodedMessage) => ({
+            id: msg.id,
+            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+            senderAddress: msg.senderInboxId, // V3 uses inboxId instead of address
+            sentAt: msg.sentAt,
+            isSent: msg.senderInboxId === xmtpClient.inboxId,
+          }));
 
+        console.log(`[MessageThread] 💬 Displaying ${formattedMessages.length} text messages`);
         setMessages(sortMessages(formattedMessages));
 
-        // Stream new messages
-        const stream = dm.streamMessages();
+        // Periodic sync to fetch new messages (every 2 seconds)
+        syncInterval = setInterval(async () => {
+          try {
+            console.log('[MessageThread] 🔄 Syncing messages...');
+            await dm.sync();
+            const latestMessages = await dm.messages();
+            console.log(`[MessageThread] 📬 Fetched ${latestMessages.length} total messages from XMTP`);
+            
+            const filtered = latestMessages
+              .filter((msg: DecodedMessage) => {
+                const isText = typeof msg.content === 'string' || 
+                       (msg.content && typeof msg.content === 'object' && !msg.content.initiatedByInboxId);
+                if (!isText) {
+                  console.log('[MessageThread] ⏭️  Filtering out system message:', msg.id);
+                }
+                return isText;
+              })
+              .map((msg: DecodedMessage) => ({
+                id: msg.id,
+                content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+                senderAddress: msg.senderInboxId,
+                sentAt: msg.sentAt,
+                isSent: msg.senderInboxId === xmtpClient.inboxId,
+              }));
+            
+            console.log(`[MessageThread] 💬 Displaying ${filtered.length} text messages`);
+            setMessages(sortMessages(filtered));
+          } catch (err) {
+            console.warn('[MessageThread] Sync failed:', err);
+          }
+        }, 2000);
+
+        // Stream new messages (XMTP V3 uses .stream() not .streamMessages())
+        const stream = dm.stream();
         
         (async () => {
           try {
             for await (const message of stream) {
+              // Filter out system messages (membership changes, group updates)
+              const isSystemMessage = message.content && 
+                typeof message.content === 'object' && 
+                (message.content.initiatedByInboxId || message.content.addedInboxes || message.content.removedInboxes);
+              
+              if (isSystemMessage) {
+                console.log('[MessageThread] Skipping system message:', message.id);
+                continue;
+              }
+              
               const newMessage: Message = {
                 id: message.id,
                 content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
@@ -148,8 +203,14 @@ export function MessageThread({
           // V3 streams are async iterators, no explicit cleanup needed
         };
       } catch (err) {
-        console.error('[MessageThread] Failed to load DM:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load DM');
+        // Warn instead of error for expected cases (user hasn't onboarded to XMTP)
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load DM';
+        if (errorMessage.includes("hasn't enabled XMTP yet")) {
+          console.warn('[MessageThread] Contact not onboarded to XMTP:', errorMessage);
+        } else {
+          console.error('[MessageThread] Failed to load DM:', err);
+        }
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -161,6 +222,9 @@ export function MessageThread({
       if (streamCleanup) {
         streamCleanup();
       }
+      if (syncInterval) {
+        clearInterval(syncInterval);
+      }
     };
   }, [contact.evmAddress, xmtpClient]);
 
@@ -169,7 +233,20 @@ export function MessageThread({
       throw new Error('No active DM');
     }
 
-    await dmRef.current.send(content);
+    console.log('[MessageThread] Sending message:', {
+      content,
+      dmId: (dmRef.current as any).id,
+      recipientAddress: contact.evmAddress,
+      senderInboxId: xmtpClient.inboxId
+    });
+
+    try {
+      await dmRef.current.send(content);
+      console.log('[MessageThread] ✅ Message sent successfully to XMTP');
+    } catch (error) {
+      console.error('[MessageThread] ❌ Failed to send message:', error);
+      throw error;
+    }
 
     // LP-3: Optimistically add message using upsert+sort pattern (consistent with streaming)
     const optimisticMessage: Message = {
@@ -179,6 +256,8 @@ export function MessageThread({
       sentAt: new Date(),
       isSent: true,
     };
+
+    console.log('[MessageThread] Added optimistic message:', optimisticMessage.id);
 
     setMessages((prev) => {
       const withUpsert = upsertMessage(prev, optimisticMessage);
@@ -288,10 +367,28 @@ export function MessageThread({
               >
                 <p className="text-sm break-words">{message.content}</p>
                 <p className="text-xs opacity-70 mt-1">
-                  {message.sentAt.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {(() => {
+                    try {
+                      const date = message.sentAt instanceof Date 
+                        ? message.sentAt 
+                        : new Date(message.sentAt);
+                      
+                      // Check if date is valid
+                      if (isNaN(date.getTime())) {
+                        // Try converting nanoseconds to milliseconds
+                        const ns = typeof message.sentAt === 'number' ? message.sentAt : 0;
+                        const msDate = new Date(ns / 1000000); // Convert nanoseconds to ms
+                        if (!isNaN(msDate.getTime())) {
+                          return msDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        }
+                        return 'Just now';
+                      }
+                      
+                      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } catch {
+                      return 'Just now';
+                    }
+                  })()}
                 </p>
               </div>
             </div>

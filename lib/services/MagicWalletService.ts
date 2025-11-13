@@ -215,32 +215,9 @@ export async function loginWithMagicEmail(email: string): Promise<MagicHederaUse
     throw new Error(`Failed to setup Hedera account: ${error.message}`);
   }
 
-  // Step 5: Fund the account with HBAR and TRST via backend
-  try {
-    console.log('[Magic] Funding Hedera account via backend...');
-    const fundResponse = await fetch('/api/hedera/account/fund', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        accountId: hederaAccountId,
-        email: userEmail,
-        magicDID
-      }),
-    });
-
-    if (!fundResponse.ok) {
-      const error = await fundResponse.text();
-      console.warn('[Magic] Failed to fund account:', error);
-      // Don't fail the whole flow if funding fails
-    } else {
-      console.log('[Magic] Account funded successfully');
-    }
-  } catch (error: any) {
-    console.warn('[Magic] Account funding error:', error.message);
-  }
+  // Step 5: Skip automatic funding - user will accept stipend during onboarding
+  // This requires user signature to associate TRST token
+  console.log('[Magic] Account created - user will accept stipend during onboarding');
 
   // Step 6: Create user record
   const newUser: MagicHederaUser = {

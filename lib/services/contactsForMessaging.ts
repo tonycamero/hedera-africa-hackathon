@@ -2,7 +2,7 @@ import type { ScendIdentity } from '@/lib/identity/ScendIdentity';
 import type { Client as XmtpClient } from '@xmtp/browser-sdk';
 import { Client, type Identifier } from '@xmtp/browser-sdk';
 import { XMTP_ENV } from '@/lib/config/xmtp';
-import type { BondedContact } from '@/lib/stores/signalsStore';
+import { signalsStore } from '@/lib/stores/signalsStore';
 
 export interface MessagingContact {
   hederaAccountId: string;
@@ -10,12 +10,6 @@ export interface MessagingContact {
   displayName: string;
   bonded: boolean;
   hasXMTP: boolean;
-  lastBondedAt?: number;
-}
-
-interface BondedContactInternal {
-  hederaAccountId: string;
-  displayName: string;
   lastBondedAt?: number;
 }
 
@@ -29,76 +23,58 @@ const REACHABILITY_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const REACHABILITY_MAX = 100; // LRU cap
 
 /**
- * Load bonded contacts from existing Circle API
- * Reuses the same backend endpoint that powers the Circle page
- */
-async function loadBondedContacts(hederaAccountId: string): Promise<BondedContactInternal[]> {
-  try {
-    const res = await fetch(`/api/circle?sessionId=${encodeURIComponent(hederaAccountId)}`);
-    
-    if (!res.ok) {
-      console.warn('[contactsForMessaging] Failed to load circle data', res.status);
-      return [];
-    }
-    
-    const data = await res.json();
-    
-    if (!data.success) {
-      console.warn('[contactsForMessaging] Circle API returned error:', data.error);
-      return [];
-    }
-    
-    // Map BondedContact[] from API to internal format
-    return (data.bondedContacts as BondedContact[]).map((c: BondedContact) => ({
-      hederaAccountId: c.peerId || '',
-      displayName: c.handle || c.peerId || 'Unknown',
-      lastBondedAt: c.bondedAt ? Date.parse(c.bondedAt) : undefined,
-    })).filter(c => c.hederaAccountId); // Filter out invalid entries
-  } catch (error) {
-    console.error('[contactsForMessaging] Failed to load bonded contacts:', error);
-    return [];
-  }
-}
-
-/**
- * Resolve EVM address from Hedera account ID
- * Uses Mirror Node API via existing /api/hcs22/resolve endpoint
+ * Resolve EVM address from Hedera account ID using XMTP's inbox lookup
+ * XMTP can find users by their Hedera account if they've initialized with Magic
  * 
- * NOTE: Current HCS-22 resolver is issuer->accountId (EVM->Hedera).
- * We need reverse lookup (Hedera->EVM). For Phase 1, we'll use Mirror Node
- * account query which includes the EVM address alias if set.
+ * For Magic users: XMTP stores the mapping between their EVM address (from Magic)
+ * and any identifiers they used (including Hedera account format)
  */
 async function resolveEvmForHedera(hederaAccountId: string): Promise<string> {
   const cached = evmCache.get(hederaAccountId);
   if (cached && Date.now() - cached.ts < EVM_CACHE_TTL_MS) {
+    console.log(`[contactsForMessaging] Using cached EVM for ${hederaAccountId}: ${cached.evmAddress}`);
     return cached.evmAddress;
   }
 
+  console.log(`[contactsForMessaging] Resolving EVM address for Hedera account: ${hederaAccountId}`);
+
   try {
-    // Query Mirror Node for account details
-    // Format: https://testnet.mirrornode.hedera.com/api/v1/accounts/{accountId}
-    const mirrorUrl = process.env.NEXT_PUBLIC_HEDERA_NETWORK === 'mainnet'
-      ? 'https://mainnet-public.mirrornode.hedera.com'
-      : 'https://testnet.mirrornode.hedera.com';
+    // Try XMTP's identifier lookup first - this works for users who initialized XMTP
+    const { Utils } = await import('@xmtp/browser-sdk');
+    const utils = new Utils();
+    const env = XMTP_ENV as 'dev' | 'production' | 'local';
     
-    const res = await fetch(`${mirrorUrl}/api/v1/accounts/${hederaAccountId}`);
+    console.log(`[contactsForMessaging] Looking up inbox ID for ${hederaAccountId} in XMTP ${env}`);
     
-    if (!res.ok) {
-      throw new Error(`Mirror Node returned ${res.status} for ${hederaAccountId}`);
+    // Try to get inbox ID for this Hedera account
+    // XMTP can resolve users who signed up with any identifier format
+    const inboxId = await utils.getInboxIdForIdentifier(
+      {
+        identifier: hederaAccountId,
+        identifierKind: 'Ethereum' // XMTP treats all as Ethereum-style
+      },
+      env
+    );
+    
+    if (!inboxId) {
+      console.warn(`[contactsForMessaging] No XMTP inbox found for ${hederaAccountId}`);
+      throw new Error(`No XMTP inbox found for ${hederaAccountId}`);
     }
     
-    const data = await res.json();
+    console.log(`[contactsForMessaging] Found inbox ID for ${hederaAccountId}: ${inboxId}`);
     
-    // Mirror Node returns account.evm_address field
-    if (!data.evm_address) {
-      throw new Error(`No EVM address for Hedera ${hederaAccountId}`);
+    // Get the inbox state to find their actual EVM addresses
+    const states = await utils.inboxStateFromInboxIds([inboxId], env);
+    
+    if (!states || states.length === 0 || !states[0].accountAddresses || states[0].accountAddresses.length === 0) {
+      console.warn(`[contactsForMessaging] No account addresses found for inbox ${inboxId}`);
+      throw new Error(`No account addresses for inbox ${inboxId}`);
     }
     
-    // Mirror Node returns evm_address with 0x prefix already, ensure no double prefix
-    let evmAddress = data.evm_address.toLowerCase();
-    if (!evmAddress.startsWith('0x')) {
-      evmAddress = `0x${evmAddress}`;
-    }
+    // Use their first EVM address (this is the Magic address they signed up with)
+    const evmAddress = states[0].accountAddresses[0].toLowerCase();
+    
+    console.log(`[contactsForMessaging] Resolved EVM address for ${hederaAccountId}: ${evmAddress}`);
     
     evmCache.set(hederaAccountId, { evmAddress, ts: Date.now() });
     return evmAddress;
@@ -168,48 +144,34 @@ export async function getContactsForMessaging(
     return [];
   }
 
-  // 1. Load HCS-bonded contacts
-  const bondedContacts = await loadBondedContacts(identity.hederaAccountId);
+  // 1. Load HCS-bonded contacts directly from signalsStore
+  const bondedContacts = signalsStore.getBondedContacts(identity.hederaAccountId);
 
   // 2. If no XMTP client (flag off or init failed), return basic list
   if (!xmtpClient) {
     return bondedContacts.map((c) => ({
-      hederaAccountId: c.hederaAccountId,
+      hederaAccountId: c.peerId,
       evmAddress: '',
-      displayName: c.displayName || c.hederaAccountId,
+      displayName: c.handle || c.peerId,
       bonded: true,
       hasXMTP: false,
-      lastBondedAt: c.lastBondedAt,
+      lastBondedAt: c.bondedAt ? new Date(c.bondedAt).getTime() : undefined,
     }));
   }
 
-  // 3. Resolve EVM + reachability in parallel
-  const results = await Promise.all(
-    bondedContacts.map(async (c) => {
-      try {
-        const evmAddress = await resolveEvmForHedera(c.hederaAccountId);
-        const hasXMTP = await checkXmtpReachability(xmtpClient, evmAddress);
-
-        return {
-          hederaAccountId: c.hederaAccountId,
-          evmAddress,
-          displayName: c.displayName || evmAddress || c.hederaAccountId,
-          bonded: true,
-          hasXMTP,
-          lastBondedAt: c.lastBondedAt,
-        } as MessagingContact;
-      } catch {
-        return {
-          hederaAccountId: c.hederaAccountId,
-          evmAddress: '',
-          displayName: c.displayName || c.hederaAccountId,
-          bonded: true,
-          hasXMTP: false,
-          lastBondedAt: c.lastBondedAt,
-        } as MessagingContact;
-      }
-    })
-  );
+  // 3. Return contacts with their EVM addresses (exchanged during bonding)
+  const results = bondedContacts.map((c) => {
+    const lastBondedAt = c.bondedAt ? new Date(c.bondedAt).getTime() : undefined;
+    
+    return {
+      hederaAccountId: c.peerId,
+      evmAddress: c.evmAddress || '', // Use EVM address from bonding exchange
+      displayName: c.handle || c.peerId,
+      bonded: true,
+      hasXMTP: !!c.evmAddress, // Has XMTP if they shared their EVM address
+      lastBondedAt,
+    } as MessagingContact;
+  });
 
   // 4. Sort contacts by lastBondedAt desc (fallback: displayName asc)
   return results.sort((a, b) => {

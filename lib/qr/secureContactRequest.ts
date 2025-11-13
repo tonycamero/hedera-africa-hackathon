@@ -22,6 +22,7 @@ export interface ContactRequestPayload {
     handle: string      // Display name
     profileHrl: string  // Profile reference
     pk?: string         // Public key (optional)
+    evm?: string        // EVM address (for XMTP)
   }
   to: string            // "peer:any" or specific account
   aud: string           // Expected action
@@ -39,10 +40,12 @@ export interface ContactAcceptPayload {
   from: {
     acct: string
     handle: string
+    evm?: string        // EVM address (for XMTP)
   }
   to: {
     acct: string
     handle: string
+    evm?: string        // EVM address (for XMTP)
   }
   mutual: boolean       // Auto-mutual bonding flag
   iat: number
@@ -60,9 +63,11 @@ export interface ContactMirrorPayload {
   }>
   from: {
     acct: string
+    evm?: string        // EVM address (for XMTP)
   }
   to: {
     acct: string
+    evm?: string        // EVM address (for XMTP)
   }
   iat: number
   sig?: string
@@ -78,6 +83,7 @@ export async function createContactRequest(
   accountId: string,
   handle: string,
   profileHrl: string,
+  evmAddress?: string,
   expirySeconds: number = 120 // 2 minutes default
 ): Promise<ContactRequestPayload> {
   const now = Math.floor(Date.now() / 1000)
@@ -92,7 +98,8 @@ export async function createContactRequest(
     from: {
       acct: accountId,
       handle,
-      profileHrl
+      profileHrl,
+      evm: evmAddress
     },
     to: 'peer:any',
     aud: 'trustmesh://contact-accept',
@@ -174,6 +181,7 @@ export async function createContactAccept(
   requestHash: string,
   acceptorAccountId: string,
   acceptorHandle: string,
+  acceptorEvmAddress?: string,
   autoMutual: boolean = true
 ): Promise<ContactAcceptPayload> {
   const now = Math.floor(Date.now() / 1000)
@@ -187,11 +195,13 @@ export async function createContactAccept(
     },
     from: {
       acct: acceptorAccountId,
-      handle: acceptorHandle
+      handle: acceptorHandle,
+      evm: acceptorEvmAddress
     },
     to: {
       acct: requestPayload.from.acct,
-      handle: requestPayload.from.handle
+      handle: requestPayload.from.handle,
+      evm: requestPayload.from.evm
     },
     mutual: autoMutual,
     iat: now
@@ -221,7 +231,9 @@ export async function createContactMirror(
   requestHash: string,
   acceptHash: string,
   requesterAccountId: string,
-  acceptorAccountId: string
+  acceptorAccountId: string,
+  requesterEvmAddress?: string,
+  acceptorEvmAddress?: string
 ): Promise<ContactMirrorPayload> {
   const now = Math.floor(Date.now() / 1000)
 
@@ -235,10 +247,12 @@ export async function createContactMirror(
       acceptHash
     }],
     from: {
-      acct: requesterAccountId
+      acct: requesterAccountId,
+      evm: requesterEvmAddress
     },
     to: {
-      acct: acceptorAccountId
+      acct: acceptorAccountId,
+      evm: acceptorEvmAddress
     },
     iat: now
   }

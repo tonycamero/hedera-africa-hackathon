@@ -12,6 +12,9 @@ import { Magic } from '@magic-sdk/admin';
 
 const magic = new Magic(process.env.MAGIC_SECRET_KEY!);
 
+// In-memory lock to prevent concurrent funding for same account
+const fundingLocks = new Set<string>();
+
 export async function POST(req: NextRequest) {
   try {
     // Verify Magic DID token
@@ -34,9 +37,23 @@ export async function POST(req: NextRequest) {
 
     console.log('[API] Funding request for account:', accountId);
     
-    const client = await getHederaClient();
-    const operatorId = client.operatorAccountId!;
-    const targetAccountId = AccountId.fromString(accountId);
+    // Check if funding already in progress for this account
+    if (fundingLocks.has(accountId)) {
+      console.log('[API] Funding already in progress for:', accountId);
+      return NextResponse.json({
+        success: false,
+        error: 'Funding already in progress for this account',
+        alreadyInProgress: true
+      }, { status: 409 });
+    }
+    
+    // Acquire lock
+    fundingLocks.add(accountId);
+    
+    try {
+      const client = await getHederaClient();
+      const operatorId = client.operatorAccountId!;
+      const targetAccountId = AccountId.fromString(accountId);
     
     // Check current balance - if account already has funds, skip stipend
     try {
@@ -45,12 +62,13 @@ export async function POST(req: NextRequest) {
       
       console.log(`[API] Current balance: ${hbarBalance} HBAR`);
       
-      // If account has at least 0.5 HBAR, they've already been funded
-      if (hbarBalance >= 0.5) {
+      // If account has at least 0.9 HBAR, they've already received the stipend
+      // (stipend is 1 HBAR, so anything >= 0.9 means they got it)
+      if (hbarBalance >= 0.9) {
         console.log('[API] Account already funded - skipping stipend');
         return NextResponse.json({
           success: false,
-          error: 'Account already funded',
+          error: 'Stipend already claimed for this account',
           alreadyFunded: true
         }, { status: 400 });
       }
@@ -130,15 +148,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log('[API] Stipend successfully delivered to account:', accountId);
-    
-    return NextResponse.json({
-      success: true,
-      accountId,
-      hbarFunded: true,
-      trstFunded: !!TRST_TOKEN_ID,
-      message: '🎁 Welcome stipend delivered! 1 HBAR + 1.35 TRST'
-    });
+      console.log('[API] Stipend successfully delivered to account:', accountId);
+      
+      return NextResponse.json({
+        success: true,
+        accountId,
+        hbarFunded: true,
+        trstFunded: !!TRST_TOKEN_ID,
+        message: '🎁 Welcome stipend delivered! 1 HBAR + 1.35 TRST'
+      });
+    } finally {
+      // Release lock
+      fundingLocks.delete(accountId);
+    }
   } catch (error: any) {
     console.error('[API] Account funding failed:', error);
     return NextResponse.json(

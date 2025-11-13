@@ -9,7 +9,7 @@ import { circleState } from '@/lib/stores/HcsCircleState'
 import { normalizeHcsMessage } from './normalizers'
 import { backfillTopic } from './restBackfill'
 import { connectTopicWs } from './wsStream'
-import { loadCursor, saveCursor } from './cursor'
+import { loadCursor, saveCursor, clearAllCursors, getAllCursors } from './cursor'
 import { syncState } from '@/lib/sync/syncState'
 
 interface IngestStats {
@@ -149,8 +149,17 @@ async function backfillAllTopics(): Promise<void> {
   
   const backfillPromises = validTopics.map(async ([key, topicId]) => {
     const topicKey = key as TopicKey
-    // Skip backfill cursor for demo - always fetch recent messages only
-    const since = null
+    
+    // Try to load saved cursor, fallback to 7-day lookback
+    let since = await loadCursor(topicKey)
+    
+    if (!since) {
+      // No cursor saved - use 7-day lookback window
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+      const sevenDaysAgoSec = Math.floor(sevenDaysAgo / 1000)
+      since = `${sevenDaysAgoSec}.0`
+      console.info(`[Ingest] No cursor for ${topicKey}, using 7-day lookback: ${since}`)
+    }
     
     try {
       const { count, last } = await backfillTopic({
@@ -412,10 +421,27 @@ function exposeDebugInterface(): void {
       },
       clearCaches: () => {
         signalsStore.clear()
+        circleState.clear()
         Object.keys(stats).forEach(key => {
           const topicKey = key as TopicKey
           stats[topicKey] = { backfilled: 0, streamed: 0, duplicates: 0, failed: 0 }
         })
+      },
+      // NEW: Cursor management for debugging
+      cursors: () => getAllCursors(),
+      clearCursors: async () => {
+        await clearAllCursors()
+        console.log('[Debug] Cursors cleared - restart ingestion to resync from 7 days ago')
+      },
+      forceResync: async () => {
+        console.log('[Debug] Force resync: clearing all caches and cursors...')
+        await clearAllCursors()
+        signalsStore.clear()
+        circleState.clear()
+        stopIngestion()
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        await startIngestion()
+        console.log('[Debug] Resync complete - reloaded from 7-day lookback window')
       }
     }
   } else {

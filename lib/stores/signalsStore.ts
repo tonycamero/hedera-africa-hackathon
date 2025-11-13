@@ -65,6 +65,7 @@ export type TokenStatus = "active" | "transferred" | "burned"
 export interface BondedContact {
   peerId: string
   handle?: string
+  evmAddress?: string // EVM address for XMTP messaging
   bondedAt: number | string
   trustLevel?: number
   isBonded?: boolean  // true = mutual ACCEPT, false = pending REQUEST
@@ -188,6 +189,89 @@ class SignalsStore {
     }
 
     return filtered
+  }
+
+  // --- Contact Helpers ---
+  getBondedContacts(sessionId: string): BondedContact[] {
+    console.log('[getBondedContacts] Called for sessionId:', sessionId)
+    console.log('[getBondedContacts] Total signals in store:', this.signals.length)
+    
+    // Find all CONTACT_ACCEPT and CONTACT_MIRROR events involving this user
+    const contactEvents = this.signals.filter(s => 
+      (s.type === 'CONTACT_ACCEPT' || s.type === 'CONTACT_MIRROR') &&
+      (s.actor === sessionId || s.target === sessionId)
+    )
+    
+    console.log('[getBondedContacts] Found contactEvents:', contactEvents.length)
+    contactEvents.forEach(e => {
+      console.log('[getBondedContacts] Event:', e.type, 'actor:', e.actor, 'target:', e.target, 'source:', e.source, 'ts:', e.ts)
+    })
+    
+    // Build unique contact list
+    const contactsMap = new Map<string, BondedContact>()
+    
+    for (const event of contactEvents) {
+      const contactId = event.actor === sessionId ? event.target : event.actor
+      if (!contactId || contactId === sessionId) continue
+      
+      const existing = contactsMap.get(contactId)
+      
+      // If we already have this contact, only update if the new event is from HCS (confirmed)
+      if (existing) {
+        if (event.source === 'hcs' && existing.isPending) {
+          existing.isPending = false // Upgrade from pending to confirmed
+        }
+        continue
+      }
+      
+      // New contact - add it
+      const metadata = event.metadata as any
+      
+      // Extract contact info based on who initiated vs who accepted
+      const isUserActor = event.actor === sessionId
+      const contactData = isUserActor ? metadata?.to : metadata?.from
+      
+      const handle = contactData?.handle || 
+                    metadata?.from?.handle || 
+                    metadata?.to?.handle || 
+                    metadata?.acceptor?.handle ||
+                    metadata?.requester?.handle ||
+                    `User ${contactId.slice(-6)}`
+      
+      const hrl = contactData?.hrl ||
+                 metadata?.from?.hrl || 
+                 metadata?.to?.hrl || 
+                 `hrl:tm/${contactId}`
+      
+      const evmAddress = contactData?.evm ||
+                        metadata?.from?.evm ||
+                        metadata?.to?.evm
+      
+      contactsMap.set(contactId, {
+        peerId: contactId,
+        handle,
+        evmAddress,
+        hrl,
+        bondedAt: event.ts,
+        isBonded: true,
+        // Mark as pending only if this event is from recent local cache (< 2 min old)
+        // AND we haven't seen an HCS confirmation yet
+        isPending: event.source === 'hcs-cached' && (Date.now() - event.ts < 120000)
+      })
+    }
+    
+    // Get latest profile names for contacts
+    const profileUpdates = this.signals.filter(s => s.type === 'PROFILE_UPDATE')
+    for (const [contactId, contact] of contactsMap.entries()) {
+      const profile = profileUpdates.find(p => p.actor === contactId)
+      if (profile && profile.metadata?.displayName) {
+        contact.handle = profile.metadata.displayName
+      }
+    }
+    
+    const result = Array.from(contactsMap.values())
+    console.log('[getBondedContacts] Returning', result.length, 'contacts:', result.map(c => c.peerId))
+    return result
   }
 
   // --- Profile Update Helper ---
@@ -360,7 +444,7 @@ class SignalsStore {
           recognitionDefinitions: this.recognitionDefinitions,
           boostCounts: Array.from(this.boostCounts.entries())
         }
-        localStorage.setItem('trustmesh_signals', JSON.stringify(data))
+        localStorage.setItem('trustmesh:signals', JSON.stringify(data))
       }
     } catch (error) {
       console.warn('[SignalsStore] Failed to persist to storage:', error)
@@ -370,7 +454,7 @@ class SignalsStore {
   loadFromStorage(): void {
     try {
       if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('trustmesh_signals')
+        const stored = localStorage.getItem('trustmesh:signals')
         if (stored) {
           const data = JSON.parse(stored)
           this.signals = data.signals || []

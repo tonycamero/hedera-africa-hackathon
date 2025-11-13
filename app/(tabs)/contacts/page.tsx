@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type BondedContact, signalsStore } from '@/lib/stores/signalsStore'
 import { getSessionId } from '@/lib/session'
+import { getValidMagicToken } from '@/lib/auth/getValidMagicToken'
 import { AddContactModal } from '@/components/AddContactModal'
 import { AddContactDialog } from '@/components/AddContactDialog'
 import { CreateRecognitionModal } from '@/components/recognition/CreateRecognitionModal'
 import { ContactProfileSheet } from '@/components/ContactProfileSheet'
 import { SendSignalsModal } from '@/components/SendSignalsModal'
 import { useRemainingMints } from '@/lib/hooks/useRemainingMints'
+import { InnerCircleDrawer } from '@/components/InnerCircleDrawer'
 import { 
   Search,
   MessageCircle,
@@ -33,115 +35,63 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<BondedContact | null>(null)
   const [showRecognitionModal, setShowRecognitionModal] = useState(false)
   const [recognitionRecipient, setRecognitionRecipient] = useState<{ accountId: string; handle?: string } | null>(null)
+  const [showInnerCircle, setShowInnerCircle] = useState(false)
   
   // Mint counter hook
   const { loading: mintsLoading, remainingMints, trstBalance, cost, needsTopUp } = useRemainingMints(sessionId)
 
   useEffect(() => {
-    const loadContacts = async () => {
+    const loadContacts = () => {
       try {
         setIsLoading(true)
         const currentSessionId = getSessionId()
         
-        // If no session (not authenticated), don't try to load from backend
+        // If no session (not authenticated), show empty state
         if (!currentSessionId) {
           console.log('[ContactsPage] No session ID - user not authenticated')
-          setSessionId('') // Empty session indicates unauthenticated state
+          setSessionId('')
+          setBondedContacts([])
           setIsLoading(false)
           return
         }
         
         setSessionId(currentSessionId)
         
-        console.log('[ContactsPage] Loading contacts for Hedera Account ID:', currentSessionId)
+        console.log('[ContactsPage] Loading contacts from signalsStore for:', currentSessionId)
         
-        // Load from server-side API (same as circle page)
-        const response = await fetch(`/api/circle?sessionId=${currentSessionId}`)
-        const data = await response.json()
+        // Load contacts directly from signalsStore
+        const contacts = signalsStore.getBondedContacts(currentSessionId)
         
-        console.log('[ContactsPage] API response:', data)
+        console.log(`[ContactsPage] Loaded ${contacts.length} contacts from signalsStore`)
         
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to load contacts')
-        }
+        setBondedContacts(contacts)
         
-        // Merge optimistic CONTACT_ACCEPT events from local store
-        const optimisticContacts = signalsStore.getAll().filter(e => 
-          (e.type === 'CONTACT_ACCEPT' || e.type === 'CONTACT_MIRROR') &&
-          (e.actor === currentSessionId || e.target === currentSessionId) &&
-          e.source === 'hcs-cached' &&
-          e.ts > Date.now() - 60000 // Only consider events from last minute
-        )
-        
-        const allContacts = [...data.bondedContacts]
-        
-        optimisticContacts.forEach(event => {
-          const contactId = event.actor === currentSessionId ? event.target : event.actor
-          const contactMetadata = event.metadata as any
-          
-          // Check if this contact is already in the list from HCS
-          const existsInHCS = allContacts.some(c => 
-            c.peerId === contactId || 
-            c.peerId === contactMetadata?.from?.acct ||
-            c.peerId === contactMetadata?.to?.acct
-          )
-          
-          if (!existsInHCS && contactId) {
-            // Add optimistic contact with pending indicator
-            allContacts.push({
-              peerId: contactId,
-              handle: contactMetadata?.from?.handle || contactMetadata?.to?.handle || contactId,
-              hrl: contactMetadata?.from?.hrl || contactMetadata?.to?.hrl || `hrl:tm/${contactId}`,
-              bondedAt: new Date(event.ts).toISOString(),
-              isPending: true // Mark as pending confirmation
-            })
-            console.log(`[ContactsPage] Added optimistic contact bond: ${contactId}`)
-          }
-        })
-        
-        // Merge recent PROFILE_UPDATE events from SignalsStore to show latest display names
-        const recentProfiles = signalsStore.getAll().filter(e => 
-          e.type === 'PROFILE_UPDATE' &&
-          e.ts > Date.now() - 120000 // Consider profiles from last 2 minutes
-        )
-        
-        // Update contact handles with latest profile displayNames
-        allContacts.forEach(contact => {
-          const profileUpdate = recentProfiles.find(p => p.actor === contact.peerId)
-          if (profileUpdate && profileUpdate.metadata?.displayName) {
-            contact.handle = profileUpdate.metadata.displayName
-            console.log(`[ContactsPage] Updated ${contact.peerId} handle to ${profileUpdate.metadata.displayName} from SignalsStore`)
-          }
-        })
-        
-        setBondedContacts(allContacts)
-        
-        // Convert trust levels object back to Map
+        // Build trust levels map from TRUST_ALLOCATE events
         const trustLevelsMap = new Map<string, { allocatedTo: number, receivedFrom: number }>()
-        Object.entries(data.trustLevels).forEach(([key, value]) => {
-          trustLevelsMap.set(key, value as { allocatedTo: number, receivedFrom: number })
-        })
+        const trustEvents = signalsStore.getAll().filter(e => e.type === 'TRUST_ALLOCATE')
         
-        // Merge optimistic TRUST_ALLOCATE events from local store (same as circle page)
-        const localTrustEvents = signalsStore.getAll().filter(e => 
-          e.type === 'TRUST_ALLOCATE' && 
-          e.actor === currentSessionId &&
-          e.source === 'hcs-cached' &&
-          e.ts > Date.now() - 60000 // Only consider events from last minute
-        )
-        
-        localTrustEvents.forEach(event => {
+        trustEvents.forEach(event => {
           const targetId = event.target
-          if (targetId && !trustLevelsMap.has(targetId)) {
-            // This trust allocation hasn't arrived from HCS yet, add it optimistically
-            trustLevelsMap.set(targetId, { allocatedTo: 1, receivedFrom: 0 })
-            console.log(`[ContactsPage] Added optimistic trust allocation to ${targetId}`)
+          if (!targetId) return
+          
+          // Track trust allocated TO others (outgoing)
+          if (event.actor === currentSessionId) {
+            const existing = trustLevelsMap.get(targetId) || { allocatedTo: 0, receivedFrom: 0 }
+            existing.allocatedTo += 1
+            trustLevelsMap.set(targetId, existing)
+          }
+          
+          // Track trust received FROM others (incoming)
+          if (event.target === currentSessionId) {
+            const actorId = event.actor
+            const existing = trustLevelsMap.get(actorId) || { allocatedTo: 0, receivedFrom: 0 }
+            existing.receivedFrom += 1
+            trustLevelsMap.set(actorId, existing)
           }
         })
         
         setTrustLevels(trustLevelsMap)
         
-        console.log(`[ContactsPage] Loaded ${data.bondedContacts.length} contacts from HCS`)
       } catch (error) {
         console.error('[ContactsPage] Failed to load contacts:', error)
         toast.error('Failed to load contacts')
@@ -159,11 +109,13 @@ export default function ContactsPage() {
     }
     window.addEventListener('contactAdded', handleContactAdded)
     
-    // Refresh every 30 seconds
-    const interval = setInterval(loadContacts, 30000)
+    // Subscribe to signalsStore changes for real-time updates
+    const unsubscribe = signalsStore.subscribe(() => {
+      loadContacts()
+    })
     
     return () => {
-      clearInterval(interval)
+      unsubscribe()
       window.removeEventListener('contactAdded', handleContactAdded)
     }
   }, [])
@@ -194,6 +146,14 @@ export default function ContactsPage() {
     setSelectedContact(contact)
   }
 
+  // Calculate Inner Circle stats
+  const circleMembers = bondedContacts.filter(contact => {
+    const trustData = trustLevels.get(contact.peerId || '')
+    return trustData && trustData.allocatedTo > 0
+  })
+  const allocatedOut = circleMembers.length
+  const maxSlots = 9
+
   // Show authentication prompt if no session
   if (!sessionId && !isLoading) {
     return (
@@ -216,7 +176,44 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]"><div className="max-w-md mx-auto px-4 py-4 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0a1f] via-[#2a1030] to-[#1a0a1f]">
+      {/* Tiny LED Circle Button - Fixed on left edge */}
+      {sessionId && (
+        <button
+          onClick={() => setShowInnerCircle(true)}
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-40 p-2 bg-black/40 backdrop-blur-sm border border-white/10 rounded-r-lg hover:bg-black/60 transition-all active:scale-95"
+          aria-label="Open Inner Circle"
+        >
+          <div className="relative w-8 h-8">
+            {Array.from({ length: maxSlots }, (_, i) => {
+              const angle = (i * 360) / maxSlots - 90
+              const radian = (angle * Math.PI) / 180
+              const radius = 12
+              const x = Math.cos(radian) * radius + 16
+              const y = Math.sin(radian) * radius + 16
+              
+              return (
+                <div
+                  key={i}
+                  className={`absolute w-1.5 h-1.5 rounded-full ${
+                    i < allocatedOut
+                      ? 'bg-emerald-400 shadow-[0_0_4px_rgba(34,197,94,0.6)]'
+                      : 'bg-gray-400 opacity-30'
+                  }`}
+                  style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
+                />
+              )
+            })}
+            <div 
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs"
+            >
+              🔥
+            </div>
+          </div>
+        </button>
+      )}
+      
+      <div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
       {/* Card 1: QR Contact Exchange - Network Growth Engine */}
       <div className="sheen-sweep bg-gradient-to-br from-panel/90 to-panel/80 border-2 border-[#FF6B35]/20 shadow-[0_0_30px_rgba(255,107,53,0.15),0_0_60px_rgba(255,107,53,0.05)] rounded-lg p-4 relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-[#FF6B35]/20 before:via-transparent before:to-[#FF6B35]/20 before:-z-10 before:animate-pulse">
@@ -443,6 +440,17 @@ export default function ContactsPage() {
           }}
         />
       )}
+      
+      {/* Inner Circle Drawer */}
+      <InnerCircleDrawer
+        isOpen={showInnerCircle}
+        onClose={() => setShowInnerCircle(false)}
+        circleMembers={circleMembers}
+        trustLevels={trustLevels}
+        allocatedOut={allocatedOut}
+        maxSlots={maxSlots}
+        allContacts={bondedContacts}
+      />
     </div>
     </div>
   )

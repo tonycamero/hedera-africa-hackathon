@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     
     // 1. Authenticate user via Magic token
     const auth = await requireMagicAuth(request)
-    if (!auth?.success) {
+    if (!auth?.issuer) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - please sign in' },
         { status: 401 }
